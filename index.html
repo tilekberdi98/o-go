@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>O Go (Osakarovka Go) — Заказ и Доставка</title>
+    <!-- Иконки FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #000000;
+            --surface-color: #181818;
+            --accent-yellow: #FFD700;
+            --text-main: #FFFFFF;
+            --text-dark: #000000;
+            --text-gray: #A0A0A0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: #121212;
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 480px;
+            background-color: var(--bg-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            padding-bottom: 75px;
+            box-shadow: 0 0 25px rgba(255, 215, 0, 0.1);
+        }
+
+        /* ХЕДЕР */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background-color: var(--bg-color);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 1px solid #222;
+        }
+
+        .app-stores-download {
+            display: flex;
+            gap: 14px;
+            align-items: center;
+        }
+
+        .app-stores-download a {
+            color: var(--accent-yellow);
+            font-size: 22px;
+            text-decoration: none;
+        }
+
+        .menu-btn {
+            color: var(--accent-yellow);
+            font-size: 24px;
+            cursor: pointer;
+            background: none;
+            border: none;
+        }
+
+        /* КОНТЕНТ */
+        main {
+            padding: 20px;
+            flex: 1;
+        }
+
+        .top-header-info {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .top-header-info h1 {
+            font-size: 18px;
+            color: var(--accent-yellow);
+            font-weight: 700;
+        }
+
+        .top-header-info p {
+            font-size: 12px;
+            color: var(--text-gray);
+            margin-top: 4px;
+        }
+
+        /* ЛОГОТИП */
+        .logo-container {
+            margin: 10px 0 20px;
+            text-align: center;
+        }
+
+        .logo-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--accent-yellow);
+            color: var(--text-dark);
+            padding: 8px 22px;
+            border-radius: 40px;
+            font-weight: 900;
+            font-size: 30px;
+            letter-spacing: -1px;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+        }
+
+        .logo-badge span {
+            background-color: #000;
+            color: var(--accent-yellow);
+            padding: 2px 7px;
+            border-radius: 6px;
+            margin-left: 6px;
+        }
+
+        /* КАРТОЧКИ УСЛУГ И ТОВАРОВ */
+        .services-grid {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .service-card {
+            background: var(--surface-color);
+            border: 1px solid #2a2a2a;
+            border-radius: 16px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .service-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .service-icon {
+            width: 44px;
+            height: 44px;
+            background-color: var(--accent-yellow);
+            color: var(--text-dark);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .service-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .service-title {
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .btn-add {
+            background-color: var(--accent-yellow);
+            color: var(--text-dark);
+            border: none;
+            padding: 8px 14px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        /* КОРЗИНА И ЭЛЕМЕНТЫ */
+        .cart-item {
+            background: var(--surface-color);
+            border: 1px solid #222;
+            padding: 12px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .qty-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .qty-btn {
+            background: var(--accent-yellow);
+            color: #000;
+            border: none;
+            width: 26px;
+            height: 26px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .total-price {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--accent-yellow);
+            margin: 15px 0;
+            text-align: right;
+        }
+
+        /* СЕКЦИЯ СКАЧИВАНИЯ ПРИЛОЖЕНИЯ (FOOTER) */
+        .app-download-footer {
+            margin-top: 30px;
+            padding: 15px;
+            background: var(--surface-color);
+            border-radius: 16px;
+            text-align: center;
+            border: 1px dashed #333;
+        }
+
+        .app-download-footer h4 {
+            color: var(--accent-yellow);
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .app-download-footer p {
+            font-size: 11px;
+            color: var(--text-gray);
+            margin-bottom: 12px;
+        }
+
+        .download-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .download-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #000;
+            color: #fff;
+            border: 1px solid var(--accent-yellow);
+            padding: 8px 12px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 11px;
+        }
+
+        /* БОКОВОЕ МЕНЮ */
+        .side-menu {
+            position: fixed;
+            top: 0; right: -100%;
+            width: 80%; max-width: 300px; height: 100%;
+            background-color: #141414;
+            z-index: 1000;
+            transition: right 0.3s ease;
+            padding: 25px 20px;
+            border-left: 2px solid var(--accent-yellow);
+        }
+
+        .side-menu.active { right: 0; }
+
+        .close-menu {
+            color: var(--text-gray);
+            font-size: 22px;
+            background: none; border: none;
+            float: right; cursor: pointer;
+        }
+
+        .menu-items { margin-top: 50px; list-style: none; }
+        .menu-items li { margin-bottom: 22px; }
+        .menu-items a {
+            color: var(--text-main); text-decoration: none;
+            font-size: 16px; display: flex; align-items: center; gap: 12px;
+        }
+
+        .overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.75); z-index: 999; display: none;
+        }
+        .overlay.active { display: block; }
+
+        /* НИЖНИЙ НАВБАР */
+        .bottom-nav {
+            position: fixed; bottom: 0;
+            width: 100%; max-width: 480px; height: 65px;
+            background-color: #0d0d0d;
+            border-top: 1px solid #222;
+            display: flex; justify-content: space-around; align-items: center;
+            z-index: 100;
+        }
+
+        .nav-item {
+            display: flex; flex-direction: column; align-items: center;
+            color: var(--text-gray); text-decoration: none;
+            font-size: 11px; gap: 3px; background: none; border: none;
+            cursor: pointer; width: 20%; position: relative;
+        }
+
+        .nav-item i { font-size: 18px; }
+        .nav-item.active { color: var(--accent-yellow); }
+
+        .badge-count {
+            position: absolute; top: -2px; right: 18px;
+            background: red; color: white; border-radius: 50%;
+            padding: 2px 5px; font-size: 9px; font-weight: bold;
+        }
+
+        /* МОДАЛЬНЫЕ ОКНА */
+        .modal {
+            display: none; position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 2000;
+            justify-content: center; align-items: center; padding: 20px;
+        }
+
+        .modal-content {
+            background-color: #1a1a1a; padding: 22px;
+            border-radius: 16px; width: 100%; max-width: 360px;
+            border: 1px solid var(--accent-yellow); position: relative;
+        }
+
+        .modal-title { font-size: 18px; margin-bottom: 15px; color: var(--accent-yellow); text-align: center; }
+
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; margin-bottom: 4px; font-size: 11px; color: var(--text-gray); }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%; padding: 10px; background-color: #0d0d0d;
+            border: 1px solid #333; color: #fff; border-radius: 8px; outline: none; font-size: 13px;
+        }
+
+        .btn-submit {
+            width: 100%; padding: 12px; background-color: var(--accent-yellow);
+            color: var(--text-dark); border: none; font-weight: bold;
+            border-radius: 8px; cursor: pointer; margin-top: 10px;
+        }
+
+        .close-modal { position: absolute; top: 15px; right: 15px; color: var(--text-gray); background: none; border: none; font-size: 18px; cursor: pointer; }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .page-title { font-size: 20px; margin-bottom: 15px; color: var(--accent-yellow); }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        
+        <!-- Хедер -->
+        <header>
+            <div class="app-stores-download">
+                <a href="#download-section"><i class="fa-brands fa-apple"></i></a>
+                <a href="#download-section"><i class="fa-brands fa-google-play"></i></a>
+            </div>
+            <button class="menu-btn" id="openMenuBtn"><i class="fa-solid fa-bars"></i></button>
+        </header>
+
+        <main>
+            <!-- ВКЛАДКА: ГЛАВНАЯ -->
+            <div id="tab-home" class="tab-content active">
+                <div class="top-header-info">
+                    <h1>O Go — Всё, что нужно, в одном месте</h1>
+                    <p>Быстрая доставка и такси в Осакаровке</p>
+                </div>
+
+                <div class="logo-container">
+                    <div class="logo-badge">O<span>GO</span></div>
+                </div>
+
+                <div class="services-grid">
+                    <div class="service-card" onclick="switchTab('tab-shop')">
+                        <div class="service-info">
+                            <div class="service-icon"><i class="fa-solid fa-cart-flatbed-suitcases"></i></div>
+                            <div class="service-title">Магазин продуктов</div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right" style="color: var(--text-gray)"></i>
+                    </div>
+
+                    <div class="service-card" onclick="switchTab('tab-food')">
+                        <div class="service-info">
+                            <div class="service-icon"><i class="fa-solid fa-utensils"></i></div>
+                            <div class="service-title">Еда (Рестораны и Кафе)</div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right" style="color: var(--text-gray)"></i>
+                    </div>
+
+                    <div class="service-card" onclick="switchTab('tab-taxi')">
+                        <div class="service-info">
+                            <div class="service-icon"><i class="fa-solid fa-taxi"></i></div>
+                            <div class="service-title">Такси и Доставка</div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right" style="color: var(--text-gray)"></i>
+                    </div>
+                </div>
+
+                <!-- Блок ссылки на будущее приложение -->
+                <div class="app-download-footer" id="download-section">
+                    <h4>Скачивайте мобильное приложение O Go</h4>
+                    <p>O Go (Osakarovka Go) — всегда под рукой!</p>
+                    <div class="download-buttons">
+                        <a href="#" class="download-btn" onclick="alert('Приложение O Go (Osakarovka Go) скоро будет доступно в App Store!')">
+                            <i class="fa-brands fa-apple"></i> App Store
+                        </a>
+                        <a href="#" class="download-btn" onclick="alert('Приложение O Go (Osakarovka Go) скоро будет доступно в Google Play!')">
+                            <i class="fa-brands fa-google-play"></i> Play Market
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ВКЛАДКА: МАГАЗИН -->
+            <div id="tab-shop" class="tab-content">
+                <h2 class="page-title">Супермаркет</h2>
+                <div id="shop-products" class="services-grid">
+                    <div class="service-card">
+                        <div class="service-info">
+                            <div class="service-icon"><i class="fa-solid fa-apple-whole"></i></div>
+                            <div>
+                                <div class="service-title">Свежие Яблоки (1кг)</div>
+                                <small style="color: var(--accent-yellow)">850 ₸</small>
+                            </div>
+                        </div>
+                        <button class="btn-add" onclick="addToCart('Свежие Яблоки (1кг)', 850)">+ В корзину</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ВКЛАДКА: ЕДА (Рестораны и кафе) -->
+            <div id="tab-food" class="tab-content">
+                <h2 class="page-title">Кафе и Рестораны</h2>
+                <p style="font-size: 12px; color: var(--text-gray); margin-bottom: 12px;">Заведение может добавить свои блюда через меню сотрудников.</p>
+                <div id="food-products" class="services-grid">
+                    <div class="service-card">
+                        <div class="service-info">
+                            <div class="service-icon"><i class="fa-solid fa-burger"></i></div>
+                            <div>
+                                <div class="service-title">Комбо Бургер Сет</div>
+                                <small style="color: var(--text-gray)">Кафе "Fast Food"</small><br>
+                                <small style="color: var(--accent-yellow)">2200 ₸</small>
+                            </div>
+                        </div>
+                        <button class="btn-add" onclick="addToCart('Комбо Бургер Сет', 2200)">+ В корзину</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ВКЛАДКА: ТАКСИ И ДОСТАВКА -->
+            <div id="tab-taxi" class="tab-content">
+                <h2 class="page-title">Заказ такси и доставки</h2>
+                <div class="form-group">
+                    <label>Тип услуги:</label>
+                    <select id="taxiType">
+                        <option value="Пассажирское такси">🚕 Пассажирское такси</option>
+                        <option value="Доставка курьером">📦 Доставка курьером</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Откуда:*</label>
+                    <input type="text" id="taxiFrom" placeholder="Улица, дом">
+                </div>
+                <div class="form-group">
+                    <label>Куда:*</label>
+                    <input type="text" id="taxiTo" placeholder="Пункт назначения">
+                </div>
+                <div class="form-group">
+                    <label>Ваш Номер телефона:*</label>
+                    <input type="tel" id="taxiPhone" placeholder="+7 (700) 000-00-00">
+                </div>
+                <div class="form-group">
+                    <label>Комментарий (по желанию):</label>
+                    <textarea id="taxiComment" rows="2" placeholder="Например: Подезжать к 2 подъезду или передать пакет"></textarea>
+                </div>
+                <button class="btn-submit" onclick="orderTaxi()"><i class="fa-brands fa-whatsapp"></i> Заказать через WhatsApp</button>
+            </div>
+
+            <!-- ВКЛАДКА: КОРЗИНА -->
+            <div id="tab-cart" class="tab-content">
+                <h2 class="page-title">Корзина</h2>
+                <div id="cart-items-container">
+                    <p style="color: var(--text-gray);" id="empty-cart-msg">Ваша корзина пуста.</p>
+                </div>
+                
+                <div id="cart-summary" style="display: none;">
+                    <div class="total-price">Итого: <span id="total-sum">0</span> ₸</div>
+                    
+                    <h3 style="font-size: 15px; margin-bottom: 10px; color: var(--accent-yellow);">Данные для доставки:</h3>
+                    <div class="form-group">
+                        <label>Ваше Имя *</label>
+                        <input type="text" id="clientName" placeholder="Введите имя">
+                    </div>
+                    <div class="form-group">
+                        <label>Номер телефона *</label>
+                        <input type="tel" id="clientPhone" placeholder="+7 (700) 000-00-00">
+                    </div>
+                    <div class="form-group">
+                        <label>Способ оплаты</label>
+                        <select id="paymentMethod">
+                            <option value="Kaspi Gold">Kaspi Gold / Перевод</option>
+                            <option value="Наличные">Наличные курьеру</option>
+                        </select>
+                    </div>
+
+                    <button class="btn-submit" onclick="sendOrderWhatsApp()"><i class="fa-brands fa-whatsapp"></i> Оформить заказ в WhatsApp</button>
+                </div>
+            </div>
+        </main>
+
+        <!-- Нижний Навбар -->
+        <nav class="bottom-nav">
+            <button class="nav-item active" onclick="switchTab('tab-home', this)">
+                <i class="fa-solid fa-house"></i>
+                <span>Главная</span>
+            </button>
+            <button class="nav-item" onclick="switchTab('tab-shop', this)">
+                <i class="fa-solid fa-cart-flatbed-suitcases"></i>
+                <span>Магазин</span>
+            </button>
+            <button class="nav-item" onclick="switchTab('tab-food', this)">
+                <i class="fa-solid fa-utensils"></i>
+                <span>Еда</span>
+            </button>
+            <button class="nav-item" onclick="switchTab('tab-taxi', this)">
+                <i class="fa-solid fa-taxi"></i>
+                <span>доставка</span>
+            </button>
+            <button class="nav-item" onclick="switchTab('tab-cart', this)">
+                <i class="fa-solid fa-cart-shopping"></i>
+                <span>Корзина</span>
+                <span class="badge-count" id="cart-badge" style="display:none;">0</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- Боковое меню -->
+    <div class="overlay" id="overlay"></div>
+    <div class="side-menu" id="sideMenu">
+        <button class="close-menu" id="closeMenuBtn"><i class="fa-solid fa-xmark"></i></button>
+        <ul class="menu-items">
+            <li><a href="#" onclick="alert('По вопросам сотрудничества: partner@ogo.kz')"><i class="fa-solid fa-handshake" style="color: var(--accent-yellow)"></i> Сотрудничество</a></li>
+            <li><a href="#" id="openAdminLogin"><i class="fa-solid fa-user-lock" style="color: var(--accent-yellow)"></i> Вход для сотрудников</a></li>
+        </ul>
+    </div>
+
+    <!-- Модальное окно: Логин Админа -->
+    <div class="modal" id="loginModal">
+        <div class="modal-content">
+            <button class="close-modal">&times;</button>
+            <h3 class="modal-title">Вход для сотрудников</h3>
+            <div class="form-group">
+                <label>Логин</label>
+                <input type="text" id="adminLogin" placeholder="admin">
+            </div>
+            <div class="form-group">
+                <label>Пароль</label>
+                <input type="password" id="adminPass" placeholder="••••">
+            </div>
+            <button class="btn-submit" onclick="loginAdmin()">Войти</button>
+        </div>
+    </div>
+
+    <!-- Модальное окно: Панель Админа -->
+    <div class="modal" id="adminPanelModal">
+        <div class="modal-content">
+            <button class="close-modal">&times;</button>
+            <h3 class="modal-title">Добавить товар / блюдо</h3>
+            <div class="form-group">
+                <label>Раздел размещения</label>
+                <select id="prodCategory">
+                    <option value="shop">Магазин (Супермаркет)</option>
+                    <option value="food">Еда (Ресторан / Кафе / Фастфуд)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Название товара/блюда</label>
+                <input type="text" id="prodName" placeholder="Пицца Пепперони">
+            </div>
+            <div class="form-group">
+                <label>Цена (в ₸)</label>
+                <input type="number" id="prodPrice" placeholder="2500">
+            </div>
+            <div class="form-group">
+                <label>Ссылка на фото (URL)</label>
+                <input type="text" id="prodImg" placeholder="https://...">
+            </div>
+            <button class="btn-submit" onclick="addProduct()">Опубликовать</button>
+        </div>
+    </div>
+
+    <!-- СКРИПТЫ -->
+    <script>
+        let cart = [];
+
+        function switchTab(tabId, btnElement) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+
+            if (btnElement) {
+                document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+                btnElement.classList.add('active');
+            }
+        }
+
+        function addToCart(name, price) {
+            const existingItem = cart.find(item => item.name === name);
+            if (existingItem) {
+                existingItem.qty++;
+            } else {
+                cart.push({ name, price, qty: 1 });
+            }
+            updateCartUI();
+            alert(`"${name}" добавлен в корзину!`);
+        }
+
+        function changeQty(index, delta) {
+            cart[index].qty += delta;
+            if (cart[index].qty <= 0) {
+                cart.splice(index, 1);
+            }
+            updateCartUI();
+        }
+
+        function updateCartUI() {
+            const container = document.getElementById('cart-items-container');
+            const summary = document.getElementById('cart-summary');
+            const badge = document.getElementById('cart-badge');
+
+            let totalQty = 0;
+            let totalSum = 0;
+
+            if (cart.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-gray);">Ваша корзина пуста.</p>';
+                summary.style.display = 'none';
+                badge.style.display = 'none';
+                return;
+            }
+
+            container.innerHTML = '';
+            cart.forEach((item, index) => {
+                totalQty += item.qty;
+                totalSum += item.price * item.qty;
+
+                const itemElement = document.createElement('div');
+                itemElement.className = 'cart-item';
+                itemElement.innerHTML = `
+                    <div>
+                        <div style="font-weight: bold;">${item.name}</div>
+                        <small style="color: var(--accent-yellow);">${item.price * item.qty} ₸</small>
+                    </div>
+                    <div class="qty-controls">
+                        <button class="qty-btn" onclick="changeQty(${index}, -1)">-</button>
+                        <span>${item.qty}</span>
+                        <button class="qty-btn" onclick="changeQty(${index}, 1)">+</button>
+                    </div>
+                `;
+                container.appendChild(itemElement);
+            });
+
+            document.getElementById('total-sum').innerText = totalSum;
+            summary.style.display = 'block';
+            badge.innerText = totalQty;
+            badge.style.display = 'block';
+        }
+
+        // Отправка Магазина/Еды на WhatsApp
+        function sendOrderWhatsApp() {
+            const name = document.getElementById('clientName').value.trim();
+            const phone = document.getElementById('clientPhone').value.trim();
+            const payment = document.getElementById('paymentMethod').value;
+
+            if (!name || !phone) {
+                alert('Пожалуйста, введите Имя и Телефон!');
+                return;
+            }
+
+            let totalSum = 0;
+            let text = "📦 *НОВЫЙ ЗАКАЗ (O Go / Osakarovka Go)*\n\n📋 *Товары:*\n";
+
+            cart.forEach((item, i) => {
+                const cost = item.price * item.qty;
+                totalSum += cost;
+                text += `${i+1}. ${item.name} x ${item.qty} шт = ${cost} ₸\n`;
+            });
+
+            text += `\n💰 *Итого:* ${totalSum} ₸\n\n👤 *Клиент:* ${name}\n📞 *Тел:* ${phone}\n💳 *Оплата:* ${payment}`;
+
+            const whatsappUrl = `https://wa.me/77756108898?text=${encodeURIComponent(text)}`;
+            window.open(whatsappUrl, '_blank');
+        }
+
+        // Отправка Такси / Доставки на WhatsApp
+        function orderTaxi() {
+            const type = document.getElementById('taxiType').value;
+            const from = document.getElementById('taxiFrom').value.trim();
+            const to = document.getElementById('taxiTo').value.trim();
+            const phone = document.getElementById('taxiPhone').value.trim();
+            const comment = document.getElementById('taxiComment').value.trim();
+
+            if (!from || !to || !phone) {
+                alert('Заполните обязательные поля: Откуда, Куда и Номер телефона!');
+                return;
+            }
+
+            let text = `🚕 *ЗАКАЗ: ${type.toUpperCase()} (O Go)*\n\n📍 *Откуда:* ${from}\n🏁 *Куда:* ${to}\n📞 *Тел:* ${phone}`;
+            if (comment) {
+                text += `\n💬 *Коммент:* ${comment}`;
+            }
+
+            const whatsappUrl = `https://wa.me/77756108898?text=${encodeURIComponent(text)}`;
+            window.open(whatsappUrl, '_blank');
+        }
+
+        // Меню
+        const sideMenu = document.getElementById('sideMenu');
+        const overlay = document.getElementById('overlay');
+
+        document.getElementById('openMenuBtn').onclick = () => {
+            sideMenu.classList.add('active');
+            overlay.classList.add('active');
+        };
+
+        function closeMenu() {
+            sideMenu.classList.remove('active');
+            overlay.classList.remove('active');
+        }
+
+        document.getElementById('closeMenuBtn').onclick = closeMenu;
+        overlay.onclick = closeMenu;
+
+        // Админка
+        const loginModal = document.getElementById('loginModal');
+        const adminPanelModal = document.getElementById('adminPanelModal');
+
+        document.getElementById('openAdminLogin').onclick = (e) => {
+            e.preventDefault();
+            closeMenu();
+            loginModal.style.display = 'flex';
+        };
+
+        document.querySelectorAll('.close-modal').forEach(btn => {
+            btn.onclick = () => {
+                loginModal.style.display = 'none';
+                adminPanelModal.style.display = 'none';
+            };
+        });
+
+        function loginAdmin() {
+            const login = document.getElementById('adminLogin').value;
+            const pass = document.getElementById('adminPass').value;
+
+            if (login === 'admin' && pass === '1234') {
+                loginModal.style.display = 'none';
+                adminPanelModal.style.display = 'flex';
+            } else {
+                alert('Неверный логин/пароль! (admin / 1234)');
+            }
+        }
+
+        function addProduct() {
+            const category = document.getElementById('prodCategory').value;
+            const name = document.getElementById('prodName').value.trim();
+            const price = parseInt(document.getElementById('prodPrice').value);
+            const imgUrl = document.getElementById('prodImg').value.trim();
+
+            if (!name || isNaN(price)) {
+                alert('Заполните корректно название и цену!');
+                return;
+            }
+
+            const containerId = category === 'shop' ? 'shop-products' : 'food-products';
+            const iconContent = imgUrl ? `<img src="${imgUrl}" alt="img">` : `<i class="fa-solid fa-box"></i>`;
+
+            const card = document.createElement('div');
+            card.className = 'service-card';
+            card.innerHTML = `
+                <div class="service-info">
+                    <div class="service-icon">${iconContent}</div>
+                    <div>
+                        <div class="service-title">${name}</div>
+                        <small style="color: var(--accent-yellow)">${price} ₸</small>
+                    </div>
+                </div>
+                <button class="btn-add" onclick="addToCart('${name}', ${price})">+ В корзину</button>
+            `;
+
+            document.getElementById(containerId).prepend(card);
+            alert('Опубликовано!');
+            adminPanelModal.style.display = 'none';
+            switchTab(category === 'shop' ? 'tab-shop' : 'tab-food');
+        }
+    </script>
+</body>
+</html>
