@@ -1,811 +1,764 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="kk">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>O Go (Osakarovka Go) — Заказ и Доставка</title>
-    <!-- Иконки FontAwesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        :root {
-            --bg-color: #000000;
-            --surface-color: #181818;
-            --accent-yellow: #FFD700;
-            --text-main: #FFFFFF;
-            --text-dark: #000000;
-            --text-gray: #A0A0A0;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#111111">
+<title>O Go — Осакаровка</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            -webkit-tap-highlight-color: transparent;
-        }
+<style>
+:root{
+    --black:#0b0d0c;
+    --dark:#121513;
+    --card:#171b18;
+    --yellow:#ffd400;
+    --green:#a8e63d;
+    --white:#fff;
+    --muted:#9ba29d;
+    --line:rgba(255,255,255,.08);
 
-        body {
-            background-color: #121212;
-            color: var(--text-main);
-            display: flex;
-            justify-content: center;
-            min-height: 100vh;
-        }
+    /* БҰЛ ЖЕРДЕН 4 БӨЛІМНІҢ ФОТОСЫН КЕЙІН ОҢАЙ АУЫСТЫРАСЫҢ */
+    --store-image:url("https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1000&q=80");
+    --taxi-image:url("https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?auto=format&fit=crop&w=1000&q=80");
+    --food-image:url("https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1000&q=80");
+    --delivery-image:url("https://images.unsplash.com/photo-1526367790999-0150786686a2?auto=format&fit=crop&w=1000&q=80");
+}
 
-        .app-container {
-            width: 100%;
-            max-width: 480px;
-            background-color: var(--bg-color);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-            padding-bottom: 75px;
-            box-shadow: 0 0 25px rgba(255, 215, 0, 0.1);
-        }
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+    min-height:100vh;
+    background:#050605;
+    color:var(--white);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    -webkit-tap-highlight-color:transparent;
+}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+a{text-decoration:none;color:inherit}
 
-        /* ХЕДЕР */
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 20px;
-            background-color: var(--bg-color);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            border-bottom: 1px solid #222;
-        }
+.app{
+    width:100%;
+    max-width:520px;
+    min-height:100vh;
+    margin:auto;
+    background:var(--black);
+    position:relative;
+    overflow:hidden;
+    box-shadow:0 0 50px rgba(0,0,0,.45);
+    padding-bottom:88px;
+}
 
-        .app-stores-download {
-            display: flex;
-            gap: 14px;
-            align-items: center;
-        }
+/* HEADER */
+header{
+    height:66px;
+    padding:0 20px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    position:sticky;
+    top:0;
+    z-index:50;
+    background:rgba(11,13,12,.88);
+    backdrop-filter:blur(18px);
+    border-bottom:1px solid var(--line);
+}
+.brand{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    font-weight:950;
+    letter-spacing:-1.5px;
+    font-size:25px;
+}
+.brand-mark{
+    width:34px;height:34px;border-radius:11px;
+    display:grid;place-items:center;
+    background:var(--yellow);
+    color:#111;
+    font-size:17px;
+    box-shadow:0 5px 20px rgba(255,212,0,.22);
+}
+.header-actions{display:flex;align-items:center;gap:10px}
+.header-btn{
+    width:40px;height:40px;border:1px solid var(--line);
+    border-radius:12px;background:#151815;color:#fff;
+    display:grid;place-items:center;
+}
+.header-btn:hover{border-color:rgba(255,212,0,.5);color:var(--yellow)}
 
-        .app-stores-download a {
-            color: var(--accent-yellow);
-            font-size: 22px;
-            text-decoration: none;
-        }
+/* HERO */
+main{padding:18px 16px 24px}
+.hero{
+    min-height:285px;
+    border-radius:28px;
+    padding:25px 22px;
+    position:relative;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+    justify-content:flex-end;
+    background:
+      linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.88)),
+      radial-gradient(circle at 80% 20%,rgba(168,230,61,.25),transparent 35%),
+      #161b17;
+    border:1px solid var(--line);
+}
+.hero:before{
+    content:"";
+    position:absolute;inset:0;
+    background:
+      radial-gradient(circle at 88% 18%,rgba(255,212,0,.25),transparent 22%),
+      linear-gradient(120deg,transparent 40%,rgba(168,230,61,.08));
+    pointer-events:none;
+}
+.hero-logo{
+    position:absolute;
+    top:23px;left:22px;
+    font-size:43px;font-weight:1000;letter-spacing:-4px;
+}
+.hero-logo span{color:var(--yellow)}
+.hero-badge{
+    position:absolute;right:20px;top:20px;
+    padding:8px 11px;border-radius:999px;
+    background:rgba(255,212,0,.12);
+    color:var(--yellow);
+    border:1px solid rgba(255,212,0,.25);
+    font-size:11px;font-weight:800;
+}
+.hero h1{
+    position:relative;
+    max-width:330px;
+    font-size:34px;
+    line-height:1.02;
+    letter-spacing:-1.7px;
+    margin-bottom:10px;
+}
+.hero p{
+    position:relative;
+    color:#c5cbc7;
+    font-size:14px;
+    line-height:1.45;
+    max-width:360px;
+}
+.hero-note{
+    position:relative;
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+    margin-top:16px;
+    width:max-content;
+    padding:9px 12px;
+    border-radius:999px;
+    background:rgba(168,230,61,.12);
+    color:var(--green);
+    font-size:11px;
+    font-weight:800;
+}
 
-        .menu-btn {
-            color: var(--accent-yellow);
-            font-size: 24px;
-            cursor: pointer;
-            background: none;
-            border: none;
-        }
+/* SERVICES */
+.section-head{
+    display:flex;
+    align-items:end;
+    justify-content:space-between;
+    margin:27px 2px 13px;
+}
+.section-head h2{font-size:21px;letter-spacing:-.6px}
+.section-head span{font-size:11px;color:var(--muted)}
 
-        /* КОНТЕНТ */
-        main {
-            padding: 20px;
-            flex: 1;
-        }
+.services{display:grid;gap:12px}
+.service{
+    min-height:136px;
+    border:1px solid var(--line);
+    border-radius:21px;
+    overflow:hidden;
+    position:relative;
+    background:#161916;
+    isolation:isolate;
+}
+.service-bg{
+    position:absolute;inset:0;z-index:-2;
+    background-size:cover;background-position:center;
+    opacity:.42;
+    transform:scale(1.01);
+    transition:.25s;
+}
+.service:after{
+    content:"";position:absolute;inset:0;z-index:-1;
+    background:linear-gradient(90deg,rgba(8,10,9,.95) 0%,rgba(8,10,9,.74) 48%,rgba(8,10,9,.18) 100%);
+}
+.service:hover .service-bg{transform:scale(1.05)}
+.service-content{
+    min-height:136px;padding:18px;
+    display:flex;align-items:center;justify-content:space-between;
+    gap:12px;
+}
+.service-left{display:flex;align-items:center;gap:13px}
+.service-icon{
+    width:51px;height:51px;border-radius:16px;
+    flex:0 0 51px;
+    display:grid;place-items:center;
+    background:var(--yellow);color:#111;
+    font-size:21px;
+    box-shadow:0 8px 24px rgba(0,0,0,.22);
+}
+.service:nth-child(even) .service-icon{background:var(--green)}
+.service h3{font-size:18px;letter-spacing:-.4px;margin-bottom:4px}
+.service p{font-size:11px;color:#c0c6c2}
+.arrow{
+    width:38px;height:38px;border-radius:12px;
+    display:grid;place-items:center;
+    background:rgba(255,255,255,.09);
+    border:1px solid rgba(255,255,255,.12);
+    color:#fff;
+}
 
-        .top-header-info {
-            text-align: center;
-            margin-bottom: 15px;
-        }
+/* PAGES */
+.page{display:none;animation:fade .2s ease}
+.page.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+.page-top{display:flex;align-items:center;gap:11px;margin-bottom:18px}
+.back{
+    width:40px;height:40px;border-radius:12px;
+    border:1px solid var(--line);background:#151815;color:#fff;
+}
+.page-title{font-size:25px;letter-spacing:-1px}
+.page-subtitle{font-size:12px;color:var(--muted);margin-top:3px}
 
-        .top-header-info h1 {
-            font-size: 18px;
-            color: var(--accent-yellow);
-            font-weight: 700;
-        }
+/* PRODUCT CARDS */
+.products{display:grid;gap:11px}
+.product{
+    display:flex;align-items:center;gap:12px;
+    padding:12px;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:18px;
+}
+.product-img{
+    width:62px;height:62px;border-radius:15px;
+    background:linear-gradient(135deg,#252b27,#111);
+    display:grid;place-items:center;
+    color:var(--yellow);font-size:22px;
+    overflow:hidden;flex-shrink:0;
+}
+.product-img img{width:100%;height:100%;object-fit:cover}
+.product-info{flex:1;min-width:0}
+.product-name{font-weight:750;font-size:14px;margin-bottom:4px}
+.product-desc{font-size:11px;color:var(--muted);margin-bottom:6px}
+.price{font-size:14px;font-weight:900;color:var(--yellow)}
+.add{
+    border:0;background:var(--yellow);color:#111;
+    min-width:39px;height:39px;border-radius:12px;
+    font-size:17px;font-weight:900;
+}
+.empty{
+    padding:28px 15px;text-align:center;
+    border:1px dashed #303530;border-radius:18px;
+    color:var(--muted);font-size:13px;
+}
 
-        .top-header-info p {
-            font-size: 12px;
-            color: var(--text-gray);
-            margin-top: 4px;
-        }
+/* FORMS */
+.form-card{
+    background:var(--card);border:1px solid var(--line);
+    border-radius:20px;padding:17px;
+}
+.form-group{margin-bottom:13px}
+.form-group label{
+    display:block;font-size:11px;color:var(--muted);
+    margin-bottom:6px;
+}
+.form-group input,.form-group select,.form-group textarea{
+    width:100%;border:1px solid #303530;
+    background:#0e110f;color:#fff;
+    border-radius:12px;padding:12px;
+    outline:none;font-size:13px;
+}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{
+    border-color:var(--yellow);
+}
+.submit{
+    width:100%;border:0;border-radius:13px;
+    background:var(--yellow);color:#111;
+    padding:13px;font-weight:900;
+}
+.submit.green{background:var(--green)}
+.hint{font-size:11px;color:var(--muted);line-height:1.45;margin:0 0 14px}
 
-        /* ЛОГОТИП */
-        .logo-container {
-            margin: 10px 0 20px;
-            text-align: center;
-        }
+/* CART */
+.cart-list{display:grid;gap:10px}
+.cart-item{
+    display:flex;align-items:center;gap:10px;
+    background:var(--card);border:1px solid var(--line);
+    border-radius:16px;padding:12px;
+}
+.cart-info{flex:1}
+.cart-name{font-size:13px;font-weight:750}
+.cart-price{font-size:11px;color:var(--yellow);margin-top:4px}
+.qty{display:flex;align-items:center;gap:8px}
+.qty button{
+    width:29px;height:29px;border:0;border-radius:9px;
+    background:#2a302b;color:#fff;font-weight:900;
+}
+.total{
+    margin:14px 0;padding:15px 2px;
+    display:flex;justify-content:space-between;
+    font-weight:850;
+}
+.total strong{color:var(--yellow);font-size:19px}
 
-        .logo-badge {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            background: var(--accent-yellow);
-            color: var(--text-dark);
-            padding: 8px 22px;
-            border-radius: 40px;
-            font-weight: 900;
-            font-size: 30px;
-            letter-spacing: -1px;
-            box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
-        }
+/* DOWNLOAD */
+.download{
+    margin-top:26px;
+    padding:21px;
+    border-radius:22px;
+    border:1px solid rgba(255,212,0,.22);
+    background:
+      radial-gradient(circle at 90% 10%,rgba(168,230,61,.18),transparent 35%),
+      #161a17;
+}
+.download .mini-logo{
+    font-size:27px;font-weight:1000;letter-spacing:-2px;
+}
+.mini-logo span{color:var(--yellow)}
+.download h3{font-size:18px;margin:10px 0 6px}
+.download p{font-size:11px;color:var(--muted);line-height:1.45}
+.store-buttons{display:flex;gap:9px;margin-top:15px}
+.store-btn{
+    flex:1;display:flex;align-items:center;justify-content:center;
+    gap:7px;padding:11px 8px;border-radius:12px;
+    background:#080a09;border:1px solid #343934;
+    font-size:11px;font-weight:750;
+}
+.store-btn i{font-size:17px}
 
-        .logo-badge span {
-            background-color: #000;
-            color: var(--accent-yellow);
-            padding: 2px 7px;
-            border-radius: 6px;
-            margin-left: 6px;
-        }
+/* BOTTOM NAV */
+.bottom{
+    position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+    width:100%;max-width:520px;height:75px;
+    display:flex;align-items:center;justify-content:space-around;
+    background:rgba(12,14,13,.94);backdrop-filter:blur(18px);
+    border-top:1px solid var(--line);
+    z-index:100;
+    padding:7px 7px env(safe-area-inset-bottom);
+}
+.nav{
+    width:20%;border:0;background:none;color:var(--muted);
+    display:flex;flex-direction:column;align-items:center;gap:4px;
+    font-size:10px;
+}
+.nav i{font-size:18px}
+.nav.active{color:var(--yellow)}
+.badge{
+    position:absolute;margin:-30px 0 0 24px;
+    background:#ff3b30;color:#fff;
+    min-width:17px;height:17px;border-radius:99px;
+    display:none;place-items:center;
+    font-size:9px;font-weight:900;
+}
 
-        /* КАРТОЧКИ УСЛУГ И ТОВАРОВ */
-        .services-grid {
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
+/* SIDE MENU */
+.overlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.7);
+    z-index:300;display:none;
+}
+.overlay.show{display:block}
+.side{
+    position:fixed;top:0;right:-100%;
+    width:min(88%,350px);height:100%;
+    z-index:301;background:#111411;
+    border-left:1px solid var(--line);
+    padding:20px;
+    transition:right .25s ease;
+}
+.side.show{right:0}
+.side-head{display:flex;justify-content:space-between;align-items:center}
+.close{
+    width:40px;height:40px;border-radius:12px;
+    background:#1b1f1c;border:1px solid var(--line);color:#fff;
+}
+.side-links{list-style:none;margin-top:35px;display:grid;gap:10px}
+.side-links button{
+    width:100%;padding:14px;border-radius:13px;
+    border:1px solid var(--line);background:#171b18;
+    color:#fff;text-align:left;
+}
+.side-links i{width:25px;color:var(--yellow)}
 
-        .service-card {
-            background: var(--surface-color);
-            border: 1px solid #2a2a2a;
-            border-radius: 16px;
-            padding: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
+/* MODAL */
+.modal{
+    position:fixed;inset:0;z-index:500;
+    background:rgba(0,0,0,.78);
+    display:none;align-items:center;justify-content:center;
+    padding:18px;
+}
+.modal.show{display:flex}
+.modal-box{
+    width:100%;max-width:390px;
+    background:#171b18;border:1px solid #353a35;
+    border-radius:22px;padding:20px;
+    position:relative;
+}
+.modal-box h3{font-size:20px;margin-bottom:15px}
+.modal-close{position:absolute;right:15px;top:15px}
 
-        .service-info {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .service-icon {
-            width: 44px;
-            height: 44px;
-            background-color: var(--accent-yellow);
-            color: var(--text-dark);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            flex-shrink: 0;
-            overflow: hidden;
-        }
-
-        .service-icon img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .service-title {
-            font-size: 15px;
-            font-weight: 600;
-        }
-
-        .btn-add {
-            background-color: var(--accent-yellow);
-            color: var(--text-dark);
-            border: none;
-            padding: 8px 14px;
-            font-weight: bold;
-            border-radius: 8px;
-            cursor: pointer;
-        }
-
-        /* КОРЗИНА И ЭЛЕМЕНТЫ */
-        .cart-item {
-            background: var(--surface-color);
-            border: 1px solid #222;
-            padding: 12px;
-            border-radius: 12px;
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .qty-controls {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .qty-btn {
-            background: var(--accent-yellow);
-            color: #000;
-            border: none;
-            width: 26px;
-            height: 26px;
-            border-radius: 6px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        .total-price {
-            font-size: 18px;
-            font-weight: bold;
-            color: var(--accent-yellow);
-            margin: 15px 0;
-            text-align: right;
-        }
-
-        /* СЕКЦИЯ СКАЧИВАНИЯ ПРИЛОЖЕНИЯ (FOOTER) */
-        .app-download-footer {
-            margin-top: 30px;
-            padding: 15px;
-            background: var(--surface-color);
-            border-radius: 16px;
-            text-align: center;
-            border: 1px dashed #333;
-        }
-
-        .app-download-footer h4 {
-            color: var(--accent-yellow);
-            font-size: 14px;
-            margin-bottom: 5px;
-        }
-
-        .app-download-footer p {
-            font-size: 11px;
-            color: var(--text-gray);
-            margin-bottom: 12px;
-        }
-
-        .download-buttons {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-        }
-
-        .download-btn {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            background: #000;
-            color: #fff;
-            border: 1px solid var(--accent-yellow);
-            padding: 8px 12px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-size: 11px;
-        }
-
-        /* БОКОВОЕ МЕНЮ */
-        .side-menu {
-            position: fixed;
-            top: 0; right: -100%;
-            width: 80%; max-width: 300px; height: 100%;
-            background-color: #141414;
-            z-index: 1000;
-            transition: right 0.3s ease;
-            padding: 25px 20px;
-            border-left: 2px solid var(--accent-yellow);
-        }
-
-        .side-menu.active { right: 0; }
-
-        .close-menu {
-            color: var(--text-gray);
-            font-size: 22px;
-            background: none; border: none;
-            float: right; cursor: pointer;
-        }
-
-        .menu-items { margin-top: 50px; list-style: none; }
-        .menu-items li { margin-bottom: 22px; }
-        .menu-items a {
-            color: var(--text-main); text-decoration: none;
-            font-size: 16px; display: flex; align-items: center; gap: 12px;
-        }
-
-        .overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.75); z-index: 999; display: none;
-        }
-        .overlay.active { display: block; }
-
-        /* НИЖНИЙ НАВБАР */
-        .bottom-nav {
-            position: fixed; bottom: 0;
-            width: 100%; max-width: 480px; height: 65px;
-            background-color: #0d0d0d;
-            border-top: 1px solid #222;
-            display: flex; justify-content: space-around; align-items: center;
-            z-index: 100;
-        }
-
-        .nav-item {
-            display: flex; flex-direction: column; align-items: center;
-            color: var(--text-gray); text-decoration: none;
-            font-size: 11px; gap: 3px; background: none; border: none;
-            cursor: pointer; width: 20%; position: relative;
-        }
-
-        .nav-item i { font-size: 18px; }
-        .nav-item.active { color: var(--accent-yellow); }
-
-        .badge-count {
-            position: absolute; top: -2px; right: 18px;
-            background: red; color: white; border-radius: 50%;
-            padding: 2px 5px; font-size: 9px; font-weight: bold;
-        }
-
-        /* МОДАЛЬНЫЕ ОКНА */
-        .modal {
-            display: none; position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85); z-index: 2000;
-            justify-content: center; align-items: center; padding: 20px;
-        }
-
-        .modal-content {
-            background-color: #1a1a1a; padding: 22px;
-            border-radius: 16px; width: 100%; max-width: 360px;
-            border: 1px solid var(--accent-yellow); position: relative;
-        }
-
-        .modal-title { font-size: 18px; margin-bottom: 15px; color: var(--accent-yellow); text-align: center; }
-
-        .form-group { margin-bottom: 12px; }
-        .form-group label { display: block; margin-bottom: 4px; font-size: 11px; color: var(--text-gray); }
-        .form-group input, .form-group select, .form-group textarea {
-            width: 100%; padding: 10px; background-color: #0d0d0d;
-            border: 1px solid #333; color: #fff; border-radius: 8px; outline: none; font-size: 13px;
-        }
-
-        .btn-submit {
-            width: 100%; padding: 12px; background-color: var(--accent-yellow);
-            color: var(--text-dark); border: none; font-weight: bold;
-            border-radius: 8px; cursor: pointer; margin-top: 10px;
-        }
-
-        .close-modal { position: absolute; top: 15px; right: 15px; color: var(--text-gray); background: none; border: none; font-size: 18px; cursor: pointer; }
-
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        .page-title { font-size: 20px; margin-bottom: 15px; color: var(--accent-yellow); }
-    </style>
+/* RESPONSIVE */
+@media(max-width:380px){
+    .hero{min-height:260px}
+    .hero h1{font-size:29px}
+    .service h3{font-size:16px}
+}
+</style>
 </head>
+
 <body>
+<div class="app">
 
-    <div class="app-container">
-        
-        <!-- Хедер -->
-        <header>
-            <div class="app-stores-download">
-                <a href="#download-section"><i class="fa-brands fa-apple"></i></a>
-                <a href="#download-section"><i class="fa-brands fa-google-play"></i></a>
-            </div>
-            <button class="menu-btn" id="openMenuBtn"><i class="fa-solid fa-bars"></i></button>
-        </header>
-
-        <main>
-            <!-- ВКЛАДКА: ГЛАВНАЯ -->
-            <div id="tab-home" class="tab-content active">
-                <div class="top-header-info">
-                    <h1>O Go — Всё, что нужно, в одном месте</h1>
-                    <p>Быстрая доставка и такси в Осакаровке</p>
-                </div>
-
-                <div class="logo-container">
-                    <div class="logo-badge">O<span>GO</span></div>
-                </div>
-
-                <div class="services-grid">
-                    <div class="service-card" onclick="switchTab('tab-shop')">
-                        <div class="service-info">
-                            <div class="service-icon"><i class="fa-solid fa-cart-flatbed-suitcases"></i></div>
-                            <div class="service-title">Магазин продуктов</div>
-                        </div>
-                        <i class="fa-solid fa-chevron-right" style="color: var(--text-gray)"></i>
-                    </div>
-
-                    <div class="service-card" onclick="switchTab('tab-food')">
-                        <div class="service-info">
-                            <div class="service-icon"><i class="fa-solid fa-utensils"></i></div>
-                            <div class="service-title">Еда (Рестораны и Кафе)</div>
-                        </div>
-                        <i class="fa-solid fa-chevron-right" style="color: var(--text-gray)"></i>
-                    </div>
-
-                    <div class="service-card" onclick="switchTab('tab-taxi')">
-                        <div class="service-info">
-                            <div class="service-icon"><i class="fa-solid fa-taxi"></i></div>
-                            <div class="service-title">Такси и Доставка</div>
-                        </div>
-                        <i class="fa-solid fa-chevron-right" style="color: var(--text-gray)"></i>
-                    </div>
-                </div>
-
-                <!-- Блок ссылки на будущее приложение -->
-                <div class="app-download-footer" id="download-section">
-                    <h4>Скачивайте мобильное приложение O Go</h4>
-                    <p>O Go (Osakarovka Go) — всегда под рукой!</p>
-                    <div class="download-buttons">
-                        <a href="#" class="download-btn" onclick="alert('Приложение O Go (Osakarovka Go) скоро будет доступно в App Store!')">
-                            <i class="fa-brands fa-apple"></i> App Store
-                        </a>
-                        <a href="#" class="download-btn" onclick="alert('Приложение O Go (Osakarovka Go) скоро будет доступно в Google Play!')">
-                            <i class="fa-brands fa-google-play"></i> Play Market
-                        </a>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ВКЛАДКА: МАГАЗИН -->
-            <div id="tab-shop" class="tab-content">
-                <h2 class="page-title">Супермаркет</h2>
-                <div id="shop-products" class="services-grid">
-                    <div class="service-card">
-                        <div class="service-info">
-                            <div class="service-icon"><i class="fa-solid fa-apple-whole"></i></div>
-                            <div>
-                                <div class="service-title">Свежие Яблоки (1кг)</div>
-                                <small style="color: var(--accent-yellow)">850 ₸</small>
-                            </div>
-                        </div>
-                        <button class="btn-add" onclick="addToCart('Свежие Яблоки (1кг)', 850)">+ В корзину</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ВКЛАДКА: ЕДА (Рестораны и кафе) -->
-            <div id="tab-food" class="tab-content">
-                <h2 class="page-title">Кафе и Рестораны</h2>
-                <p style="font-size: 12px; color: var(--text-gray); margin-bottom: 12px;">Заведение может добавить свои блюда через меню сотрудников.</p>
-                <div id="food-products" class="services-grid">
-                    <div class="service-card">
-                        <div class="service-info">
-                            <div class="service-icon"><i class="fa-solid fa-burger"></i></div>
-                            <div>
-                                <div class="service-title">Комбо Бургер Сет</div>
-                                <small style="color: var(--text-gray)">Кафе "Fast Food"</small><br>
-                                <small style="color: var(--accent-yellow)">2200 ₸</small>
-                            </div>
-                        </div>
-                        <button class="btn-add" onclick="addToCart('Комбо Бургер Сет', 2200)">+ В корзину</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ВКЛАДКА: ТАКСИ И ДОСТАВКА -->
-            <div id="tab-taxi" class="tab-content">
-                <h2 class="page-title">Заказ такси и доставки</h2>
-                <div class="form-group">
-                    <label>Тип услуги:</label>
-                    <select id="taxiType">
-                        <option value="Пассажирское такси">🚕 Пассажирское такси</option>
-                        <option value="Доставка курьером">📦 Доставка курьером</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Откуда:*</label>
-                    <input type="text" id="taxiFrom" placeholder="Улица, дом">
-                </div>
-                <div class="form-group">
-                    <label>Куда:*</label>
-                    <input type="text" id="taxiTo" placeholder="Пункт назначения">
-                </div>
-                <div class="form-group">
-                    <label>Ваш Номер телефона:*</label>
-                    <input type="tel" id="taxiPhone" placeholder="+7 (700) 000-00-00">
-                </div>
-                <div class="form-group">
-                    <label>Комментарий (по желанию):</label>
-                    <textarea id="taxiComment" rows="2" placeholder="Например: Подезжать к 2 подъезду или передать пакет"></textarea>
-                </div>
-                <button class="btn-submit" onclick="orderTaxi()"><i class="fa-brands fa-whatsapp"></i> Заказать через WhatsApp</button>
-            </div>
-
-            <!-- ВКЛАДКА: КОРЗИНА -->
-            <div id="tab-cart" class="tab-content">
-                <h2 class="page-title">Корзина</h2>
-                <div id="cart-items-container">
-                    <p style="color: var(--text-gray);" id="empty-cart-msg">Ваша корзина пуста.</p>
-                </div>
-                
-                <div id="cart-summary" style="display: none;">
-                    <div class="total-price">Итого: <span id="total-sum">0</span> ₸</div>
-                    
-                    <h3 style="font-size: 15px; margin-bottom: 10px; color: var(--accent-yellow);">Данные для доставки:</h3>
-                    <div class="form-group">
-                        <label>Ваше Имя *</label>
-                        <input type="text" id="clientName" placeholder="Введите имя">
-                    </div>
-                    <div class="form-group">
-                        <label>Номер телефона *</label>
-                        <input type="tel" id="clientPhone" placeholder="+7 (700) 000-00-00">
-                    </div>
-                    <div class="form-group">
-                        <label>Способ оплаты</label>
-                        <select id="paymentMethod">
-                            <option value="Kaspi Gold">Kaspi Gold / Перевод</option>
-                            <option value="Наличные">Наличные курьеру</option>
-                        </select>
-                    </div>
-
-                    <button class="btn-submit" onclick="sendOrderWhatsApp()"><i class="fa-brands fa-whatsapp"></i> Оформить заказ в WhatsApp</button>
-                </div>
-            </div>
-        </main>
-
-        <!-- Нижний Навбар -->
-        <nav class="bottom-nav">
-            <button class="nav-item active" onclick="switchTab('tab-home', this)">
-                <i class="fa-solid fa-house"></i>
-                <span>Главная</span>
-            </button>
-            <button class="nav-item" onclick="switchTab('tab-shop', this)">
-                <i class="fa-solid fa-cart-flatbed-suitcases"></i>
-                <span>Магазин</span>
-            </button>
-            <button class="nav-item" onclick="switchTab('tab-food', this)">
-                <i class="fa-solid fa-utensils"></i>
-                <span>Еда</span>
-            </button>
-            <button class="nav-item" onclick="switchTab('tab-taxi', this)">
-                <i class="fa-solid fa-taxi"></i>
-                <span>доставка</span>
-            </button>
-            <button class="nav-item" onclick="switchTab('tab-cart', this)">
-                <i class="fa-solid fa-cart-shopping"></i>
-                <span>Корзина</span>
-                <span class="badge-count" id="cart-badge" style="display:none;">0</span>
-            </button>
-        </nav>
+<header>
+    <button class="header-btn" onclick="goHome()" aria-label="O Go">
+        <span class="brand-mark">O</span>
+    </button>
+    <div class="brand">O <span style="color:var(--yellow)">GO</span></div>
+    <div class="header-actions">
+        <button class="header-btn" onclick="openMenu()" aria-label="Меню"><i class="fa-solid fa-bars"></i></button>
     </div>
+</header>
 
-    <!-- Боковое меню -->
-    <div class="overlay" id="overlay"></div>
-    <div class="side-menu" id="sideMenu">
-        <button class="close-menu" id="closeMenuBtn"><i class="fa-solid fa-xmark"></i></button>
-        <ul class="menu-items">
-            <li><a href="#" onclick="alert('По вопросам сотрудничества: partner@ogo.kz')"><i class="fa-solid fa-handshake" style="color: var(--accent-yellow)"></i> Сотрудничество</a></li>
-            <li><a href="#" id="openAdminLogin"><i class="fa-solid fa-user-lock" style="color: var(--accent-yellow)"></i> Вход для сотрудников</a></li>
-        </ul>
-    </div>
-
-    <!-- Модальное окно: Логин Админа -->
-    <div class="modal" id="loginModal">
-        <div class="modal-content">
-            <button class="close-modal">&times;</button>
-            <h3 class="modal-title">Вход для сотрудников</h3>
-            <div class="form-group">
-                <label>Логин</label>
-                <input type="text" id="adminLogin" placeholder="admin">
-            </div>
-            <div class="form-group">
-                <label>Пароль</label>
-                <input type="password" id="adminPass" placeholder="••••">
-            </div>
-            <button class="btn-submit" onclick="loginAdmin()">Войти</button>
+<main>
+    <!-- HOME -->
+    <section id="home" class="page active">
+        <div class="hero">
+            <div class="hero-logo">O <span>GO</span></div>
+            <div class="hero-badge"><i class="fa-solid fa-location-dot"></i> Осакаровка</div>
+            <h1>Керек нәрсенің бәрі — бір жерде.</h1>
+            <p>Дүкен, такси, тамақ және жеткізу — O Go арқылы оңай.</p>
+            <div class="hero-note"><i class="fa-solid fa-bolt"></i> Тез. Оңай. Жақын.</div>
         </div>
-    </div>
 
-    <!-- Модальное окно: Панель Админа -->
-    <div class="modal" id="adminPanelModal">
-        <div class="modal-content">
-            <button class="close-modal">&times;</button>
-            <h3 class="modal-title">Добавить товар / блюдо</h3>
-            <div class="form-group">
-                <label>Раздел размещения</label>
-                <select id="prodCategory">
-                    <option value="shop">Магазин (Супермаркет)</option>
-                    <option value="food">Еда (Ресторан / Кафе / Фастфуд)</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Название товара/блюда</label>
-                <input type="text" id="prodName" placeholder="Пицца Пепперони">
-            </div>
-            <div class="form-group">
-                <label>Цена (в ₸)</label>
-                <input type="number" id="prodPrice" placeholder="2500">
-            </div>
-            <div class="form-group">
-                <label>Ссылка на фото (URL)</label>
-                <input type="text" id="prodImg" placeholder="https://...">
-            </div>
-            <button class="btn-submit" onclick="addProduct()">Опубликовать</button>
+        <div class="section-head">
+            <h2>O Go қызметтері</h2>
+            <span>4 қызмет</span>
         </div>
+
+        <div class="services">
+            <button class="service" onclick="openPage('shop')">
+                <span class="service-bg" style="background-image:var(--store-image)"></span>
+                <span class="service-content">
+                    <span class="service-left">
+                        <span class="service-icon"><i class="fa-solid fa-basket-shopping"></i></span>
+                        <span><h3>Дүкен</h3><p>Күнделікті керек заттарды тапсырыс бер</p></span>
+                    </span>
+                    <span class="arrow"><i class="fa-solid fa-chevron-right"></i></span>
+                </span>
+            </button>
+
+            <button class="service" onclick="openPage('taxi')">
+                <span class="service-bg" style="background-image:var(--taxi-image)"></span>
+                <span class="service-content">
+                    <span class="service-left">
+                        <span class="service-icon"><i class="fa-solid fa-car-side"></i></span>
+                        <span><h3>Такси</h3><p>Қала ішінде көлікке тапсырыс бер</p></span>
+                    </span>
+                    <span class="arrow"><i class="fa-solid fa-chevron-right"></i></span>
+                </span>
+            </button>
+
+            <button class="service" onclick="openPage('food')">
+                <span class="service-bg" style="background-image:var(--food-image)"></span>
+                <span class="service-content">
+                    <span class="service-left">
+                        <span class="service-icon"><i class="fa-solid fa-utensils"></i></span>
+                        <span><h3>Тамақ</h3><p>Кафе мен тағамдарға тапсырыс бер</p></span>
+                    </span>
+                    <span class="arrow"><i class="fa-solid fa-chevron-right"></i></span>
+                </span>
+            </button>
+
+            <button class="service" onclick="openPage('delivery')">
+                <span class="service-bg" style="background-image:var(--delivery-image)"></span>
+                <span class="service-content">
+                    <span class="service-left">
+                        <span class="service-icon"><i class="fa-solid fa-box"></i></span>
+                        <span><h3>Жеткізу</h3><p>Сәлемдеме мен заттарды жеткіз</p></span>
+                    </span>
+                    <span class="arrow"><i class="fa-solid fa-chevron-right"></i></span>
+                </span>
+            </button>
+        </div>
+
+        <div class="download" id="download">
+            <div class="mini-logo">O <span>GO</span></div>
+            <h3>Қолданбаны жүктеу</h3>
+            <p>O Go жақында App Store және Google Play-де қолжетімді болады.</p>
+            <div class="store-buttons">
+                <a class="store-btn" href="#" onclick="soon(event)"><i class="fa-brands fa-apple"></i> App Store</a>
+                <a class="store-btn" href="#" onclick="soon(event)"><i class="fa-brands fa-google-play"></i> Google Play</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- SHOP -->
+    <section id="shop" class="page">
+        <div class="page-top">
+            <button class="back" onclick="goHome()"><i class="fa-solid fa-arrow-left"></i></button>
+            <div><h2 class="page-title">Дүкен</h2><div class="page-subtitle">Күнделікті тауарлар</div></div>
+        </div>
+        <div id="shopProducts" class="products">
+            <article class="product">
+                <div class="product-img"><i class="fa-solid fa-apple-whole"></i></div>
+                <div class="product-info"><div class="product-name">Жаңа алма</div><div class="product-desc">1 кг</div><div class="price">850 ₸</div></div>
+                <button class="add" onclick="addToCart('Жаңа алма',850)">+</button>
+            </article>
+            <article class="product">
+                <div class="product-img"><i class="fa-solid fa-bottle-water"></i></div>
+                <div class="product-info"><div class="product-name">Ауыз су</div><div class="product-desc">1,5 л</div><div class="price">300 ₸</div></div>
+                <button class="add" onclick="addToCart('Ауыз су',300)">+</button>
+            </article>
+        </div>
+    </section>
+
+    <!-- TAXI -->
+    <section id="taxi" class="page">
+        <div class="page-top">
+            <button class="back" onclick="goHome()"><i class="fa-solid fa-arrow-left"></i></button>
+            <div><h2 class="page-title">Такси</h2><div class="page-subtitle">Қала ішінде тапсырыс</div></div>
+        </div>
+        <div class="form-card">
+            <div class="form-group"><label>Қай жерден?</label><input id="taxiFrom" placeholder="Мысалы: Абай 25"></div>
+            <div class="form-group"><label>Қай жерге?</label><input id="taxiTo" placeholder="Мысалы: Дүкен"></div>
+            <div class="form-group"><label>Телефон</label><input id="taxiPhone" type="tel" placeholder="+7 700 000 00 00"></div>
+            <div class="form-group"><label>Қосымша ақпарат</label><textarea id="taxiComment" rows="3" placeholder="Қажет болса жазыңыз"></textarea></div>
+            <button class="submit" onclick="orderService('taxi')"><i class="fa-brands fa-whatsapp"></i> WhatsApp арқылы тапсырыс</button>
+        </div>
+    </section>
+
+    <!-- FOOD -->
+    <section id="food" class="page">
+        <div class="page-top">
+            <button class="back" onclick="goHome()"><i class="fa-solid fa-arrow-left"></i></button>
+            <div><h2 class="page-title">Тамақ</h2><div class="page-subtitle">Кафе мен тағамдар</div></div>
+        </div>
+        <div id="foodProducts" class="products">
+            <article class="product">
+                <div class="product-img"><i class="fa-solid fa-burger"></i></div>
+                <div class="product-info"><div class="product-name">Бургер комбо</div><div class="product-desc">Бургер + фри + сусын</div><div class="price">2 200 ₸</div></div>
+                <button class="add" onclick="addToCart('Бургер комбо',2200)">+</button>
+            </article>
+            <article class="product">
+                <div class="product-img"><i class="fa-solid fa-pizza-slice"></i></div>
+                <div class="product-info"><div class="product-name">Пицца</div><div class="product-desc">Орташа өлшем</div><div class="price">2 500 ₸</div></div>
+                <button class="add" onclick="addToCart('Пицца',2500)">+</button>
+            </article>
+        </div>
+    </section>
+
+    <!-- DELIVERY -->
+    <section id="delivery" class="page">
+        <div class="page-top">
+            <button class="back" onclick="goHome()"><i class="fa-solid fa-arrow-left"></i></button>
+            <div><h2 class="page-title">Жеткізу</h2><div class="page-subtitle">Зат пен сәлемдеме</div></div>
+        </div>
+        <div class="form-card">
+            <p class="hint">Қай жерден алып, қай жерге жеткізу керегін жазыңыз.</p>
+            <div class="form-group"><label>Алып кететін жер</label><input id="deliveryFrom" placeholder="Мекенжай"></div>
+            <div class="form-group"><label>Жеткізетін жер</label><input id="deliveryTo" placeholder="Мекенжай"></div>
+            <div class="form-group"><label>Телефон</label><input id="deliveryPhone" type="tel" placeholder="+7 700 000 00 00"></div>
+            <div class="form-group"><label>Не жеткізу керек?</label><textarea id="deliveryComment" rows="3" placeholder="Мысалы: құжат, пакет, азық-түлік"></textarea></div>
+            <button class="submit green" onclick="orderService('delivery')"><i class="fa-brands fa-whatsapp"></i> Жеткізуге тапсырыс беру</button>
+        </div>
+    </section>
+
+    <!-- CART -->
+    <section id="cart" class="page">
+        <div class="page-top">
+            <button class="back" onclick="goHome()"><i class="fa-solid fa-arrow-left"></i></button>
+            <div><h2 class="page-title">Корзина</h2><div class="page-subtitle">Таңдаған тауарларыңыз</div></div>
+        </div>
+        <div id="cartList" class="cart-list"></div>
+        <div id="cartEmpty" class="empty">Корзина әзірге бос.</div>
+        <div id="cartCheckout" style="display:none">
+            <div class="total"><span>Барлығы</span><strong><span id="total">0</span> ₸</strong></div>
+            <div class="form-card">
+                <div class="form-group"><label>Атыңыз</label><input id="clientName" placeholder="Атыңыз"></div>
+                <div class="form-group"><label>Телефон</label><input id="clientPhone" type="tel" placeholder="+7 700 000 00 00"></div>
+                <div class="form-group"><label>Төлем</label><select id="payment"><option>Kaspi / аударым</option><option>Қолма-қол</option></select></div>
+                <button class="submit" onclick="sendCart()">WhatsApp арқылы тапсырыс беру</button>
+            </div>
+        </div>
+    </section>
+</main>
+
+<nav class="bottom">
+    <button class="nav active" data-page="home" onclick="openPage('home')"><i class="fa-solid fa-house"></i><span>Басты бет</span></button>
+    <button class="nav" data-page="shop" onclick="openPage('shop')"><i class="fa-solid fa-basket-shopping"></i><span>Дүкен</span></button>
+    <button class="nav" data-page="food" onclick="openPage('food')"><i class="fa-solid fa-utensils"></i><span>Тамақ</span></button>
+    <button class="nav" data-page="delivery" onclick="openPage('delivery')"><i class="fa-solid fa-box"></i><span>Жеткізу</span></button>
+    <button class="nav" data-page="cart" onclick="openPage('cart')" style="position:relative"><i class="fa-solid fa-cart-shopping"></i><span>Корзина</span><span id="badge" class="badge">0</span></button>
+</nav>
+</div>
+
+<div id="overlay" class="overlay" onclick="closeMenu()"></div>
+<aside id="side" class="side">
+    <div class="side-head">
+        <div class="brand">O <span style="color:var(--yellow)">GO</span></div>
+        <button class="close" onclick="closeMenu()"><i class="fa-solid fa-xmark"></i></button>
     </div>
+    <ul class="side-links">
+        <li><button onclick="closeMenu(); alert('Серіктестік туралы ақпарат жақында қосылады.')"><i class="fa-solid fa-handshake"></i> Серіктестік</button></li>
+        <li><button onclick="closeMenu(); openLogin()"><i class="fa-solid fa-user-lock"></i> Қызметкерлерге кіру</button></li>
+    </ul>
+</aside>
 
-    <!-- СКРИПТЫ -->
-    <script>
-        let cart = [];
+<div id="loginModal" class="modal">
+    <div class="modal-box">
+        <button class="close modal-close" onclick="closeLogin()"><i class="fa-solid fa-xmark"></i></button>
+        <h3>Қызметкерлерге кіру</h3>
+        <div class="form-group"><label>Логин</label><input id="adminLogin" placeholder="admin"></div>
+        <div class="form-group"><label>Пароль</label><input id="adminPass" type="password" placeholder="••••"></div>
+        <button class="submit" onclick="loginAdmin()">Кіру</button>
+    </div>
+</div>
 
-        function switchTab(tabId, btnElement) {
-            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
+<script>
+const WHATSAPP = "77756108898";
+let cart = [];
 
-            if (btnElement) {
-                document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-                btnElement.classList.add('active');
-            }
-        }
+/* БЕТ АУЫСТЫРУ */
+function openPage(page){
+    document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+    const target=document.getElementById(page);
+    if(target) target.classList.add("active");
 
-        function addToCart(name, price) {
-            const existingItem = cart.find(item => item.name === name);
-            if (existingItem) {
-                existingItem.qty++;
-            } else {
-                cart.push({ name, price, qty: 1 });
-            }
-            updateCartUI();
-            alert(`"${name}" добавлен в корзину!`);
-        }
+    document.querySelectorAll(".nav").forEach(n=>{
+        n.classList.toggle("active", n.dataset.page===page);
+    });
+    window.scrollTo({top:0,behavior:"smooth"});
+}
+function goHome(){openPage("home")}
 
-        function changeQty(index, delta) {
-            cart[index].qty += delta;
-            if (cart[index].qty <= 0) {
-                cart.splice(index, 1);
-            }
-            updateCartUI();
-        }
+/* КОРЗИНА */
+function addToCart(name,price){
+    const item=cart.find(x=>x.name===name);
+    if(item) item.qty++;
+    else cart.push({name,price,qty:1});
+    updateCart();
+    openPage("cart");
+}
+function changeQty(index,delta){
+    cart[index].qty+=delta;
+    if(cart[index].qty<=0) cart.splice(index,1);
+    updateCart();
+}
+function updateCart(){
+    const list=document.getElementById("cartList");
+    const empty=document.getElementById("cartEmpty");
+    const checkout=document.getElementById("cartCheckout");
+    const badge=document.getElementById("badge");
 
-        function updateCartUI() {
-            const container = document.getElementById('cart-items-container');
-            const summary = document.getElementById('cart-summary');
-            const badge = document.getElementById('cart-badge');
+    if(!cart.length){
+        list.innerHTML="";
+        empty.style.display="block";
+        checkout.style.display="none";
+        badge.style.display="none";
+        return;
+    }
 
-            let totalQty = 0;
-            let totalSum = 0;
+    empty.style.display="none";
+    checkout.style.display="block";
+    let qty=0,total=0;
+    list.innerHTML=cart.map((item,i)=>{
+        qty+=item.qty;
+        total+=item.price*item.qty;
+        return `<div class="cart-item">
+            <div class="cart-info">
+                <div class="cart-name">${escapeHtml(item.name)}</div>
+                <div class="cart-price">${(item.price*item.qty).toLocaleString("ru-RU")} ₸</div>
+            </div>
+            <div class="qty">
+                <button onclick="changeQty(${i},-1)">−</button>
+                <b>${item.qty}</b>
+                <button onclick="changeQty(${i},1)">+</button>
+            </div>
+        </div>`;
+    }).join("");
+    document.getElementById("total").textContent=total.toLocaleString("ru-RU");
+    badge.textContent=qty;
+    badge.style.display="grid";
+}
+function sendCart(){
+    if(!cart.length)return;
+    const name=document.getElementById("clientName").value.trim();
+    const phone=document.getElementById("clientPhone").value.trim();
+    const payment=document.getElementById("payment").value;
+    if(!name||!phone){alert("Атыңыз бен телефон нөміріңізді енгізіңіз.");return}
 
-            if (cart.length === 0) {
-                container.innerHTML = '<p style="color: var(--text-gray);">Ваша корзина пуста.</p>';
-                summary.style.display = 'none';
-                badge.style.display = 'none';
-                return;
-            }
+    let total=0;
+    let text="🟡 O GO — ЖАҢА ТАПСЫРЫС\n\n";
+    text+="🛒 Тауарлар:\n";
+    cart.forEach((x,i)=>{
+        const sum=x.price*x.qty; total+=sum;
+        text+=`${i+1}. ${x.name} × ${x.qty} = ${sum} ₸\n`;
+    });
+    text+=`\n💰 Барлығы: ${total} ₸\n👤 Аты: ${name}\n📞 Телефон: ${phone}\n💳 Төлем: ${payment}`;
+    window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(text)}`,"_blank");
+}
 
-            container.innerHTML = '';
-            cart.forEach((item, index) => {
-                totalQty += item.qty;
-                totalSum += item.price * item.qty;
+/* ТАКСИ / ЖЕТКІЗУ */
+function orderService(type){
+    let from,to,phone,comment,text;
+    if(type==="taxi"){
+        from=document.getElementById("taxiFrom").value.trim();
+        to=document.getElementById("taxiTo").value.trim();
+        phone=document.getElementById("taxiPhone").value.trim();
+        comment=document.getElementById("taxiComment").value.trim();
+        if(!from||!to||!phone){alert("Қай жерден, қай жерге және телефонды толтырыңыз.");return}
+        text=`🚕 O GO — ТАКСИ\n\n📍 Қай жерден: ${from}\n🏁 Қай жерге: ${to}\n📞 Телефон: ${phone}`;
+    }else{
+        from=document.getElementById("deliveryFrom").value.trim();
+        to=document.getElementById("deliveryTo").value.trim();
+        phone=document.getElementById("deliveryPhone").value.trim();
+        comment=document.getElementById("deliveryComment").value.trim();
+        if(!from||!to||!phone){alert("Мекенжайлар мен телефонды толтырыңыз.");return}
+        text=`📦 O GO — ЖЕТКІЗУ\n\n📍 Алып кету: ${from}\n🏁 Жеткізу: ${to}\n📞 Телефон: ${phone}`;
+    }
+    if(comment) text+=`\n💬 Қосымша: ${comment}`;
+    window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(text)}`,"_blank");
+}
 
-                const itemElement = document.createElement('div');
-                itemElement.className = 'cart-item';
-                itemElement.innerHTML = `
-                    <div>
-                        <div style="font-weight: bold;">${item.name}</div>
-                        <small style="color: var(--accent-yellow);">${item.price * item.qty} ₸</small>
-                    </div>
-                    <div class="qty-controls">
-                        <button class="qty-btn" onclick="changeQty(${index}, -1)">-</button>
-                        <span>${item.qty}</span>
-                        <button class="qty-btn" onclick="changeQty(${index}, 1)">+</button>
-                    </div>
-                `;
-                container.appendChild(itemElement);
-            });
+/* МЕНЮ */
+function openMenu(){
+    document.getElementById("side").classList.add("show");
+    document.getElementById("overlay").classList.add("show");
+}
+function closeMenu(){
+    document.getElementById("side").classList.remove("show");
+    document.getElementById("overlay").classList.remove("show");
+}
 
-            document.getElementById('total-sum').innerText = totalSum;
-            summary.style.display = 'block';
-            badge.innerText = totalQty;
-            badge.style.display = 'block';
-        }
+/* АДМИН — ҚАЗІРГІ УАҚЫТША НҰСҚА */
+function openLogin(){document.getElementById("loginModal").classList.add("show")}
+function closeLogin(){document.getElementById("loginModal").classList.remove("show")}
+function loginAdmin(){
+    const login=document.getElementById("adminLogin").value;
+    const pass=document.getElementById("adminPass").value;
+    if(login==="admin"&&pass==="1234"){
+        closeLogin();
+        alert("Кіру сәтті. Нақты админ панель Supabase-пен кейін қосылады.");
+    }else alert("Логин немесе пароль қате.");
+}
 
-        // Отправка Магазина/Еды на WhatsApp
-        function sendOrderWhatsApp() {
-            const name = document.getElementById('clientName').value.trim();
-            const phone = document.getElementById('clientPhone').value.trim();
-            const payment = document.getElementById('paymentMethod').value;
+/* ҚОЛДАНБА */
+function soon(e){
+    e.preventDefault();
+    alert("O Go қолданбасы жақында App Store және Google Play-де шығады.");
+}
 
-            if (!name || !phone) {
-                alert('Пожалуйста, введите Имя и Телефон!');
-                return;
-            }
+/* ҚАУІПСІЗ МӘТІН */
+function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
+}
 
-            let totalSum = 0;
-            let text = "📦 *НОВЫЙ ЗАКАЗ (O Go / Osakarovka Go)*\n\n📋 *Товары:*\n";
-
-            cart.forEach((item, i) => {
-                const cost = item.price * item.qty;
-                totalSum += cost;
-                text += `${i+1}. ${item.name} x ${item.qty} шт = ${cost} ₸\n`;
-            });
-
-            text += `\n💰 *Итого:* ${totalSum} ₸\n\n👤 *Клиент:* ${name}\n📞 *Тел:* ${phone}\n💳 *Оплата:* ${payment}`;
-
-            const whatsappUrl = `https://wa.me/77756108898?text=${encodeURIComponent(text)}`;
-            window.open(whatsappUrl, '_blank');
-        }
-
-        // Отправка Такси / Доставки на WhatsApp
-        function orderTaxi() {
-            const type = document.getElementById('taxiType').value;
-            const from = document.getElementById('taxiFrom').value.trim();
-            const to = document.getElementById('taxiTo').value.trim();
-            const phone = document.getElementById('taxiPhone').value.trim();
-            const comment = document.getElementById('taxiComment').value.trim();
-
-            if (!from || !to || !phone) {
-                alert('Заполните обязательные поля: Откуда, Куда и Номер телефона!');
-                return;
-            }
-
-            let text = `🚕 *ЗАКАЗ: ${type.toUpperCase()} (O Go)*\n\n📍 *Откуда:* ${from}\n🏁 *Куда:* ${to}\n📞 *Тел:* ${phone}`;
-            if (comment) {
-                text += `\n💬 *Коммент:* ${comment}`;
-            }
-
-            const whatsappUrl = `https://wa.me/77756108898?text=${encodeURIComponent(text)}`;
-            window.open(whatsappUrl, '_blank');
-        }
-
-        // Меню
-        const sideMenu = document.getElementById('sideMenu');
-        const overlay = document.getElementById('overlay');
-
-        document.getElementById('openMenuBtn').onclick = () => {
-            sideMenu.classList.add('active');
-            overlay.classList.add('active');
-        };
-
-        function closeMenu() {
-            sideMenu.classList.remove('active');
-            overlay.classList.remove('active');
-        }
-
-        document.getElementById('closeMenuBtn').onclick = closeMenu;
-        overlay.onclick = closeMenu;
-
-        // Админка
-        const loginModal = document.getElementById('loginModal');
-        const adminPanelModal = document.getElementById('adminPanelModal');
-
-        document.getElementById('openAdminLogin').onclick = (e) => {
-            e.preventDefault();
-            closeMenu();
-            loginModal.style.display = 'flex';
-        };
-
-        document.querySelectorAll('.close-modal').forEach(btn => {
-            btn.onclick = () => {
-                loginModal.style.display = 'none';
-                adminPanelModal.style.display = 'none';
-            };
-        });
-
-        function loginAdmin() {
-            const login = document.getElementById('adminLogin').value;
-            const pass = document.getElementById('adminPass').value;
-
-            if (login === 'admin' && pass === '1234') {
-                loginModal.style.display = 'none';
-                adminPanelModal.style.display = 'flex';
-            } else {
-                alert('Неверный логин/пароль! (admin / 1234)');
-            }
-        }
-
-        function addProduct() {
-            const category = document.getElementById('prodCategory').value;
-            const name = document.getElementById('prodName').value.trim();
-            const price = parseInt(document.getElementById('prodPrice').value);
-            const imgUrl = document.getElementById('prodImg').value.trim();
-
-            if (!name || isNaN(price)) {
-                alert('Заполните корректно название и цену!');
-                return;
-            }
-
-            const containerId = category === 'shop' ? 'shop-products' : 'food-products';
-            const iconContent = imgUrl ? `<img src="${imgUrl}" alt="img">` : `<i class="fa-solid fa-box"></i>`;
-
-            const card = document.createElement('div');
-            card.className = 'service-card';
-            card.innerHTML = `
-                <div class="service-info">
-                    <div class="service-icon">${iconContent}</div>
-                    <div>
-                        <div class="service-title">${name}</div>
-                        <small style="color: var(--accent-yellow)">${price} ₸</small>
-                    </div>
-                </div>
-                <button class="btn-add" onclick="addToCart('${name}', ${price})">+ В корзину</button>
-            `;
-
-            document.getElementById(containerId).prepend(card);
-            alert('Опубликовано!');
-            adminPanelModal.style.display = 'none';
-            switchTab(category === 'shop' ? 'tab-shop' : 'tab-food');
-        }
-    </script>
+updateCart();
+</script>
 </body>
 </html>
