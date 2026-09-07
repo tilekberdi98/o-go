@@ -581,6 +581,7 @@ main{padding:18px 16px 24px}
             <div class="form-card">
                 <div class="form-group"><label>Атыңыз</label><input id="clientName" placeholder="Атыңыз"></div>
                 <div class="form-group"><label>Телефон</label><input id="clientPhone" type="tel" placeholder="+7 700 000 00 00"></div>
+                <div class="form-group"><label>Мекенжай</label><input id="clientAddress" placeholder="Қала, көше, үй, пәтер"></div>
                 <div class="form-group"><label>Төлем</label><select id="payment"><option>Kaspi / аударым</option><option>Қолма-қол</option></select></div>
                 <button class="submit" onclick="sendCart()">WhatsApp арқылы тапсырыс беру</button>
             </div>
@@ -689,8 +690,9 @@ function sendCart(){
     if(!cart.length)return;
     const name=document.getElementById("clientName").value.trim();
     const phone=document.getElementById("clientPhone").value.trim();
+    const address=document.getElementById("clientAddress").value.trim();
     const payment=document.getElementById("payment").value;
-    if(!name||!phone){alert("Атыңыз бен телефон нөміріңізді енгізіңіз.");return}
+    if(!name||!phone||!address){alert("Атыңызды, телефон нөміріңізді және мекенжайыңызды енгізіңіз.");return}
 
     let total=0;
     let text="🟡 O GO — ЖАҢА ТАПСЫРЫС\n\n";
@@ -699,7 +701,7 @@ function sendCart(){
         const sum=x.price*x.qty; total+=sum;
         text+=`${i+1}. ${x.name} × ${x.qty} = ${sum} ₸\n`;
     });
-    text+=`\n💰 Барлығы: ${total} ₸\n👤 Аты: ${name}\n📞 Телефон: ${phone}\n💳 Төлем: ${payment}`;
+    text+=`\n💰 Барлығы: ${total} ₸\n👤 Аты: ${name}\n📞 Телефон: ${phone}\n📍 Мекенжай: ${address}\n💳 Төлем: ${payment}`;
     window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(text)}`,"_blank");
 }
 
