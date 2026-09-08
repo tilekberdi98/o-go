@@ -446,6 +446,20 @@ main{padding:18px 16px 24px}
 .old-price{text-decoration:line-through;color:#8d938e;font-size:11px;margin-right:6px}
 
 /* CATALOG SEARCH */
+
+.shop-category-title{display:flex;justify-content:space-between;align-items:end;margin:8px 2px 10px}
+.shop-category-title span{font-size:18px;font-weight:800;letter-spacing:-.3px}
+.shop-category-title small,.shop-selected-hint{font-size:11px;color:var(--muted)}
+.shop-top-categories{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px!important}
+.shop-top-categories .category-btn{min-height:52px;text-align:left;white-space:normal;line-height:1.2;padding:12px 13px;border-radius:15px}
+.shop-top-categories .category-btn.active{border-color:var(--yellow);background:rgba(255,204,0,.10)}
+.shop-sub-head{display:flex;align-items:center;gap:10px;margin:8px 0 10px}
+.shop-inner-back{width:38px!important;height:38px!important;flex:0 0 38px}
+.shop-selected-category{font-size:17px;font-weight:800;line-height:1.15}
+.shop-subcategories{display:grid!important;grid-template-columns:1fr;gap:7px!important}
+.shop-subcategories .category-btn{min-height:44px;text-align:left;white-space:normal;line-height:1.2;padding:10px 12px}
+@media(max-width:380px){.shop-top-categories{grid-template-columns:1fr!important}}
+
 .catalog-search{position:relative;margin:12px 0 10px}
 .catalog-search input{width:100%;box-sizing:border-box;padding:13px 44px 13px 42px;border:1px solid var(--line);border-radius:14px;background:#111511;color:#fff;font-size:14px;outline:none}
 .catalog-search input:focus{border-color:var(--yellow);box-shadow:0 0 0 2px rgba(255,204,0,.10)}
@@ -628,7 +642,17 @@ body{background:#f6b35f!important;color:#171717!important}
                 <button class="search-clear" type="button" onclick="clearCatalogSearch('shop')" aria-label="Іздеуді тазалау"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="catalog-search-hint">Тауар атауын толық немесе бірнеше әріппен жазыңыз — барлық бөлімнен ізделеді.</div>
-            <div id="shopSections" class="category-row" aria-label="Дүкен бөлімдері"></div>
+            <div id="shopCategoryView">
+                <div class="shop-category-title"><span>Категории</span><small>Выберите категорию</small></div>
+                <div id="shopSections" class="category-row shop-top-categories" aria-label="Категории магазина"></div>
+            </div>
+            <div id="shopSubcategoryView" style="display:none">
+                <div class="shop-sub-head">
+                    <button class="back shop-inner-back" type="button" onclick="backToShopCategories()"><i class="fa-solid fa-arrow-left"></i></button>
+                    <div><div id="shopSelectedCategory" class="shop-selected-category">Категория</div><div class="shop-selected-hint">Выберите раздел</div></div>
+                </div>
+                <div id="shopSubsections" class="category-row shop-subcategories" aria-label="Разделы категории"></div>
+            </div>
             <div id="shopProducts" class="products"><div class="empty">Тауарлар жүктелуде...</div></div>
         </div>
     </section>
@@ -888,15 +912,92 @@ function localizedProduct(product){
     return {name:tr?.name||rawName||'Тауар',description:tr?.desc||product?.description||product?.unit||''};
 }
 
+const OGO_AYBOLIT_CATEGORIES = [
+ {id:'all',name:'Все',sections:[]},
+ {id:'undefined',name:'Незаданные',sections:[]},
+ {id:'no-barcode',name:'Без штрих-кода',sections:[]},
+ {id:'weighted',name:'Весовое',sections:[]},
+ {id:'tobacco',name:'ТАБАЧНЫЕ ИЗДЕЛИЯ ЗАЖИГАЛКИ',sections:['СИГАРЕТЫ','ЗАЖИГАЛКИ']},
+ {id:'frozen',name:'ЗАМОРОЖЕННЫЕ ПРОДУКТЫ',sections:['МОРОЖЕНОЕ ПОРЦИОННОЕ','ПИЦЦА ЗАМОРОЖЕННАЯ, ЛАЗАНЬЯ','ПОЛУФАБРИКАТЫ ИЗ ПТИЦЫ ЗАМОРОЖЕННЫЕ','СМЕСИ ОВОЩНЫЕ ЗАМОРОЖЕННЫЕ','ОВОЩИ ЗАМОРОЖЕННЫЕ','ПЕЛЬМЕНИ, МАНТЫ, ВАРЕНИКИ','ПОЛУФАБРИКАТЫ МЯСНЫЕ ЗАМОРОЖЕННЫЕ','БЛИНЧИКИ, ПИРОЖКИ ЗАМОРОЖЕННЫЕ','ТЕСТО ЗАМОРОЖЕННОЕ','ПОЛУФАБРИКАТЫ РЫБНЫЕ ЗАМОРОЖЕННЫЕ','МОРЕПРОДУКТЫ ЗАМОРОЖЕННЫЕ','П/Ф ИЗ ПТИЦЫ ЗАМОРОЖЕННЫЕ','ФРУКТЫ, ЯГОДЫ ЗАМОРОЖЕННЫЕ']},
+ {id:'grocery',name:'БАКАЛЕЯ',sections:['ЧИПСЫ','КЕТЧУПЫ','ПРИПРАВЫ','ГОРЧИЦА','СОУСЫ ЭТНИЧЕСКОЙ КУХНИ','ХРЕН','СУПЫ БЫСТРОГО ПРИГОТОВЛЕНИЯ','ПРОДУКТЫ ДЛЯ ВЫПЕЧКИ','КРУПЫ ФАСОВАННЫЕ','ВЕРМИШЕЛЬ БЫСТРОГО ПРИГОТОВЛЕНИЯ','МЮСЛИ','КАШИ БЫСТРОГО ПРИГОТОВЛЕНИЯ','ТОМАТНАЯ ПАСТА','УКСУСНАЯ ЭССЕНЦИЯ','СОЛЬ ОБЫЧНАЯ','СОЛЬ С ДОБАВКАМИ','ПРОДУКТЫ ДИАБЕТИЧЕСКИЕ КОНДИТЕРСКИЕ','МАКАРОННЫЕ ИЗДЕЛИЯ СПЕЦФОРМАТЫ','МАКАРОННЫЕ ИЗДЕЛИЯ ДЛИННОРЕЗ','МАКАРОННЫЕ ИЗДЕЛИЯ КОРОТКОРЕЗ','СУХОЕ МОЛОКО, СУХИЕ СЛИВКИ','КИСЕЛЬ, ЖЕЛЕ, КРАХМАЛ','МАСЛО ПОДСОЛНЕЧНОЕ','ПАЛОЧКИ КУКУРУЗНЫЕ, ПОП-КОРН','СОЕВЫЕ СОУСЫ','БУЛЬОННЫЕ КОНЦЕНТРАТЫ','ДРУГИЕ СОУСЫ','ПЮРЕ КАРТОФЕЛЬНОЕ БЫСТРОГО ПРИГОТОВЛЕНИЯ','ХЛОПЬЯ','СУХИЕ ЗАВТРАКИ','МАРИНАДЫ','СПЕЦИИ','СПАРЖА/МОРСКАЯ КАПУСТА СУШЕНАЯ/ФУНЧЕЗА','ДРУГИЕ ПРОДУКТЫ ДИАБЕТИЧЕСКИЕ','СМЕСИ МУЧНЫЕ','МУКА ФАСОВАННАЯ ДО 3 КГ.','ЗАМЕНИТЕЛИ САХАРА','САХАР РАФИНАД','МУКА ФАСОВАННАЯ ДО 50 КГ.','СУХАРИКИ/КИРИЕШКИ','СНЕКИ ИЗ РЫБЫ И МОРЕПРОДУКТОВ, МЯСА','МАСЛО ОЛИВКОВОЕ','СОУСЫ РАСТВОРИМЫЕ','СУХИЕ СОУСЫ','ДРУГИЕ СНЕКИ','ГАРНИРЫ ИЗ КРУП','ДРУГИЕ КРУПЫ']},
+ {id:'confectionery',name:'КОНДИТЕРСКИЕ ИЗДЕЛИЯ',sections:['ЖЕВАТЕЛЬНАЯ РЕЗИНКА ПОДУШКИ','ЖЕВАТЕЛЬНАЯ РЕЗИНКА ПЛАСТИНКА','ЛЕДЕНЦЫ, ДРАЖЕ ФАСОВАННЫЕ','БАТОНЧИКИ ШОКОЛАДНЫЕ','ПЕЧЕНЬЕ, КРЕКЕРЫ','БИСКВИТЫ, КЕКСЫ, ПИРОЖНЫЕ','ШОКОЛАД ПЛИТОЧНЫЙ С ДОБАВКАМИ','ВОСТОЧНЫЕ СЛАДОСТИ МУЧНЫЕ','ИРИС, КАРАМЕЛЬ ФАСОВАННЫЕ','ВАФЛИ','РУЛЕТЫ','СУХАРИ, БАРАНКИ, СУШКИ, СОЛОМКА','ПОДАРКИ НОВОГОДНИЕ','КОЗИНАКИ','ХАЛВА','ТОРТЫ ДЛИТЕЛЬНОГО ХРАНЕНИЯ','МАРМЕЛАД ЖЕВАТЕЛЬНЫЙ','КОНФЕТЫ ШОКОЛАДНЫЕ В КОРОБКАХ','КРУАССАНЫ','ЗЕФИР КЛАССИЧЕСКИЙ','КОНФЕТЫ ШОКОЛАДНЫЕ В ПАКЕТАХ','ПАСТА ШОКОЛАДНАЯ','ПРЯНИКИ','ШОКОЛАД ФИГУРНЫЙ','МАРМЕЛАД КЛАССИЧЕСКИЙ','ДРУГИЕ ИРИС, КАРАМЕЛЬ, ЛЕДЕНЦЫ, ДРАЖЕ','КОРЖИ ДЛЯ ТОРТОВ']},
+ {id:'tea-coffee',name:'ЧАЙ, КОФЕ, КАКАО',sections:['КОФЕ РАСТВОРИМЫЙ','КАКАО','ЧАЙ РАССЫПНОЙ ЧЕРНЫЙ','ЧАЙ ФАСОВАННЫЙ С ДОБАВКАМИ','ЧАЙ ФАСОВАННЫЙ ЧЕРНЫЙ','ЧАЙ РАССЫПНОЙ С ДОБАВКАМИ','ЧАЙ ПАКЕТИРОВАННЫЙ ЧЕРНЫЙ','ЧАЙ ГРАНУЛИРОВАННЫЙ','ЧАЙ ПАКЕТИРОВАННЫЙ ЗЕЛЕНЫЙ','ЧАЙ ПАКЕТИРОВАННЫЙ С ДОБАВКАМИ','КОФЕЙНЫЕ НАПИТКИ','КОФЕ МОЛОТЫЙ','КОФЕ В ЗЕРНАХ','ГОРЯЧИЙ ШОКОЛАД','ЧАЙ РАССЫПНОЙ ЗЕЛЕНЫЙ','ДРУГИЕ ЧАИ']},
+ {id:'beer',name:'ПИВО,СЛАБОАЛКОГОЛЬНЫЕ НАПИТКИ',sections:['ПИВО ОТЕЧЕСТВЕННОЕ','ПИВО ЛИЦЕНЗИОННОЕ','КОКТЕЙЛИ','ПИВО ИМПОРТНОЕ']},
+ {id:'soft-drinks',name:'БЕЗАЛКОГОЛЬНЫЕ НАПИТКИ',sections:['НАПИТКИ ЭНЕРГЕТИЧЕСКИЕ','НАПИТКИ СОКОСОДЕРЖАЩИЕ','ВОДА МИНЕРАЛЬНАЯ С ГАЗОМ','ВОДА СТОЛОВАЯ БЕЗ ГАЗА','ВОДА СТОЛОВАЯ С ГАЗОМ','ЛИМОНАДЫ ФРУКТОВЫЕ','ЛИМОНАДЫ КОЛА-СОДЕРЖАЩИЕ','ХОЛОДНЫЙ ЧАЙ','НЕКТАРЫ','СОКИ НАТУРАЛЬНЫЕ','НАПИТОК КВАСНОЙ','МОРСЫ','ДРУГИЕ МИНЕРАЛЬНЫЕ, СТОЛОВЫЕ ВОДЫ']},
+ {id:'gastronomy',name:'ГАСТРОНОМИЯ',sections:['КОЛБАСЫ СЫРОКОПЧЕНЫЕ','СОСИСКИ, САРДЕЛЬКИ, ШПИКАЧКИ','СЫРЫ ПЛАВЛЕНЫЕ','ПРЕСЕРВЫ РЫБНЫЕ ИЗ МОРЕПРОДУКТОВ','СЫРЫ ТВОРОЖНЫЕ','ЗАКУСКИ РЫБНЫЕ','КОЛБАСЫ ПОЛУКОПЧЕНЫЕ','СЫРЫ ТВЕРДЫЕ','СЫРЫ РАССОЛЬНЫЕ','КОЛБАСЫ ВАРЕНО-КОПЧЕНЫЕ','КОЛБАСЫ ВАРЕНЫЕ','РЫБА КОПЧЕНАЯ','СЫРЫ МЯГКИЕ, С ПЛЕСЕНЬЮ','СЫРЫ КОПЧЕНЫЕ','СЫРЫ ПОЛУТВЕРДЫЕ','ИКРА','ДЕЛИКАТЕСЫ КОПЧЕНО ВАРЕНЫЕ']},
+ {id:'dairy',name:'МОЛОЧНЫЕ ПРОДУКТЫ',sections:['МОЛОКО СТЕРИЛИЗОВАННОЕ','ЙОГУРТ ПИТЬЕВОЙ','ЙОГУРТ НАТУРАЛЬНЫЙ, С ДОБАВКАМИ','МОЛОЧНЫЕ НАПИТКИ','СМЕТАНА','КЕФИР НАТУРАЛЬНЫЙ, С ДОБАВКАМИ','РЯЖЕНКА','СПРЕД НАТУРАЛЬНЫЙ, С ДОБАВКАМИ','МАСЛО СЛИВОЧНОЕ','НАЦИОНАЛЬНЫЕ КИСЛОМОЛОЧНЫЕ ПРОДУКТЫ','ТВОРОГ ЗЕРНИСТЫЙ','МАРГАРИН','МАЙОНЕЗЫ НАТУРАЛЬНЫЕ, КЛАССИЧЕСКИЕ','МАЙОНЕЗЫ ЛЕГКИЕ','БИО-КЕФИР','МОЛОКО ПАСТЕРИЗОВАННОЕ','ДЕСЕРТЫ ТВОРОЖНЫЕ','ТВОРОЖНАЯ МАССА НАТУРАЛЬНАЯ, С ДОБАВКАМИ','СЛИВКИ ПАСТЕРИЗОВАННЫЕ, СТЕРИЛИЗОВАННЫЕ','ТВОРОГ НАТУРАЛЬНЫЙ','СЫРКИ ТВОРОЖНЫЕ ГЛАЗИРОВАННЫЕ','ДРУГИЕ КИСЛОМОЛОЧНЫЕ ПРОДУКТЫ','ДРУГОЕ МОЛОКО, МОЛОЧНЫЕ НАПИТКИ']},
+ {id:'canned',name:'КОНСЕРВЫ',sections:['МЕД','ФАСОЛЬ КОНСЕРВИРОВАННАЯ','МАСЛИНЫ, ОЛИВКИ','ЗАКУСКИ ОВОЩНЫЕ КОНСЕРВИРОВАННЫЕ','КОНСЕРВЫ ИЗ ГОВЯДИНЫ','КОНСЕРВЫ МЯСОРАСТИТЕЛЬНЫЕ','КОНСЕРВЫ ИЗ ПТИЦЫ','КОНСЕРВЫ ИЗ РЫБЫ','ДЖЕМЫ, ВАРЕНЬЕ, КОНФИТЮРЫ','ГРИБЫ КОНСЕРВИРОВАННЫЕ','КУКУРУЗА КОНСЕРВИРОВАННАЯ','МОЛОКО СГУЩЕННОЕ','ОГУРЦЫ КОНСЕРВИРОВАННЫЕ','СИРОПЫ, КОМПОТЫ','ГОРОШЕК КОНСЕРВИРОВАННЫЙ','ПАШТЕТЫ МЯСНЫЕ КОНСЕРВИРОВАННЫЕ','ДРУГИЕ КОНСЕРВЫ ИЗ МЯСА И ПТИЦЫ','ТОМАТЫ КОНСЕРВИРОВАННЫЕ','ПЕРЕЦ КОНСЕРВИРОВАННЫЙ, ЛЕЧО','КОНСЕРВЫ ФРУКТОВО-ЯГОДНЫЕ','МОЛОКО КОНЦЕНТРИРОВАННОЕ','МОЛОКО СГУЩЕННОЕ ВАРЕНОЕ','КОНСЕРВЫ ИЗ КОНИНЫ','ПАШТЕТЫ ИЗ РЫБЫ КОНСЕРВИРОВАННЫЕ','КОНСЕРВЫ ИЗ БАРАНИНЫ','ДРУГИЕ КОНСЕРВЫ ОВОЩНЫЕ']},
+ {id:'household-chem',name:'БЫТОВАЯ ХИМИЯ',sections:['ПОРОШКИ ДЛЯ РУЧНОЙ СТИРКИ','ПОРОШКИ ДЛЯ СТИРАЛЬНЫХ МАШИН','СРЕДСТВА ДЛЯ РУЧНОГО МЫТЬЯ ПОСУДЫ','КОНДИЦИОНЕРЫ, ОПОЛАСКИВАТЕЛИ','СРЕДСТВА ДЛЯ МЫТЬЯ ПОЛОВ','ПЯТНОВЫВОДИТЕЛИ','ПОРОШКИ СТИРАЛЬНЫЕ ЖИДКИЕ, КАПСУЛЫ','ЖИДКИЕ, ГЕЛЕВЫЕ ЧИСТЯЩИЕ СРЕДСТВА','СРЕДСТВА ДЛЯ ЧИСТКИ КОВРОВ','НЕЙТРАЛИЗАТОРЫ ЗАПАХА','МЫЛО ХОЗЯЙСТВЕННОЕ','СРЕДСТВА ДЛЯ ЧИСТКИ УНИТАЗА','СРЕДСТВА ДЛЯ ЧИСТКИ ТРУБ','ПОРОШКОВЫЕ СРЕДСТВА','БЛОКИ ДЛЯ ТУАЛЕТА','СРЕДСТВА ДЛЯ ПОСУДОМОЕЧНЫХ МАШИН','ОСВЕЖИТЕЛЬ/АРОМАТИЗАТОРЫ','ОТБЕЛИВАТЕЛИ','СМЯГЧИТЕЛИ','ОСВЕЖИТЕЛИ ВОЗДУХА АВТОМАТ','ПОРОШКИ СПЕЦИАЛЬНЫЕ','УНИВЕРСАЛЬНЫЕ МОЮЩИЕ СРЕДСТВА','СРЕДСТВА ДЛЯ МЫТЬЯ СТЕКЛЯННЫХ ПОВЕРХНОСТЕЙ','ПОЛИРОЛИ ДЛЯ МЕБЕЛИ','ДРУГИЕ ЧИСТЯЩИЕ СРЕДСТВА']},
+ {id:'hygiene',name:'СРЕДСТВА ГИГИЕНЫ',sections:['ПОДГУЗНИКИ ДЕТСКИЕ','ГЕЛИ ДЛЯ ДУША','МЫЛО ТУАЛЕТНОЕ КУСКОВОЕ','СРЕДСТВА ДЛЯ ВАННЫ И ДУША ДЕТСКИЕ/МЫЛО ДЕТСКОЕ','САЛФЕТКИ, ВАТНЫЕ ПАЛОЧКИ ДЕТСКИЕ','МЫЛО ТУАЛЕТНОЕ ЖИДКОЕ','ВЛАЖНЫЕ ГИГИЕНИЧЕСКИЕ САЛФЕТКИ','ЗУБНЫЕ ЩЕТКИ','ПРОКЛАДКИ ГИГИЕНИЧЕСКИЕ','ДВУХСЛОЙНАЯ ТУАЛЕТНАЯ БУМАГА','ЗУБНАЯ ПАСТА','ПОЛОТЕНЦА БУМАЖНЫЕ','ОПОЛАСКИВАТЕЛИ ДЛЯ ПОЛОСТИ РТА','ИЗДЕЛИЯ ИЗ ВАТЫ','ТАМПОНЫ','САЛФЕТКИ В БОКСАХ/ПЛАТОЧКИ','МНОГОСЛОЙНАЯ ТУАЛЕТНАЯ БУМАГА','МЫЛО ДЛЯ ИНТИМНОЙ ГИГИЕНЫ','СОЛИ ДЛЯ ВАНН','САЛФЕТКИ БУМАЖНЫЕ СЕРВИРОВОЧНЫЕ, СТОЛОВЫЕ','ПРОКЛАДКИ ЕЖЕДНЕВНЫЕ','ДРУГОЕ МЫЛО','ОДНОСЛОЙНАЯ ТУАЛЕТНАЯ БУМАГА','ШАМПУНИ ДЕТСКИЕ','СПЕЦИАЛЬНЫЕ СРЕДСТВА ПО УХОДУ ЗА ПОЛОСТЬЮ РТА','КРЕМЫ, ПРИСЫПКИ ДЕТСКИЕ']},
+ {id:'hardware',name:'ХОЗЯЙСТВЕННЫЕ ТОВАРЫ',sections:['ТРЯПКИ ДЛЯ МЕБЕЛИ И ПОЛА','ГУБКИ ХОЗЯЙСТВЕННЫЕ','ДРУГИЕ ПРИСПОСОБЛЕНИЯ ДЛЯ МЫТЬЯ ПОСУДЫ','ИНСЕКТИЦИДЫ, РЕПЕЛЛЕНТЫ ПРОТИВ ЛЕТАЮЩИХ НАСЕКОМЫХ','ДРУГИЕ ИНСЕКТИЦИДЫ, РЕПЕЛЛЕНТЫ','ПЕРЧАТКИ РЕЗИНОВЫЕ','ФОЛЬГА','ПАКЕТЫ ДЛЯ МУСОРА','ПЛЕНКА ПИЩЕВАЯ','РУКАВА ДЛЯ ЗАПЕКАНИЯ','ПЕРГАМЕНТ','КРЕМ-КРАСКИ ПО УХОДУ ЗА ОБУВЬЮ','СПЕЦИАЛЬНЫЕ СРЕДСТВА ПО УХОДУ ЗА ОБУВЬЮ','НАБОРЫ ОДНОРАЗОВОЙ ПОСУДЫ','КРАСКИ-АЭРОЗОЛИ ПО УХОДУ ЗА ОБУВЬЮ','СПОНЖИ ПО УХОДУ ЗА ОБУВЬЮ','ИНСЕКТИЦИДЫ, РЕПЕЛЛЕНТЫ ПРОТИВ ПОЛЗАЮЩИХ НАСЕКОМЫХ','ЩЕТКИ ХОЗЯЙСТВЕННЫЕ','ИНСЕКТИЦИДЫ, РЕПЕЛЛЕНТЫ УНИВЕРСАЛЬНЫЕ','АКСЕССУАРЫ ДЛЯ ОБУВИ']},
+ {id:'cosmetics',name:'КОСМЕТИКА, ПАРФЮМЕРИЯ, ФАРМАЦЕВТИКА',sections:['СТАНКИ И ЛЕЗВИЯ МУЖСКИЕ','СТАНКИ И ЛЕЗВИЯ ЖЕНСКИЕ','ШАМПУНИ, БАЛЬЗАМЫ, СПЕЦИАЛЬНЫЙ УХОД','ДЕЗОДОРАНТЫ МУЖСКИЕ','ДЕЗОДОРАНТЫ ЖЕНСКИЕ','СРЕДСТВА ДЛЯ ОКРАСКИ ВОЛОС','СРЕДСТВА ПО УХОДУ ЗА ЗРЕЛОЙ КОЖЕЙ','СРЕДСТВА ПО УХОДУ ЗА РУКАМИ','УНИВЕРСАЛЬНЫЕ СРЕДСТВА ПО УХОДУ ЗА ЛИЦОМ','ДРУГИЕ СРЕДСТВА ПО УХОДУ ЗА ВОЛОСАМИ','КРЕМА, ЛОСЬОНЫ ДЛЯ ТЕЛА','СРЕДСТВА ДЛЯ УКЛАДКИ ВОЛОС','ПАРФЮМЕРИЯ ЖЕНСКАЯ','ДЕКОРАТИВНАЯ КОСМЕТИКА','МУЖСКИЕ СРЕДСТВА ДО И ПОСЛЕ БРИТЬЯ','ДРУГИЕ СРЕДСТВА ПО УХОДУ ЗА ЛИЦОМ','ОЧИЩАЮЩИЕ СРЕДСТВА ПО УХОДУ ЗА ЛИЦОМ','СРЕДСТВА ДЛЯ ДЕПИЛЯЦИИ','ДРУГИЕ СРЕДСТВА ПО УХОДУ ЗА ТЕЛОМ','СРЕДСТВА ПО УХОДУ ЗА НОГАМИ','СРЕДСТВА ПО УХОДУ ЗА МОЛОДОЙ И ПРОБЛЕМНОЙ КОЖЕЙ','СРЕДСТВА ДЛЯ ЗАГАРА','ПАРФЮМЕРИЯ МУЖСКАЯ']},
+ {id:'baby-food',name:'ДЕТСКОЕ ПИТАНИЕ, СРЕДСТВА ДЛЯ КОРМЛЕНИЯ',sections:['ПЮРЕ, ПУДИНГИ ДЕТСКИЕ','ДЕТСКИЕ СОКИ/ВОДА','КАШИ ДЕТСКИЕ','ЗАМЕНИТЕЛИ МОЛОКА, СМЕСИ']},
+ {id:'bath',name:'ТОВАРЫ ДЛЯ БАНИ, САУНЫ',sections:['ГУБКИ, МОЧАЛКИ БАННЫЕ','ПЕМЗА']},
+ {id:'pets',name:'ТОВАРЫ ДЛЯ ЖИВОТНЫХ',sections:['КОНСЕРВЫ ДЛЯ КОШЕК','СУХИЕ КОРМА ДЛЯ КОШЕК','КОНСЕРВЫ ДЛЯ СОБАК','СУХИЕ КОРМА ДЛЯ СОБАК','НАПОЛНИТЕЛИ ДЛЯ ТУАЛЕТОВ']},
+ {id:'socks',name:'ЧУЛОЧНО-НОСОЧНЫЕ ИЗДЕЛИЯ',sections:['КОЛГОТЫ, ЧУЛКИ, ЛЕГГИНСЫ ЖЕНСКИЕ','НОСКИ, ГОЛЬФЫ МУЖСКИЕ','НОСКИ, ГОЛЬФЫ, ГЕТРЫ, СЛЕДКИ ЖЕНСКИЕ']},
+ {id:'stationery',name:'КАНЦЕЛЯРСКИЕ ПРИНАДЛЕЖНОСТИ',sections:['КАРТОН, ЦВЕТНАЯ БУМАГА И ИХ НАБОРЫ','ТЕТРАДИ, ДНЕВНИКИ УЧЕНИЧЕСКИЕ','СКРЕПКИ, КНОПКИ, СКОБЫ','РУЧКИ, НАБОРЫ РУЧЕК, СТЕРЖНИ','МАРКЕРЫ','МЕЛКИ','КИСТИ','КРАСКИ, НАБОРЫ КРАСОК','КАРАНДАШИ, НАБОРЫ КАРАНДАШЕЙ, ГРИФЕЛИ','КОРРЕКТОРЫ, ЗАМАЗКИ','АЛЬБОМЫ, ПАПКИ ДЛЯ РИСОВАНИЯ И ЧЕРЧЕНИЯ','ФЛОМАСТЕРЫ','СТЕПЛЕРЫ, АНТИСТЕПЛЕРЫ, ДЫРОКОЛЫ','ЛИНЕЙКИ, ТРАНСПОРТИРЫ, УГОЛЬНИКИ','ПЛАСТИЛИН, ГЛИНА','ЛАСТИКИ, ТОЧИЛКИ','ЧЕРТЕЖНЫЕ ПРИНАДЛЕЖНОСТИ','КЛЕЙ, КЛЕЯЩИЕ КАРАНДАШИ','ОФИСНАЯ БУМАГА','КОНВЕРТЫ','СТИКЕРЫ, ЭТИКЕТКИ, ЗАКЛАДКИ','БЛОКНОТЫ, ЕЖЕДНЕВНИКИ, ОРГАНАЙЗЕРЫ','ПАПКИ, ПЛАНШЕТЫ']},
+ {id:'home-goods',name:'ТОВАРЫ ДЛЯ ДОМА',sections:['СВЕЧИ ДЕКОРАТИВНЫЕ, АРОМАТИЧЕСКИЕ','СВЕЧИ ХОЗЯЙСТВЕННЫЕ','ЗУБОЧИСТКИ, ПИКИ','ДЕРЖАТЕЛИ ДЛЯ ТУАЛЕТНОЙ БУМАГИ','РОЛИКИ И ЩЕТКИ ДЛЯ ОДЕЖДЫ','ПРИЩЕПКИ','МИСКИ, САЛАТН.КРЫШКИ СВЧ ПЛ','ЗЕРКАЛА','ВЕРЕВКИ ДЛЯ БЕЛЬЯ','ТЕРКИ, НАБОРЫ ТЕРОК, ОВОЩЕРЕЗКИ, ЯЙЦЕРЕЗКИ','ШВАБРЫ, ЩЕТКИ, ВЕНИКИ, СОВКИ']},
+ {id:'strong-alcohol',name:'КРЕПКИЙ АЛКОГОЛЬ',sections:['КОНЬЯК, БРЕНДИ ОТЕЧЕСТВЕННЫЙ','КОНЬЯК, БРЕНДИ ИМПОРТНЫЙ','ВОДКА ИМПОРТНАЯ','ВОДКА ОТЕЧЕСТВЕННАЯ','ВИСКИ','ЛИКЕРЫ','РОМ','НАСТОЙКИ, АБСЕНТЫ']},
+ {id:'entertainment',name:'ТОВАРЫ ДЛЯ РАЗВЛЕЧЕНИЯ',sections:['ОТКРЫТКИ/КАРТЫ ИГРАЛЬНЫЕ']},
+ {id:'kids',name:'ТОВАРЫ ДЛЯ ДЕТЕЙ',sections:['ДРУГИЕ ИГРУШКИ ДЛЯ РАЗВИТИЯ И ОБУЧЕНИЯ','МЫЛЬНЫЕ ПУЗЫРИ','ИГРУШКИ-ФИГУРКИ','ПАЗЗЛЫ, МОЗАИКИ','БУТЫЛОЧКИ, ПОИЛЬНИКИ, КРУЖКИ-НЕПРОЛИВАЙКИ','КОНСТРУКТОРЫ ДЕТСКИЕ']},
+ {id:'electronics',name:'ЭЛЕКТРОТОВАРЫ И АППАРАТУРА',sections:['ЛАМПЫ ЛЮМИНИСЦЕНТНЫЕ','БАТАРЕЙКИ','ФОНАРИКИ, ПЕРЕНОСНЫЕ ЛАМПЫ','ЛАМПЫ НАКАЛИВАНИЯ','УСТРОЙСТВА ЗАРЯДНЫЕ','АКСЕССУАРЫ СРЕДСТВ СВЯЗИ']},
+ {id:'wine',name:'ВИНО',sections:['ВИНА ТИХИЕ КРАСНЫЕ','ВИНА ТИХИЕ БЕЛЫЕ','ШАМПАНСКОЕ И ИГРИСТЫЕ ВИНА БЕЛЫЕ','ВЕРМУТЫ','ШАМПАНСКОЕ И ИГРИСТЫЕ ВИНА РОЗОВЫЕ','ВИНА КРЕПКИЕ','ШАМПАНСКОЕ И ИГРИСТЫЕ ВИНА КРАСНЫЕ','ВИНА ТИХИЕ РОЗОВЫЕ']},
+ {id:'tourism',name:'ТУРИЗМ, ПИКНИК',sections:['СПИЧКИ']},
+ {id:'bakery',name:'ХЛЕБОБУЛОЧНЫЕ ИЗДЕЛИЯ',sections:['ЛАВАШ, ЛЕПЕШКИ','ДРУГОЙ ХЛЕБ, ХЛЕБОБУЛОЧНЫЕ ИЗДЕЛИЯ','БУЛОЧКИ','ХЛЕБ С ДОБАВКАМИ','БАТОНЫ, БАГЕТЫ']},
+ {id:'haberdashery',name:'ГАЛАНТЕРЕЯ И АКСЕССУАРЫ',sections:['РАСЧЕСКИ, ЩЕТКИ','ПИЛКИ, ПИНЦЕТЫ, ЩИПЦЫ, НОЖНИЦЫ МАНИКЮРНЫЕ']},
+ {id:'party',name:'ТОВАРЫ ДЛЯ ПРАЗДНИКА',sections:['ТРУБОЧКИ КОКТЕЙЛ., КАНАПЕ']},
+ {id:'fresh',name:'ОВОЩИ, ФРУКТЫ, ЯГОДЫ, ГРИБЫ СВЕЖИЕ',sections:['СЕМЕЧКИ','ОРЕХИ','ЯГОДЫ/ФРУКТЫ СУШЕНЫЕ']},
+ {id:'culinary',name:'КУЛИНАРИЯ',sections:['БУТЕРБРОДЫ, ПИЦЦА, СЭНДВИЧИ, ХОТ-ДОГИ','Весовое из кулинарии']},
+ {id:'shoes',name:'ОБУВЬ',sections:['САНДАЛИИ, СЛАНЦЫ, ТУФЛИ МУЖСКИЕ']},
+ {id:'industrial',name:'пром товар',sections:[]},
+ {id:'fishing',name:'рыбалка',sections:[]},
+ {id:'seeds',name:'семена',sections:[]},
+ {id:'dishes',name:'посуда',sections:[]},
+ {id:'beer-accessories',name:'к пиву',sections:[]},
+ {id:'auto',name:'все для авто',sections:[]},
+ {id:'fishing-all',name:'все для рыбалки',sections:[]},
+ {id:'easter',name:'пасха',sections:[]},
+ {id:'diabetic',name:'Диабетические товары',sections:[]},
+ {id:'ice-cream',name:'мороженое',sections:[]}
+];
+let shopCategoryId='all',shopSubsection='all';
 function renderSections(type){
-    const state=catalogState[type];
-    const el=document.getElementById(type+'Sections');
-    if(!el)return;
-    const buttons=[`<button class="category-btn ${state.selectedSection==='all'?'active':''}" onclick="selectSection('${type}','all')">Барлығы</button>`];
-    state.sections.forEach(section=>{
-        buttons.push(`<button class="category-btn ${state.selectedSection===section.id?'active':''}" onclick="selectSection('${type}','${section.id}')">${escapeHtml(localizeSectionName(section.name))}</button>`);
-    });
-    el.innerHTML=buttons.join('');
+    const state=catalogState[type],el=document.getElementById(type+'Sections');if(!el)return;
+    if(type!=='shop'){el.innerHTML=state.sections.map(section=>`<button class="category-btn ${state.selectedSection===section.id?'active':''}" onclick="selectSection('${type}','${section.id}')">${escapeHtml(localizeSectionName(section.name))}</button>`).join('');return;}
+    const cats=OGO_AYBOLIT_CATEGORIES;
+    el.innerHTML=cats.map(c=>`<button class="category-btn ${shopCategoryId===c.id?'active':''}" onclick="selectShopCategory('${c.id}')">${escapeHtml(c.name)}</button>`).join('');
+}
+function selectShopCategory(id){
+    const cat=OGO_AYBOLIT_CATEGORIES.find(c=>c.id===id);if(!cat)return;
+    shopCategoryId=id;shopSubsection='all';
+    const sub=document.getElementById('shopSubcategoryView'),top=document.getElementById('shopCategoryView'),products=document.getElementById('shopProducts'),title=document.getElementById('shopSelectedCategory');
+    if(!cat.sections.length){
+        if(sub)sub.style.display='none'; if(top)top.style.display='block';
+        renderShopProductsByCategory(); return;
+    }
+    if(top)top.style.display='none'; if(sub)sub.style.display='block'; if(title)title.textContent=cat.name;
+    const el=document.getElementById('shopSubsections');
+    if(el)el.innerHTML=cat.sections.map((name,i)=>`<button class="category-btn ${shopSubsection===String(i)?'active':''}" onclick="selectShopSubsection('${i}')">${escapeHtml(name)}</button>`).join('');
+    if(products)products.innerHTML='<div class="empty">Разделді таңдаңыз.</div>';
+}
+function selectShopSubsection(index){shopSubsection=String(index);const cat=OGO_AYBOLIT_CATEGORIES.find(c=>c.id===shopCategoryId);const el=document.getElementById('shopSubsections');if(el&&cat)el.innerHTML=cat.sections.map((name,i)=>`<button class="category-btn ${shopSubsection===String(i)?'active':''}" onclick="selectShopSubsection('${i}')">${escapeHtml(name)}</button>`).join('');renderShopProductsByCategory();}
+function backToShopCategories(){shopCategoryId='all';shopSubsection='all';const top=document.getElementById('shopCategoryView'),sub=document.getElementById('shopSubcategoryView');if(top)top.style.display='block';if(sub)sub.style.display='none';renderSections('shop');renderProducts('shop');}
+function productBelongsToSpecialCategory(p,id){
+    if(id==='all')return true;
+    if(id==='no-barcode')return !p.barcode;
+    if(id==='undefined')return !p.category_id&&!p.section_id&&!p.category&&!p.section;
+    if(id==='weighted'){const u=normalizeSearchText(p.unit||'');return /(^|\s)(кг|kg|г|гр|g|л|l)(\.|\s|$)/i.test(u)||normalizeSearchText(p.name).includes('весовое');}
+    return String(p.category_id||p.category||'')===id || String(p.category_name||'')===id;
+}
+function renderShopProductsByCategory(){
+    const state=catalogState.shop,el=document.getElementById('shopProducts');if(!el)return;
+    let items=state.products.filter(p=>productBelongsToSpecialCategory(p,shopCategoryId));
+    const cat=OGO_AYBOLIT_CATEGORIES.find(c=>c.id===shopCategoryId);
+    if(shopCategoryId!=='all'&&shopCategoryId!=='no-barcode'&&shopCategoryId!=='undefined'&&shopCategoryId!=='weighted'&&cat&&cat.sections.length&&shopSubsection!=='all'){
+        const target=cat.sections[Number(shopSubsection)];items=items.filter(p=>String(p.section_id||p.section_name||p.section||'')===target);
+    }
+    if(!items.length){el.innerHTML='<div class="empty">Бұл бөлімде әзірге тауар жоқ.</div>';return;}
+    state._renderOverride=items;renderProducts('shop');delete state._renderOverride;
 }
 
 function normalizeSearchText(value){
@@ -910,7 +1011,7 @@ function searchMatchesProduct(product,query){
 function renderProducts(type){
     const state=catalogState[type], el=document.getElementById(type+'Products'); if(!el)return;
     const query=state.searchQuery||'';
-    const items=(type==='shop'&&query.trim()) ? state.products.filter(p=>searchMatchesProduct(p,query)) : (state.selectedSection==='all'?state.products:state.products.filter(p=>p.section_id===state.selectedSection));
+    const items=state._renderOverride ? state._renderOverride : ((type==='shop'&&query.trim()) ? state.products.filter(p=>searchMatchesProduct(p,query)) : (state.selectedSection==='all'?state.products:state.products.filter(p=>p.section_id===state.selectedSection)));
     if(!items.length){
         el.innerHTML=query.trim()?`<div class="catalog-search-empty"><i class="fa-solid fa-magnifying-glass"></i><br><strong>«${escapeHtml(query)}»</strong> бойынша тауар табылмады.<br><span style="font-size:11px">Басқа атау немесе бірнеше әріп жазып көріңіз.</span></div>`:'<div class="empty">Бұл бөлімде әзірге тауар жоқ.</div>';
         return;
@@ -930,7 +1031,7 @@ function searchCatalog(type,value){
     const state=catalogState[type]; if(!state)return;
     state.searchQuery=value||'';
     const wrap=document.getElementById(type+'SearchWrap'); if(wrap)wrap.classList.toggle('has-value',!!state.searchQuery.trim());
-    if(type==='shop'&&state.searchQuery.trim()){state.selectedSection='all';renderSections(type);}
+    if(type==='shop'&&state.searchQuery.trim()){state.selectedSection='all';shopCategoryId='all';shopSubsection='all';const top=document.getElementById('shopCategoryView'),sub=document.getElementById('shopSubcategoryView');if(top)top.style.display='block';if(sub)sub.style.display='none';renderSections(type);}
     renderProducts(type);
 }
 function clearCatalogSearch(type){
@@ -959,10 +1060,10 @@ async function loadCatalog(type){
         state.products=(productsResult.data||[]).map(p=>({
             ...p, name:p.title, published:p.is_active, stock:999999,
             sale_price:null, promo_text:null, description:p.unit||'',
-            image_url:null, category:'shop', service_type:'shop', section_id:null
+            image_url:null, category:'shop', service_type:'shop', section_id:p.section_id||null, category_id:p.category_id||null, category_name:p.category_name||null, section_name:p.section_name||null
         }));
         state.loaded=true;
-        renderSections(type); renderProducts(type);
+        if(type==='shop'){shopCategoryId='all';shopSubsection='all';renderSections(type);renderProducts(type);}else{renderSections(type);renderProducts(type);}
     }catch(error){
         console.error('O Go Supabase catalog error:',error);
         state.sections=[]; state.products=[]; state.loaded=false;
@@ -1046,7 +1147,8 @@ function openStore(id){
   document.getElementById('currentStoreName').textContent=ru?st.nameRu:st.nameKz;
   document.getElementById('currentStoreSub').textContent=ru?st.subRu:st.subKz;
   document.getElementById('currentStoreLogo').src=st.logo;
-  catalogState.shop.loaded=false; catalogState.shop.searchQuery=''; catalogState.shop.selectedSection='all';
+  catalogState.shop.loaded=false; catalogState.shop.searchQuery=''; catalogState.shop.selectedSection='all'; shopCategoryId='all'; shopSubsection='all';
+  const top=document.getElementById('shopCategoryView'),sub=document.getElementById('shopSubcategoryView'); if(top)top.style.display='block'; if(sub)sub.style.display='none';
   loadCatalog('shop');
 }
 
