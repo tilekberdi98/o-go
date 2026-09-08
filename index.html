@@ -728,8 +728,9 @@ body{background:#f6b35f!important;color:#171717!important}
         <div id="cartCheckout" style="display:none">
             <div class="total" style="display:block">
                 <div style="display:flex;justify-content:space-between;gap:12px;margin-bottom:8px"><span>Тауарлар</span><strong><span id="subtotal">0</span> ₸</strong></div>
-                <div style="display:flex;justify-content:space-between;gap:12px;margin-bottom:10px"><span>Доставка</span><strong>600 ₸</strong></div>
-                <div style="border-top:1px solid var(--line);padding-top:10px;display:flex;justify-content:space-between;gap:12px"><span>Барлығы</span><strong><span id="total">0</span> ₸</strong></div>
+                <div style="display:flex;justify-content:space-between;gap:12px;margin-bottom:8px"><span id="assemblyLabel">Тапсырысты жинау</span><strong><span id="assemblyFee">100</span> ₸</strong></div>
+                <div style="display:flex;justify-content:space-between;gap:12px;margin-bottom:10px"><span id="shippingLabel">Жеткізу</span><strong><span id="shippingFee">600</span> ₸</strong></div>
+                <div style="border-top:1px solid var(--line);padding-top:10px;display:flex;justify-content:space-between;gap:12px"><span id="totalLabel">Барлығы</span><strong><span id="total">0</span> ₸</strong></div>
             </div>
             <div class="form-card">
                 <div class="form-group"><label>Атыңыз</label><input id="clientName" placeholder="Атыңыз"></div>
@@ -849,6 +850,7 @@ const supabaseClient = window.supabase.createClient(
 
 const WHATSAPP = "77756108898";
 const DELIVERY_FEE = 600;
+const ORDER_ASSEMBLY_FEE = 100;
 let cart = (()=>{
     try{const raw=localStorage.getItem('ogo_cart');const parsed=raw?JSON.parse(raw):[];return Array.isArray(parsed)?parsed:[];}catch(e){return [];}
 })();
@@ -1363,6 +1365,68 @@ function openPage(page){
 }
 function goHome(){openPage("home")}
 
+/* IPHONE / MOBILE — ЖАНҒА СЫРҒЫТЫП АРТҚА ҚАЙТУ */
+let OGO_SWIPE_X=0, OGO_SWIPE_Y=0, OGO_SWIPE_ACTIVE=false;
+function ogoSwipeBack(){
+    const active=document.querySelector('.page.active');
+    if(!active)return;
+    const pageId=active.id;
+
+    // Дүкен ішінде: бөлімнен категорияға, категориядан дүкен таңдауға, одан басты бетке.
+    if(pageId==='shop'){
+        const sub=document.getElementById('shopSubcategoryView');
+        const catalog=document.getElementById('shopCatalogView');
+        const chooser=document.getElementById('shopChooser');
+        if(sub && sub.style.display!=='none'){
+            backToShopCategories();
+            return;
+        }
+        if(catalog && catalog.style.display!=='none'){
+            openShopChooser();
+            return;
+        }
+        goHome();
+        return;
+    }
+
+    // Тағам ішінде: ресторан мәзірінен ресторандарға, одан басты бетке.
+    if(pageId==='food'){
+        const menu=document.getElementById('restaurantMenu');
+        if(menu && menu.style.display!=='none'){
+            showFoodRestaurants();
+            return;
+        }
+        goHome();
+        return;
+    }
+
+    // Қалған беттерден басты бетке.
+    if(pageId!=='home') goHome();
+}
+
+document.addEventListener('touchstart', function(e){
+    if(!e.touches || e.touches.length!==1)return;
+    const t=e.touches[0];
+    OGO_SWIPE_X=t.clientX;
+    OGO_SWIPE_Y=t.clientY;
+    OGO_SWIPE_ACTIVE=true;
+}, {passive:true});
+
+document.addEventListener('touchend', function(e){
+    if(!OGO_SWIPE_ACTIVE || !e.changedTouches || !e.changedTouches.length)return;
+    OGO_SWIPE_ACTIVE=false;
+    const t=e.changedTouches[0];
+    const dx=t.clientX-OGO_SWIPE_X;
+    const dy=t.clientY-OGO_SWIPE_Y;
+    // Солдан оңға қарай анық сырғыту. Вертикальды скролл мен input-тарға кедергі жасамайды.
+    const target=e.target;
+    const isForm=target && target.closest && target.closest('input,textarea,select,button');
+    const isHorizontal=target && target.closest && target.closest('.category-row');
+    if(dx>75 && Math.abs(dx)>Math.abs(dy)*1.25 && !isForm && !isHorizontal){
+        ogoSwipeBack();
+    }
+}, {passive:true});
+
 /* КОРЗИНА */
 function addToCart(name,price){
     const item=cart.find(x=>x.name===name);
@@ -1429,7 +1493,7 @@ function updateCart(){
             </div>
         </div>`;
     }).join("");
-    const grandTotal=total+DELIVERY_FEE;
+    const grandTotal=total+ORDER_ASSEMBLY_FEE+DELIVERY_FEE;
     document.getElementById("subtotal").textContent=total.toLocaleString("ru-RU");
     document.getElementById("total").textContent=grandTotal.toLocaleString("ru-RU");
     badge.textContent=qty;
@@ -1447,8 +1511,8 @@ async function sendCart(){
     let text="🟡 O GO — ЖАҢА ТАПСЫРЫС\n\n";
     text+="🛒 Тауарлар:\n";
     cart.forEach((x,i)=>{const sum=x.price*x.qty;subtotal+=sum;text+=`${i+1}. ${x.name} × ${x.qty} = ${sum} ₸\n`;});
-    const grandTotal=subtotal+DELIVERY_FEE;
-    text+=`\n🧾 Тауарлар: ${subtotal} ₸\n🚚 Доставка: ${DELIVERY_FEE} ₸\n💰 Барлығы: ${grandTotal} ₸\n👤 Аты: ${customerName}\n📞 Телефон: ${phone}\n📍 Мекенжай: ${address}\n💳 Төлем: ${payment}`;
+    const grandTotal=subtotal+ORDER_ASSEMBLY_FEE+DELIVERY_FEE;
+    text+=`\n🧾 Тауарлар: ${subtotal} ₸\n📦 Сбор заказа: ${ORDER_ASSEMBLY_FEE} ₸\n🚚 Доставка: ${DELIVERY_FEE} ₸\n💰 Барлығы: ${grandTotal} ₸\n👤 Аты: ${customerName}\n📞 Телефон: ${phone}\n📍 Мекенжай: ${address}\n💳 Төлем: ${payment}`;
     window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(text)}`,"_blank");
     cart=[]; saveCart(); updateCart();
 }
@@ -1965,8 +2029,8 @@ renderFoodRestaurants();
 <script>
 /* O GO — COMPLETE LANGUAGE SYSTEM */
 const OGO_LANG={
- kz:{lang:'Kz',home:'Басты бет',shop:'Дүкен',food:'Тағамдар',taxi:'Такси',delivery:'Жеткізу',cart:'Себет',services:'O Go қызметтері',count:'4 қызмет',heroTitle:'Керек нәрсенің бәрі — бір жерде.',heroText:'Дүкен, такси, тағамдар және жеткізу — O Go арқылы оңай.',heroNote:'Тез. Оңай. Жақын.',shopDesc:'Күнделікті керек заттарды тапсырыс бер',shopSub:'Күнделікті тауарлар',taxiDesc:'Қала ішінде көлікке тапсырыс бер',taxiSub:'Қала ішінде тапсырыс',foodDesc:'Кафе мен тағамдарға тапсырыс бер',foodSub:'Кафе мен ресторандар',deliveryDesc:'Сәлемдеме мен заттарды жеткіз',deliverySub:'Зат пен сәлемдеме',cartSub:'Таңдаған тауарларыңыз',download:'Қолданбаны жүктеу',downloadText:'O Go жақында App Store және Google Play-де қолжетімді болады.',partner:'Серіктестік',seller:'Сатушы панелі',order:'Тапсырыс беру',deliveryHint:'Қай жерден алып, қай жерге жеткізу керегін жазыңыз.',back:'Артқа',name:'Атыңыз',phone:'Телефон',address:'Мекенжай',payment:'Төлем',send:'WhatsApp арқылы тапсырыс беру',products:'Тауарлар',shipping:'Жеткізу',total:'Барлығы',search:'Дүкеннен тауар іздеу...',searchHint:'Тауар атауын толық немесе бірнеше әріппен жазыңыз — барлық бөлімнен ізделеді.',loginTitle:'Сатушы панелі',loginHint:'Supabase-та тіркелген сатушы email және паролімен кіріңіз.',login:'Кіру',addProduct:'Тауар қосу',publish:'Тауарды жариялау',bulk:'Көп тауарды бірден жүктеу',myProducts:'Менің тауарларым',logout:'Шығу',bulkTitle:'Көп тауарды бірден жүктеу',bulkHint:'UMAG-тен экспортталған Excel (.xlsx) немесе CSV файл арқылы ондаған немесе жүздеген тауарды бірден қосыңыз.',template:'Дайын үлгіні жүктеу',csv:'CSV файл',upload:'Тауарларды жүктеу',edit:'Тауарды өзгерту',save:'Өзгерісті сақтау',delete:'Тауарды өшіру',service:'Қызмет',section:'Бөлім',category:'Категория',unit:'Өлшем бірлігі',productName:'Тауар атауы',price:'Бағасы, ₸',sale:'Акциялық баға, ₸ (қаласаңыз)',promo:'Акция атауы (қаласаңыз)',stock:'Қоймадағы саны',description:'Сипаттама',photo:'Фото',status:'Статус',published:'Жарияланған',hidden:'Жасырын',newSection:'Бөлім жүктелуде...',foodEmpty:'Бұл дәмханада тағамдар әзірге қосылған жоқ.',foodSubTitle:'Дәмхана мен ресторандар',all:'Барлығы',burger:'Бургер',sushi:'Суши',pizza:'Пицца',doner:'Донер',salad:'Салат',dessert:'Десерт',drinks:'Сусындар',choiceTitle:'Қызметті таңдаңыз',choiceTaxi:'Такси',choiceTaxiSub:'Қала ішінде',choiceDelivery:'Жеткізу',choiceDeliverySub:'Сәлемдеме мен заттар'},
- ru:{lang:'Ru',home:'Главная',shop:'Магазин',food:'Еда',taxi:'Такси',delivery:'Доставка',cart:'Корзина',services:'Сервисы O Go',count:'4 сервиса',heroTitle:'Всё необходимое — в одном месте.',heroText:'Магазин, такси, еда и доставка — легко с O Go.',heroNote:'Быстро. Просто. Рядом.',shopDesc:'Заказывайте всё необходимое на каждый день',shopSub:'Товары на каждый день',taxiDesc:'Закажите поездку по городу',taxiSub:'Заказ по городу',foodDesc:'Заказывайте блюда из кафе',foodSub:'Кафе и рестораны',deliveryDesc:'Доставляйте посылки и вещи',deliverySub:'Посылки и вещи',cartSub:'Выбранные товары',download:'Скачать приложение',downloadText:'O Go скоро будет доступен в App Store и Google Play.',partner:'Партнёрство',seller:'Панель продавца',order:'Заказать',deliveryHint:'Укажите, откуда забрать и куда доставить.',back:'Назад',name:'Ваше имя',phone:'Телефон',address:'Адрес',payment:'Оплата',send:'Заказать через WhatsApp',products:'Товары',shipping:'Доставка',total:'Итого',search:'Поиск товара в магазине...',searchHint:'Введите полное название товара или несколько букв — поиск идёт по всем разделам.',loginTitle:'Панель продавца',loginHint:'Войдите с email и паролем продавца, зарегистрированными в Supabase.',login:'Войти',addProduct:'Добавить товар',publish:'Опубликовать товар',bulk:'Загрузить много товаров',myProducts:'Мои товары',logout:'Выйти',bulkTitle:'Загрузка нескольких товаров',bulkHint:'Добавьте десятки или сотни товаров одним CSV-файлом.',template:'Скачать готовый шаблон',csv:'CSV файл',upload:'Загрузить товары',edit:'Изменить товар',save:'Сохранить изменения',delete:'Удалить товар',service:'Сервис',section:'Раздел',category:'Категория',unit:'Единица измерения',productName:'Название товара',price:'Цена, ₸',sale:'Акционная цена, ₸ (по желанию)',promo:'Название акции (по желанию)',stock:'Количество на складе',description:'Описание',photo:'Фото',status:'Статус',published:'Опубликован',hidden:'Скрыт',newSection:'Загрузка разделов...',foodEmpty:'В этом ресторане блюда пока не добавлены.',foodSubTitle:'Кафе и рестораны',all:'Все',burger:'Бургеры',sushi:'Суши',pizza:'Пицца',doner:'Донер',salad:'Салаты',dessert:'Десерты',drinks:'Напитки',choiceTitle:'Выберите услугу',choiceTaxi:'Такси',choiceTaxiSub:'По городу',choiceDelivery:'Доставка',choiceDeliverySub:'Посылки и вещи'}
+ kz:{lang:'Kz',home:'Басты бет',shop:'Дүкен',food:'Тағамдар',taxi:'Такси',delivery:'Жеткізу',cart:'Себет',services:'O Go қызметтері',count:'4 қызмет',heroTitle:'Керек нәрсенің бәрі — бір жерде.',heroText:'Дүкен, такси, тағамдар және жеткізу — O Go арқылы оңай.',heroNote:'Тез. Оңай. Жақын.',shopDesc:'Күнделікті керек заттарды тапсырыс бер',shopSub:'Күнделікті тауарлар',taxiDesc:'Қала ішінде көлікке тапсырыс бер',taxiSub:'Қала ішінде тапсырыс',foodDesc:'Кафе мен тағамдарға тапсырыс бер',foodSub:'Кафе мен ресторандар',deliveryDesc:'Сәлемдеме мен заттарды жеткіз',deliverySub:'Зат пен сәлемдеме',cartSub:'Таңдаған тауарларыңыз',download:'Қолданбаны жүктеу',downloadText:'O Go жақында App Store және Google Play-де қолжетімді болады.',partner:'Серіктестік',seller:'Сатушы панелі',order:'Тапсырыс беру',deliveryHint:'Қай жерден алып, қай жерге жеткізу керегін жазыңыз.',back:'Артқа',name:'Атыңыз',phone:'Телефон',address:'Мекенжай',payment:'Төлем',send:'WhatsApp арқылы тапсырыс беру',products:'Тауарлар',assembly:'Тапсырысты жинау',shipping:'Жеткізу',total:'Барлығы',search:'Дүкеннен тауар іздеу...',searchHint:'Тауар атауын толық немесе бірнеше әріппен жазыңыз — барлық бөлімнен ізделеді.',loginTitle:'Сатушы панелі',loginHint:'Supabase-та тіркелген сатушы email және паролімен кіріңіз.',login:'Кіру',addProduct:'Тауар қосу',publish:'Тауарды жариялау',bulk:'Көп тауарды бірден жүктеу',myProducts:'Менің тауарларым',logout:'Шығу',bulkTitle:'Көп тауарды бірден жүктеу',bulkHint:'UMAG-тен экспортталған Excel (.xlsx) немесе CSV файл арқылы ондаған немесе жүздеген тауарды бірден қосыңыз.',template:'Дайын үлгіні жүктеу',csv:'CSV файл',upload:'Тауарларды жүктеу',edit:'Тауарды өзгерту',save:'Өзгерісті сақтау',delete:'Тауарды өшіру',service:'Қызмет',section:'Бөлім',category:'Категория',unit:'Өлшем бірлігі',productName:'Тауар атауы',price:'Бағасы, ₸',sale:'Акциялық баға, ₸ (қаласаңыз)',promo:'Акция атауы (қаласаңыз)',stock:'Қоймадағы саны',description:'Сипаттама',photo:'Фото',status:'Статус',published:'Жарияланған',hidden:'Жасырын',newSection:'Бөлім жүктелуде...',foodEmpty:'Бұл дәмханада тағамдар әзірге қосылған жоқ.',foodSubTitle:'Дәмхана мен ресторандар',all:'Барлығы',burger:'Бургер',sushi:'Суши',pizza:'Пицца',doner:'Донер',salad:'Салат',dessert:'Десерт',drinks:'Сусындар',choiceTitle:'Қызметті таңдаңыз',choiceTaxi:'Такси',choiceTaxiSub:'Қала ішінде',choiceDelivery:'Жеткізу',choiceDeliverySub:'Сәлемдеме мен заттар'},
+ ru:{lang:'Ru',home:'Главная',shop:'Магазин',food:'Еда',taxi:'Такси',delivery:'Доставка',cart:'Корзина',services:'Сервисы O Go',count:'4 сервиса',heroTitle:'Всё необходимое — в одном месте.',heroText:'Магазин, такси, еда и доставка — легко с O Go.',heroNote:'Быстро. Просто. Рядом.',shopDesc:'Заказывайте всё необходимое на каждый день',shopSub:'Товары на каждый день',taxiDesc:'Закажите поездку по городу',taxiSub:'Заказ по городу',foodDesc:'Заказывайте блюда из кафе',foodSub:'Кафе и рестораны',deliveryDesc:'Доставляйте посылки и вещи',deliverySub:'Посылки и вещи',cartSub:'Выбранные товары',download:'Скачать приложение',downloadText:'O Go скоро будет доступен в App Store и Google Play.',partner:'Партнёрство',seller:'Панель продавца',order:'Заказать',deliveryHint:'Укажите, откуда забрать и куда доставить.',back:'Назад',name:'Ваше имя',phone:'Телефон',address:'Адрес',payment:'Оплата',send:'Заказать через WhatsApp',products:'Товары',assembly:'Сбор заказа',shipping:'Доставка',total:'Итого',search:'Поиск товара в магазине...',searchHint:'Введите полное название товара или несколько букв — поиск идёт по всем разделам.',loginTitle:'Панель продавца',loginHint:'Войдите с email и паролем продавца, зарегистрированными в Supabase.',login:'Войти',addProduct:'Добавить товар',publish:'Опубликовать товар',bulk:'Загрузить много товаров',myProducts:'Мои товары',logout:'Выйти',bulkTitle:'Загрузка нескольких товаров',bulkHint:'Добавьте десятки или сотни товаров одним CSV-файлом.',template:'Скачать готовый шаблон',csv:'CSV файл',upload:'Загрузить товары',edit:'Изменить товар',save:'Сохранить изменения',delete:'Удалить товар',service:'Сервис',section:'Раздел',category:'Категория',unit:'Единица измерения',productName:'Название товара',price:'Цена, ₸',sale:'Акционная цена, ₸ (по желанию)',promo:'Название акции (по желанию)',stock:'Количество на складе',description:'Описание',photo:'Фото',status:'Статус',published:'Опубликован',hidden:'Скрыт',newSection:'Загрузка разделов...',foodEmpty:'В этом ресторане блюда пока не добавлены.',foodSubTitle:'Кафе и рестораны',all:'Все',burger:'Бургеры',sushi:'Суши',pizza:'Пицца',doner:'Донер',salad:'Салаты',dessert:'Десерты',drinks:'Напитки',choiceTitle:'Выберите услугу',choiceTaxi:'Такси',choiceTaxiSub:'По городу',choiceDelivery:'Доставка',choiceDeliverySub:'Посылки и вещи'}
 };
 let OGO_CURRENT_LANG=localStorage.getItem('ogo_lang')||'kz';
 function setText(id,v){const e=document.getElementById(id);if(e)e.textContent=v}
@@ -1982,7 +2046,7 @@ function setLang(lang){
  document.querySelectorAll('[data-page-title]').forEach(e=>e.textContent=L[e.dataset.pageTitle]);document.querySelectorAll('[data-page-subtitle]').forEach(e=>e.textContent=L[e.dataset.pageSubtitle+'Sub']);
  const ph={shopSearch:L.search,clientName:L.name,clientAddress:OGO_CURRENT_LANG==='ru'?'Город, улица, дом, квартира':'Қала, көше, үй, пәтер',taxiFrom:OGO_CURRENT_LANG==='ru'?'Например: Абая 25':'Мысалы: Абай 25',taxiTo:OGO_CURRENT_LANG==='ru'?'Например: Магазин':'Мысалы: Дүкен',taxiComment:OGO_CURRENT_LANG==='ru'?'Если нужно, напишите':'Қажет болса жазыңыз',deliveryFrom:L.address,deliveryTo:L.address,deliveryComment:OGO_CURRENT_LANG==='ru'?'Например: документы, пакет, продукты':'Мысалы: құжат, пакет, азық-түлік',sellerProductName:OGO_CURRENT_LANG==='ru'?'Например: Молоко 1 л':'Мысалы: Сүт 1 л',sellerProductDescription:OGO_CURRENT_LANG==='ru'?'Краткое описание':'Қысқаша сипаттама'};Object.keys(ph).forEach(id=>{const e=document.getElementById(id);if(e)e.placeholder=ph[id]});
  const labels=document.querySelectorAll('#cartCheckout .form-group label');if(labels.length>=4){labels[0].textContent=L.name;labels[1].textContent=L.phone;labels[2].textContent=L.address;labels[3].textContent=L.payment}
- const rows=document.querySelectorAll('#cartCheckout .total div span:first-child');if(rows.length>=3){rows[0].textContent=L.products;rows[1].textContent=L.shipping;rows[2].textContent=L.total}
+ const rows=document.querySelectorAll('#cartCheckout .total div span:first-child');if(rows.length>=4){rows[0].textContent=L.products;rows[1].textContent=L.assembly;rows[2].textContent=L.shipping;rows[3].textContent=L.total} setText('assemblyFee','100');setText('shippingFee','600');
  const send=document.querySelector('#cartCheckout .submit');if(send)send.innerHTML='<i class="fa-brands fa-whatsapp"></i> '+L.send;
  setText('cartEmpty',OGO_CURRENT_LANG==='ru'?'Корзина пока пуста.':'Себет әзірге бос.');document.querySelectorAll('.catalog-search-hint').forEach(e=>e.textContent=L.searchHint);
  const labelsTaxi=document.querySelectorAll('#taxi .form-group label');if(labelsTaxi.length>=4){labelsTaxi[0].textContent=OGO_CURRENT_LANG==='ru'?'Откуда?':'Қай жерден?';labelsTaxi[1].textContent=OGO_CURRENT_LANG==='ru'?'Куда?':'Қай жерге?';labelsTaxi[2].textContent=L.phone;labelsTaxi[3].textContent=OGO_CURRENT_LANG==='ru'?'Дополнительная информация':'Қосымша ақпарат'}
