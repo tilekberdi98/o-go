@@ -447,9 +447,12 @@ main{padding:18px 16px 24px}
 
 /* CATALOG SEARCH */
 
-.shop-category-title{display:flex;justify-content:space-between;align-items:end;margin:8px 2px 10px}
-.shop-category-title span{font-size:18px;font-weight:800;letter-spacing:-.3px}
+.shop-category-title{display:flex;justify-content:space-between;align-items:center;width:100%;box-sizing:border-box;margin:8px 2px 10px;padding:2px 2px 8px;border:0;background:transparent;color:inherit;text-align:left;cursor:pointer}
+.shop-category-title-main{display:flex;flex-direction:column;gap:3px}
+.shop-category-title-main>span{font-size:18px;font-weight:800;letter-spacing:-.3px}
 .shop-category-title small,.shop-selected-hint{font-size:11px;color:var(--muted)}
+.shop-category-arrow{font-size:23px;line-height:1;width:30px;height:30px;display:grid;place-items:center;border:1px solid var(--line);border-radius:10px;color:var(--muted);transition:transform .18s ease,background .18s ease,color .18s ease}
+.shop-category-toggle[aria-expanded="true"] .shop-category-arrow{transform:rotate(180deg);background:rgba(255,204,0,.10);color:var(--yellow);border-color:rgba(255,204,0,.35)}
 .shop-top-categories{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px!important}
 .shop-top-categories .category-btn{min-height:52px;text-align:left;white-space:normal;line-height:1.2;padding:12px 13px;border-radius:15px}
 .shop-top-categories .category-btn.active{border-color:var(--yellow);background:rgba(255,204,0,.10)}
@@ -644,8 +647,8 @@ body{background:#f6b35f!important;color:#171717!important}
             </div>
             <div class="catalog-search-hint">Тауар атауын толық немесе бірнеше әріппен жазыңыз — барлық бөлімнен ізделеді.</div>
             <div id="shopCategoryView">
-                <div class="shop-category-title"><span id="shopCategoryTitle">Категории</span><small id="shopCategoryHint">Выберите категорию</small></div>
-                <div id="shopSections" class="category-row shop-top-categories" aria-label="Категории магазина"></div>
+                <button class="shop-category-title shop-category-toggle" type="button" onclick="toggleShopCategories()" aria-expanded="false"><span class="shop-category-title-main"><span id="shopCategoryTitle">Категории</span><small id="shopCategoryHint">Выберите категорию</small></span><span id="shopCategoryArrow" class="shop-category-arrow" aria-hidden="true">⌄</span></button>
+                <div id="shopSections" class="category-row shop-top-categories" aria-label="Категории магазина" style="display:none"></div>
             </div>
             <div id="shopSubcategoryView" style="display:none">
                 <div class="shop-sub-head">
@@ -973,6 +976,7 @@ const OGO_AYBOLIT_CATEGORIES = [
  {id:'ice-cream',name:'мороженое',sections:[]}
 ];
 let shopCategoryId='all',shopSubsection='all';
+let shopCategoriesExpanded=false;
 function getShopCategoryItems(categoryId){
     const products=(catalogState.shop&&catalogState.shop.products)||[];
     return products.filter(p=>productBelongsToSpecialCategory(p,categoryId));
@@ -993,6 +997,16 @@ function renderSections(type){
     const visible=cats.filter(c=>getShopCategoryItems(c.id).length>0);
     const ordered=[promo,...visible];
     el.innerHTML=ordered.map(c=>`<button class="category-btn ${c.id==='__promo__'?'promo-category ':''}${shopCategoryId===c.id?'active':''}" onclick="selectShopCategory('${c.id}')">${c.id==='__promo__'?'🔥 ':''}${escapeHtml(localizeCategoryName(c.name))}${c.id==='__promo__'&&catalogState.shop.products.filter(isPromoProduct).length?` (${catalogState.shop.products.filter(isPromoProduct).length})`:''}</button>`).join('');
+    const catWrap=document.getElementById('shopSections'); const catToggle=document.querySelector('.shop-category-toggle'); const catArrow=document.getElementById('shopCategoryArrow'); if(catWrap){catWrap.style.display=shopCategoriesExpanded?'grid':'none';} if(catToggle)catToggle.setAttribute('aria-expanded',shopCategoriesExpanded?'true':'false'); if(catArrow)catArrow.textContent=shopCategoriesExpanded?'⌃':'⌄';
+}
+function toggleShopCategories(){
+    shopCategoriesExpanded=!shopCategoriesExpanded;
+    const el=document.getElementById('shopSections');
+    const toggle=document.querySelector('.shop-category-toggle');
+    const arrow=document.getElementById('shopCategoryArrow');
+    if(el)el.style.display=shopCategoriesExpanded?'grid':'none';
+    if(toggle)toggle.setAttribute('aria-expanded',shopCategoriesExpanded?'true':'false');
+    if(arrow)arrow.textContent=shopCategoriesExpanded?'⌃':'⌄';
 }
 function selectShopCategory(id){
     if(id==='__promo__'){
@@ -1420,9 +1434,9 @@ document.addEventListener('touchend', function(e){
     const dy=t.clientY-OGO_SWIPE_Y;
     // Солдан оңға қарай анық сырғыту. Вертикальды скролл мен input-тарға кедергі жасамайды.
     const target=e.target;
-    const isForm=target && target.closest && target.closest('input,textarea,select,button');
+    const isForm=target && target.closest && target.closest('input,textarea,select');
     const isHorizontal=target && target.closest && target.closest('.category-row');
-    if(dx>75 && Math.abs(dx)>Math.abs(dy)*1.25 && !isForm && !isHorizontal){
+    if(dx>60 && Math.abs(dx)>Math.abs(dy)*1.2 && !isForm && !isHorizontal){
         ogoSwipeBack();
     }
 }, {passive:true});
@@ -1495,7 +1509,25 @@ function updateCart(){
     }).join("");
     const grandTotal=total+ORDER_ASSEMBLY_FEE+DELIVERY_FEE;
     document.getElementById("subtotal").textContent=total.toLocaleString("ru-RU");
+    document.getElementById("assemblyFee").textContent=ORDER_ASSEMBLY_FEE.toLocaleString("ru-RU");
+    document.getElementById("shippingFee").textContent=DELIVERY_FEE.toLocaleString("ru-RU");
     document.getElementById("total").textContent=grandTotal.toLocaleString("ru-RU");
+
+    // Себеттегі атауларды тілге тәуелсіз, әр жаңартқанда қайта орнатамыз.
+    const cartRu=typeof OGO_CURRENT_LANG!=='undefined' && OGO_CURRENT_LANG==='ru';
+    const cartLabels={
+        products:cartRu?'Товары':'Тауарлар',
+        assembly:cartRu?'Сбор заказа':'Тапсырысты жинау',
+        shipping:cartRu?'Доставка':'Жеткізу',
+        total:cartRu?'Итого':'Барлығы'
+    };
+    const cartLabelEls={
+        products:document.querySelector('#cartCheckout .total div:nth-child(1) span:first-child'),
+        assembly:document.getElementById('assemblyLabel'),
+        shipping:document.getElementById('shippingLabel'),
+        total:document.getElementById('totalLabel')
+    };
+    Object.keys(cartLabelEls).forEach(k=>{if(cartLabelEls[k])cartLabelEls[k].textContent=cartLabels[k]});
     badge.textContent=qty;
     badge.style.display="grid";
 }
@@ -2046,7 +2078,10 @@ function setLang(lang){
  document.querySelectorAll('[data-page-title]').forEach(e=>e.textContent=L[e.dataset.pageTitle]);document.querySelectorAll('[data-page-subtitle]').forEach(e=>e.textContent=L[e.dataset.pageSubtitle+'Sub']);
  const ph={shopSearch:L.search,clientName:L.name,clientAddress:OGO_CURRENT_LANG==='ru'?'Город, улица, дом, квартира':'Қала, көше, үй, пәтер',taxiFrom:OGO_CURRENT_LANG==='ru'?'Например: Абая 25':'Мысалы: Абай 25',taxiTo:OGO_CURRENT_LANG==='ru'?'Например: Магазин':'Мысалы: Дүкен',taxiComment:OGO_CURRENT_LANG==='ru'?'Если нужно, напишите':'Қажет болса жазыңыз',deliveryFrom:L.address,deliveryTo:L.address,deliveryComment:OGO_CURRENT_LANG==='ru'?'Например: документы, пакет, продукты':'Мысалы: құжат, пакет, азық-түлік',sellerProductName:OGO_CURRENT_LANG==='ru'?'Например: Молоко 1 л':'Мысалы: Сүт 1 л',sellerProductDescription:OGO_CURRENT_LANG==='ru'?'Краткое описание':'Қысқаша сипаттама'};Object.keys(ph).forEach(id=>{const e=document.getElementById(id);if(e)e.placeholder=ph[id]});
  const labels=document.querySelectorAll('#cartCheckout .form-group label');if(labels.length>=4){labels[0].textContent=L.name;labels[1].textContent=L.phone;labels[2].textContent=L.address;labels[3].textContent=L.payment}
- const rows=document.querySelectorAll('#cartCheckout .total div span:first-child');if(rows.length>=4){rows[0].textContent=L.products;rows[1].textContent=L.assembly;rows[2].textContent=L.shipping;rows[3].textContent=L.total} setText('assemblyFee','100');setText('shippingFee','600');
+ const cartProductsLabel=document.querySelector('#cartCheckout .total div:nth-child(1) span:first-child');
+ if(cartProductsLabel)cartProductsLabel.textContent=L.products;
+ setText('assemblyLabel',L.assembly);setText('shippingLabel',L.shipping);setText('totalLabel',L.total);
+ setText('assemblyFee','100');setText('shippingFee','600');
  const send=document.querySelector('#cartCheckout .submit');if(send)send.innerHTML='<i class="fa-brands fa-whatsapp"></i> '+L.send;
  setText('cartEmpty',OGO_CURRENT_LANG==='ru'?'Корзина пока пуста.':'Себет әзірге бос.');document.querySelectorAll('.catalog-search-hint').forEach(e=>e.textContent=L.searchHint);
  const labelsTaxi=document.querySelectorAll('#taxi .form-group label');if(labelsTaxi.length>=4){labelsTaxi[0].textContent=OGO_CURRENT_LANG==='ru'?'Откуда?':'Қай жерден?';labelsTaxi[1].textContent=OGO_CURRENT_LANG==='ru'?'Куда?':'Қай жерге?';labelsTaxi[2].textContent=L.phone;labelsTaxi[3].textContent=OGO_CURRENT_LANG==='ru'?'Дополнительная информация':'Қосымша ақпарат'}
