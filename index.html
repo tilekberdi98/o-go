@@ -274,7 +274,7 @@ main{padding:18px 16px 24px}
 }
 .category-row::-webkit-scrollbar{display:none}
 .category-btn{
-    flex:0 0 auto;border:1px solid var(--line);background:#151815;color:#c7ccc9;
+    flex:0 0 auto;border:1px solid var(--line);background:#fffdf0;color:#111;
     border-radius:999px;padding:9px 12px;font-size:11px;font-weight:800;
 }
 .category-btn.active{background:var(--yellow);color:#111;border-color:var(--yellow)}
@@ -453,16 +453,17 @@ main{padding:18px 16px 24px}
 .shop-category-title small,.shop-selected-hint{font-size:11px;color:var(--muted)}
 .shop-category-arrow{font-size:23px;line-height:1;width:30px;height:30px;display:grid;place-items:center;border:1px solid var(--line);border-radius:10px;color:var(--muted);transition:transform .18s ease,background .18s ease,color .18s ease}
 .shop-category-toggle[aria-expanded="true"] .shop-category-arrow{transform:rotate(180deg);background:rgba(255,204,0,.10);color:var(--yellow);border-color:rgba(255,204,0,.35)}
+.shop-fixed-categories{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px!important;margin-bottom:8px!important}.shop-fixed-categories .category-btn{min-height:52px;text-align:left;white-space:normal;line-height:1.2;padding:12px 13px;border-radius:15px}.shop-fixed-categories .category-btn.active{border-color:var(--yellow);background:rgba(255,204,0,.18);color:#111}
 .shop-top-categories{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px!important}
 .shop-top-categories .category-btn{min-height:52px;text-align:left;white-space:normal;line-height:1.2;padding:12px 13px;border-radius:15px}
-.shop-top-categories .category-btn.active{border-color:var(--yellow);background:rgba(255,204,0,.10)}
+.shop-top-categories .category-btn.active{border-color:var(--yellow);background:rgba(255,204,0,.18);color:#111}
 .shop-sub-head{display:flex;align-items:center;gap:10px;margin:8px 0 10px}
 .shop-inner-back{width:38px!important;height:38px!important;flex:0 0 38px}
 .shop-selected-category{font-size:17px;font-weight:800;line-height:1.15}
 .shop-subcategories{display:grid!important;grid-template-columns:1fr;gap:7px!important}
 .shop-subcategories .category-btn{min-height:44px;text-align:left;white-space:normal;line-height:1.2;padding:10px 12px}
-.promo-category{border-color:rgba(255,92,92,.35)!important;background:rgba(255,92,92,.08)!important;font-weight:900}.promo-category.active{background:#ff5c5c!important;color:#fff!important;border-color:#ff5c5c!important}
-@media(max-width:380px){.shop-top-categories{grid-template-columns:1fr!important}}
+.promo-category{border-color:var(--line)!important;background:#fffdf0!important;color:#111!important;font-weight:900}.promo-category.active{background:rgba(255,204,0,.18)!important;color:#111!important;border-color:var(--yellow)!important}
+@media(max-width:380px){.shop-top-categories,.shop-fixed-categories{grid-template-columns:1fr!important}}
 
 .catalog-search{position:relative;margin:12px 0 10px}
 .catalog-search input{width:100%;box-sizing:border-box;padding:13px 44px 13px 42px;border:1px solid var(--line);border-radius:14px;background:#111511;color:#fff;font-size:14px;outline:none}
@@ -647,6 +648,7 @@ body{background:#f6b35f!important;color:#171717!important}
             </div>
             <div class="catalog-search-hint">Тауар атауын толық немесе бірнеше әріппен жазыңыз — барлық бөлімнен ізделеді.</div>
             <div id="shopCategoryView">
+                <div id="shopFixedCategories" class="category-row shop-fixed-categories" aria-label="Основные категории"></div>
                 <button class="shop-category-title shop-category-toggle" type="button" onclick="toggleShopCategories()" aria-expanded="false"><span class="shop-category-title-main"><span id="shopCategoryTitle">Категории</span><small id="shopCategoryHint">Выберите категорию</small></span><span id="shopCategoryArrow" class="shop-category-arrow" aria-hidden="true">⌄</span></button>
                 <div id="shopSections" class="category-row shop-top-categories" aria-label="Категории магазина" style="display:none"></div>
             </div>
@@ -992,11 +994,16 @@ function renderSections(type){
     const state=catalogState[type],el=document.getElementById(type+'Sections');if(!el)return;
     if(type!=='shop'){const promoCount=state.products.filter(isPromoProduct).length;const promoBtn=promoCount?`<button class="category-btn promo-category ${state.selectedSection==='__promo__'?'active':''}" onclick="selectSection('${type}','__promo__')">🔥 ${OGO_CURRENT_LANG==='ru'?'Акции':'Акциялар'} (${promoCount})</button>`:'';el.innerHTML=promoBtn+state.sections.filter(section=>state.products.some(p=>p.section_id===section.id)).map(section=>`<button class="category-btn ${state.selectedSection===section.id?'active':''}" onclick="selectSection('${type}','${section.id}')">${escapeHtml(localizeSectionName(section.name))}</button>`).join('');return;}
     const cats=OGO_AYBOLIT_CATEGORIES;
-    // «Акция» әрқашан бірінші тұрады. Қалған бос категориялар клиентке жасырын.
+    // Айболит ашылғанда тек «Акция» және «Все» көрінеді. Қалған категориялар
+    // «Категории» батырмасының ішінде жиналып тұрады және тек басқанда ашылады.
     const promo={id:'__promo__',name:OGO_CURRENT_LANG==='ru'?'Акции':'Акциялар',sections:[]};
-    const visible=cats.filter(c=>getShopCategoryItems(c.id).length>0);
-    const ordered=[promo,...visible];
-    el.innerHTML=ordered.map(c=>`<button class="category-btn ${c.id==='__promo__'?'promo-category ':''}${shopCategoryId===c.id?'active':''}" onclick="selectShopCategory('${c.id}')">${c.id==='__promo__'?'🔥 ':''}${escapeHtml(localizeCategoryName(c.name))}${c.id==='__promo__'&&catalogState.shop.products.filter(isPromoProduct).length?` (${catalogState.shop.products.filter(isPromoProduct).length})`:''}</button>`).join('');
+    const allCat=cats.find(c=>c.id==='all')||{id:'all',name:OGO_CURRENT_LANG==='ru'?'Все':'Барлығы',sections:[]};
+    const visible=cats.filter(c=>c.id!=='all' && getShopCategoryItems(c.id).length>0);
+    const fixed=document.getElementById('shopFixedCategories');
+    if(fixed){
+        fixed.innerHTML=[promo,allCat].map(c=>`<button class="category-btn ${c.id==='__promo__'?'promo-category ':''}${shopCategoryId===c.id?'active':''}" onclick="selectShopCategory('${c.id}')">${c.id==='__promo__'?'🔥 ':''}${escapeHtml(localizeCategoryName(c.name))}${c.id==='__promo__'&&catalogState.shop.products.filter(isPromoProduct).length?` (${catalogState.shop.products.filter(isPromoProduct).length})`:''}</button>`).join('');
+    }
+    el.innerHTML=visible.map(c=>`<button class="category-btn ${shopCategoryId===c.id?'active':''}" onclick="selectShopCategory('${c.id}')">${escapeHtml(localizeCategoryName(c.name))}</button>`).join('');
     const catWrap=document.getElementById('shopSections'); const catToggle=document.querySelector('.shop-category-toggle'); const catArrow=document.getElementById('shopCategoryArrow'); if(catWrap){catWrap.style.display=shopCategoriesExpanded?'grid':'none';} if(catToggle)catToggle.setAttribute('aria-expanded',shopCategoriesExpanded?'true':'false'); if(catArrow)catArrow.textContent=shopCategoriesExpanded?'⌃':'⌄';
 }
 function toggleShopCategories(){
@@ -1009,6 +1016,9 @@ function toggleShopCategories(){
     if(arrow)arrow.textContent=shopCategoriesExpanded?'⌃':'⌄';
 }
 function selectShopCategory(id){
+    shopCategoriesExpanded=false;
+    const catWrap=document.getElementById('shopSections'),catToggle=document.querySelector('.shop-category-toggle'),catArrow=document.getElementById('shopCategoryArrow');
+    if(catWrap)catWrap.style.display='none'; if(catToggle)catToggle.setAttribute('aria-expanded','false'); if(catArrow)catArrow.textContent='⌄';
     if(id==='__promo__'){
         shopCategoryId=id;shopSubsection='all';
         const sub=document.getElementById('shopSubcategoryView'),top=document.getElementById('shopCategoryView'),products=document.getElementById('shopProducts'),title=document.getElementById('shopSelectedCategory'),hint=document.querySelector('.shop-selected-hint');
@@ -1051,7 +1061,7 @@ function selectShopSubsection(index){
     }
     renderShopProductsByCategory();
 }
-function backToShopCategories(){shopCategoryId='all';shopSubsection='all';const top=document.getElementById('shopCategoryView'),sub=document.getElementById('shopSubcategoryView');if(top)top.style.display='block';if(sub)sub.style.display='none';renderSections('shop');renderProducts('shop');}
+function backToShopCategories(){shopCategoryId='all';shopSubsection='all';shopCategoriesExpanded=false;const top=document.getElementById('shopCategoryView'),sub=document.getElementById('shopSubcategoryView');if(top)top.style.display='block';if(sub)sub.style.display='none';renderSections('shop');renderProducts('shop');}
 /* O GO — AYBOLIT AUTO CATEGORY ENGINE
    Категорияны UMAG-тан келген атауға қарай анықтайды. Нақты категория табылмаса,
    тауар "Незаданные" ішінде қалады. Бар болған category/section мәндерін ешқашан
