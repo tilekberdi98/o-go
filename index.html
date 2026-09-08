@@ -676,9 +676,23 @@ main{padding:18px 16px 24px}
         <div class="form-group"><label>Сипаттама</label><textarea id="sellerProductDescription" rows="3" placeholder="Қысқаша сипаттама"></textarea></div>
         <div class="form-group"><label>Фото</label><input id="sellerProductImage" type="file" accept="image/*"></div>
         <button class="submit green" onclick="createSellerProduct()"><i class="fa-solid fa-plus"></i> Тауарды жариялау</button>
+        <button class="submit" style="margin-top:9px;background:#252b27;color:#fff" onclick="openBulkUpload()"><i class="fa-solid fa-file-import"></i> Көп тауарды бірден жүктеу</button>
         <div class="seller-products"><h4>Менің тауарларым</h4><div id="sellerProductsList"><div class="hint">Жүктелуде...</div></div></div>
         <button class="submit" style="margin-top:9px;background:#252b27;color:#fff" onclick="sellerLogout()">Шығу</button>
         <div id="sellerStatus" class="hint" style="margin-top:10px"></div>
+    </div>
+</div>
+
+<div id="bulkUploadModal" class="modal">
+    <div class="modal-box" style="max-height:90vh;overflow:auto">
+        <button class="close modal-close" onclick="closeBulkUpload()"><i class="fa-solid fa-xmark"></i></button>
+        <h3>Көп тауарды бірден жүктеу</h3>
+        <p class="hint">CSV файл арқылы ондаған немесе жүздеген тауарды бірден қосыңыз.</p>
+        <button class="submit" style="background:#252b27;color:#fff" onclick="downloadBulkTemplate()"><i class="fa-solid fa-download"></i> Дайын үлгіні жүктеу</button>
+        <div class="hint" style="margin:10px 0">Бағандар: <b>service, section, name, price, sale_price, promo_text, stock, description, image_url</b><br>Мысалы: <b>shop, Сусындар, Piala Ice Tea, 650, 520, -20%, 15, Манго дәмі,</b></div>
+        <div class="form-group"><label>CSV файл</label><input id="bulkUploadFile" type="file" accept=".csv,text/csv"></div>
+        <button class="submit green" onclick="processBulkUpload()"><i class="fa-solid fa-cloud-arrow-up"></i> Тауарларды жүктеу</button>
+        <div id="bulkUploadStatus" class="hint" style="margin-top:10px"></div>
     </div>
 </div>
 
@@ -1190,6 +1204,114 @@ async function createSellerProduct(){
         console.error("O Go create product error:",error);
         status.className="hint seller-error";
         status.textContent=error.message||"Тауарды жариялау кезінде қате болды.";
+    }
+}
+
+function openBulkUpload(){
+    if(!sellerUser||!sellerStoreId){alert("Алдымен сатушы ретінде кіріңіз.");return}
+    document.getElementById("bulkUploadFile").value="";
+    document.getElementById("bulkUploadStatus").className="hint";
+    document.getElementById("bulkUploadStatus").textContent="";
+    document.getElementById("bulkUploadModal").classList.add("show");
+}
+function closeBulkUpload(){document.getElementById("bulkUploadModal").classList.remove("show")}
+
+function downloadBulkTemplate(){
+    const header="service,section,name,price,sale_price,promo_text,stock,description,image_url\n";
+    const example="shop,Сусындар,Piala Ice Tea,650,520,-20%,15,Манго дәмі,\n";
+    const csv="\\uFEFF"+header+example;
+    const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");a.href=url;a.download="O_Go_products_template.csv";document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+}
+
+function parseCSV(text){
+    text=String(text||"").replace(/^\uFEFF/,"");
+    const rows=[];let row=[],cell="",quoted=false;
+    for(let i=0;i<text.length;i++){
+        const ch=text[i],next=text[i+1];
+        if(ch==='"'){
+            if(quoted&&next==='"'){cell+='"';i++;}
+            else quoted=!quoted;
+        }else if(ch===','&&!quoted){row.push(cell);cell="";}
+        else if((ch==='\\n'||ch==='\\r')&&!quoted){
+            if(ch==='\\r'&&next==='\\n')i++;
+            row.push(cell);cell="";
+            if(row.some(v=>String(v).trim()!==""))rows.push(row);
+            row=[];
+        }else cell+=ch;
+    }
+    if(cell!==""||row.length){row.push(cell);if(row.some(v=>String(v).trim()!==""))rows.push(row);}
+    return rows;
+}
+
+async function processBulkUpload(){
+    const status=document.getElementById("bulkUploadStatus");
+    const file=document.getElementById("bulkUploadFile").files[0];
+    status.className="hint";status.textContent="";
+    if(!sellerUser||!sellerStoreId){status.className="hint seller-error";status.textContent="Сатушы сессиясы табылмады.";return}
+    if(!file){status.textContent="CSV файлды таңдаңыз.";return}
+    if(file.size>5*1024*1024){status.textContent="CSV файл 5 МБ-тан үлкен болмауы керек.";return}
+    try{
+        status.textContent="Файл оқылуда...";
+        const text=await file.text();
+        const rows=parseCSV(text);
+        if(rows.length<2)throw new Error("CSV ішінде тауарлар жоқ.");
+        const headers=rows[0].map(v=>String(v).trim().toLowerCase());
+        const required=["service","section","name","price","stock"];
+        const missing=required.filter(x=>!headers.includes(x));
+        if(missing.length)throw new Error("Міндетті бағандар жоқ: "+missing.join(", "));
+        const idx=name=>headers.indexOf(name);
+        const {data:sections,error:sectionError}=await supabaseClient.from("store_sections").select("id,name,service_type");
+        if(sectionError)throw sectionError;
+        const sectionMap=new Map((sections||[]).map(x=>[normalizeSearchText(x.service_type)+"|"+normalizeSearchText(x.name),x]));
+        const products=[],errors=[];
+        rows.slice(1).forEach((r,n)=>{
+            const line=n+2;
+            const service=String(r[idx("service")]||"shop").trim().toLowerCase();
+            const sectionName=String(r[idx("section")]||"").trim();
+            const name=String(r[idx("name")]||"").trim();
+            const price=Number(String(r[idx("price")]||"").replace(/\s/g,"").replace(",","."));
+            const saleRaw=idx("sale_price")>=0?String(r[idx("sale_price")]||"").trim():"";
+            const salePrice=saleRaw===""?null:Number(saleRaw.replace(/\s/g,"").replace(",","."));
+            const promo=idx("promo_text")>=0?String(r[idx("promo_text")]||"").trim():"";
+            const stock=Number(String(r[idx("stock")]||"").replace(/\s/g,""));
+            const description=idx("description")>=0?String(r[idx("description")]||"").trim():"";
+            const imageUrl=idx("image_url")>=0?String(r[idx("image_url")]||"").trim():"";
+            const section=sectionMap.get(normalizeSearchText(service)+"|"+normalizeSearchText(sectionName));
+            if(!["shop","food"].includes(service))errors.push(`№${line}: service shop немесе food болуы керек`);
+            else if(!section)errors.push(`№${line}: «${sectionName}» бөлімі табылмады`);
+            else if(!name)errors.push(`№${line}: тауар атауы бос`);
+            else if(!Number.isFinite(price)||price<0)errors.push(`№${line}: баға қате`);
+            else if(salePrice!==null&&(!Number.isFinite(salePrice)||salePrice<0||salePrice>=price))errors.push(`№${line}: акциялық баға қате`);
+            else if(!Number.isInteger(stock)||stock<0)errors.push(`№${line}: қойма саны қате`);
+            else products.push({store_id:sellerStoreId,seller_id:sellerUser.id,name,price,sale_price:salePrice,promo_text:promo||null,description:description||null,image_url:imageUrl||null,stock,category:service,service_type:service,section_id:section.id,published:true});
+        });
+        if(errors.length){
+            status.className="hint seller-error";
+            status.innerHTML=`❌ ${errors.length} қате табылды. Алғашқы 10:<br>${errors.slice(0,10).map(escapeHtml).join("<br>")}`;
+            if(!products.length)return;
+        }
+        if(!products.length)throw new Error("Жүктеуге жарамды тауар жоқ.");
+        status.textContent=`${products.length} тауар дайын. Supabase-ке жүктелуде...`;
+        let inserted=0;
+        for(let i=0;i<products.length;i+=100){
+            const batch=products.slice(i,i+100);
+            const {error}=await supabaseClient.from("products").insert(batch);
+            if(error)throw error;
+            inserted+=batch.length;
+            status.textContent=`Жүктелуде: ${inserted}/${products.length}...`;
+        }
+        status.className="hint seller-success";
+        status.innerHTML=`✅ ${inserted} тауар сәтті қосылды!${errors.length?`<br>⚠️ ${errors.length} жол қосылмады.`:""}`;
+        catalogState.shop.loaded=false;catalogState.food.loaded=false;
+        await loadSellerProducts();
+        if(document.getElementById("shop").classList.contains("active"))await loadCatalog("shop");
+        if(document.getElementById("food").classList.contains("active"))await loadCatalog("food");
+    }catch(error){
+        console.error("O Go bulk upload error:",error);
+        status.className="hint seller-error";
+        status.textContent=error.message||"Жаппай жүктеу кезінде қате болды.";
     }
 }
 
