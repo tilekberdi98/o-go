@@ -1472,14 +1472,29 @@ async function processBulkUpload(){
             if(!products.length)return;
             await new Promise(r=>setTimeout(r,700));
         }
-        status.textContent=`${products.length} тауар дайын. Базаға жүктелуде...`;
+        // Бір файлдың ішінде бір штрихкод бірнеше рет кездессе, Postgres
+        // бір upsert batch ішінде бір жолды екі рет жаңарта алмайды.
+        // Сондықтан штрихкоды бар жолдарды seller_id + barcode бойынша
+        // алдын ала біріктіреміз. Соңғы жол негізгі болып қалады.
+        // Штрихкоды бос тауарлар бөлек жол ретінде сақталады (NULL).
+        const byBarcode=new Map();
+        const withoutBarcode=[];
+        for(const product of products){
+            if(product.barcode){
+                byBarcode.set(product.barcode,product);
+            }else{
+                withoutBarcode.push(product);
+            }
+        }
+        const safeProducts=[...byBarcode.values(),...withoutBarcode];
+        status.textContent=`${safeProducts.length} тауар дайын. Базаға жүктелуде...`;
         let done=0;
-        for(let i=0;i<products.length;i+=100){
-            const batch=products.slice(i,i+100);
+        for(let i=0;i<safeProducts.length;i+=50){
+            const batch=safeProducts.slice(i,i+50);
             const {error}=await supabaseClient.from('products').upsert(batch,{onConflict:'seller_id,barcode',ignoreDuplicates:false});
             if(error)throw error;
             done+=batch.length;
-            status.textContent=`Жүктелуде: ${done}/${products.length}...`;
+            status.textContent=`Жүктелуде: ${done}/${safeProducts.length}...`;
         }
         status.className='hint seller-success';
         status.innerHTML=`✅ ${done} тауар UMAG-тан сәтті жүктелді!<br>Штрихкод сәйкес келсе — бұрынғы тауар жаңартылды. Суреттерге қол тиген жоқ.`;
