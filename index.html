@@ -430,9 +430,23 @@ main{padding:18px 16px 24px}
 .seller-item-info{flex:1;min-width:0}
 .seller-item-name{font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .seller-item-price{font-size:12px;color:var(--yellow);margin-top:3px}
-.seller-item button{border:0;border-radius:10px;background:#2b312c;color:#fff;padding:8px 10px;font-weight:800;font-size:11px}
+.seller-item-actions{display:flex;align-items:center;gap:5px;flex-wrap:wrap;justify-content:flex-end;max-width:180px}
+.seller-item button{border:0;border-radius:10px;background:#2b312c;color:#fff;padding:8px 10px;font-weight:800;font-size:11px;cursor:pointer}
+.seller-item button.hide-btn{background:#6d4b20;color:#fff}
+.seller-item button.show-btn{background:#287a43;color:#fff}
+.seller-stock-low{color:#ff9b7a;font-weight:900}
 .promo{display:inline-block;margin-left:5px;padding:2px 6px;border-radius:7px;background:#ffcc00;color:#111;font-size:9px;font-weight:900}
 .old-price{text-decoration:line-through;color:#8d938e;font-size:11px;margin-right:6px}
+
+/* CATALOG SEARCH */
+.catalog-search{position:relative;margin:12px 0 10px}
+.catalog-search input{width:100%;box-sizing:border-box;padding:13px 44px 13px 42px;border:1px solid var(--line);border-radius:14px;background:#111511;color:#fff;font-size:14px;outline:none}
+.catalog-search input:focus{border-color:var(--yellow);box-shadow:0 0 0 2px rgba(255,204,0,.10)}
+.catalog-search>i{position:absolute;left:15px;top:50%;transform:translateY(-50%);color:#8d938e;pointer-events:none}
+.catalog-search .search-clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:30px;height:30px;border:0;border-radius:9px;background:#252b27;color:#fff;display:none;place-items:center;cursor:pointer}
+.catalog-search.has-value .search-clear{display:grid}
+.catalog-search-hint{margin:0 2px 10px;color:#8d938e;font-size:11px;line-height:1.35}
+.catalog-search-empty{padding:18px 12px;border:1px dashed var(--line);border-radius:14px;color:#aeb4af;text-align:center;background:#111511}
 
 /* RESPONSIVE */
 @media(max-width:380px){
@@ -538,6 +552,12 @@ main{padding:18px 16px 24px}
             <button class="back" onclick="goHome()"><i class="fa-solid fa-arrow-left"></i></button>
             <div><h2 class="page-title">Дүкен</h2><div class="page-subtitle">Күнделікті тауарлар</div></div>
         </div>
+        <div class="catalog-search" id="shopSearchWrap">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input id="shopSearch" type="search" autocomplete="off" placeholder="Дүкеннен тауар іздеу..." aria-label="Дүкеннен тауар іздеу" oninput="searchCatalog('shop', this.value)">
+            <button class="search-clear" type="button" onclick="clearCatalogSearch('shop')" aria-label="Іздеуді тазалау"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="catalog-search-hint">Тауар атауын толық немесе бірнеше әріппен жазыңыз — барлық бөлімнен ізделеді.</div>
         <div id="shopSections" class="category-row" aria-label="Дүкен бөлімдері"></div>
         <div id="shopProducts" class="products">
             <div class="empty">Тауарлар жүктелуде...</div>
@@ -698,8 +718,8 @@ let cart = [];
 
 /* SUPABASE — ДҮКЕН/ТАМАҚТЫ ДИНАМИКАЛЫҚ ЖҮКТЕУ */
 const catalogState = {
-    shop:{sections:[],products:[],selectedSection:'all',loaded:false},
-    food:{sections:[],products:[],selectedSection:'all',loaded:false}
+    shop:{sections:[],products:[],selectedSection:'all',searchQuery:'',loaded:false},
+    food:{sections:[],products:[],selectedSection:'all',searchQuery:'',loaded:false}
 };
 
 function formatPrice(value){
@@ -722,41 +742,42 @@ function renderSections(type){
     el.innerHTML=buttons.join('');
 }
 
+function normalizeSearchText(value){
+    return String(value||'').toLocaleLowerCase('kk-KZ').replace(/ё/g,'е').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim();
+}
+function searchMatchesProduct(product,query){
+    const q=normalizeSearchText(query); if(!q)return true;
+    const name=normalizeSearchText(product.name), description=normalizeSearchText(product.description);
+    return q.split(' ').filter(Boolean).every(word=>name.includes(word)||description.includes(word));
+}
 function renderProducts(type){
-    const state=catalogState[type];
-    const el=document.getElementById(type+'Products');
-    if(!el)return;
-    const items=state.selectedSection==='all'
-        ? state.products
-        : state.products.filter(p=>p.section_id===state.selectedSection);
-
+    const state=catalogState[type], el=document.getElementById(type+'Products'); if(!el)return;
+    const query=state.searchQuery||'';
+    const items=(type==='shop'&&query.trim()) ? state.products.filter(p=>searchMatchesProduct(p,query)) : (state.selectedSection==='all'?state.products:state.products.filter(p=>p.section_id===state.selectedSection));
     if(!items.length){
-        el.innerHTML='<div class="empty">Бұл бөлімде әзірге тауар жоқ.</div>';
+        el.innerHTML=query.trim()?`<div class="catalog-search-empty"><i class="fa-solid fa-magnifying-glass"></i><br><strong>«${escapeHtml(query)}»</strong> бойынша тауар табылмады.<br><span style="font-size:11px">Басқа атау немесе бірнеше әріп жазып көріңіз.</span></div>`:'<div class="empty">Бұл бөлімде әзірге тауар жоқ.</div>';
         return;
     }
-
     el.innerHTML=items.map(p=>{
-        const image=p.image_url ? `<img src="${escapeHtml(p.image_url)}" alt="${escapeHtml(p.name||'Тауар')}" loading="lazy">` : `<i class="fa-solid ${productIcon(type)}"></i>`;
-        const desc=escapeHtml(p.description || '');
-        const name=escapeHtml(p.name || 'Тауар');
-        const price=Number(p.price||0);
-        const salePrice=Number(p.sale_price||0);
-        const effectivePrice=(salePrice>0 && salePrice<price)?salePrice:price;
-        const promo=p.promo_text ? `<span class="promo">${escapeHtml(p.promo_text)}</span>` : '';
-        const priceHtml=(effectivePrice<price)?`<span class="old-price">${formatPrice(price)}</span>${formatPrice(effectivePrice)} ${promo}`:`${formatPrice(price)} ${promo}`;
-        const stock=Number(p.stock ?? 0);
-        const disabled=stock<=0 ? 'disabled' : '';
-        const stockText=stock<=0 ? 'Қоймада жоқ' : (desc || 'Тауар');
-        return `<article class="product">
-            <div class="product-img">${image}</div>
-            <div class="product-info">
-                <div class="product-name">${name}</div>
-                <div class="product-desc">${stockText}</div>
-                <div class="price">${priceHtml}</div>
-            </div>
-            <button class="add" ${disabled} onclick="addProductToCart('${escapeHtml(p.id)}')">+</button>
-        </article>`;
+        const image=p.image_url?`<img src="${escapeHtml(p.image_url)}" alt="${escapeHtml(p.name||'Тауар')}" loading="lazy">`:`<i class="fa-solid ${productIcon(type)}"></i>`;
+        const desc=escapeHtml(p.description||''), name=escapeHtml(p.name||'Тауар');
+        const price=Number(p.price||0), salePrice=Number(p.sale_price||0), effectivePrice=(salePrice>0&&salePrice<price)?salePrice:price;
+        const promo=p.promo_text?`<span class="promo">${escapeHtml(p.promo_text)}</span>`:'';
+        const priceHtml=effectivePrice<price?`<span class="old-price">${formatPrice(price)}</span>${formatPrice(effectivePrice)} ${promo}`:`${formatPrice(price)} ${promo}`;
+        const stock=Number(p.stock??0), disabled=stock<=0?'disabled':'', stockText=stock<=0?'Қоймада жоқ':(desc||'Тауар');
+        return `<article class="product"><div class="product-img">${image}</div><div class="product-info"><div class="product-name">${name}</div><div class="product-desc">${stockText}</div><div class="price">${priceHtml}</div></div><button class="add" ${disabled} onclick="addProductToCart('${escapeHtml(p.id)}')">+</button></article>`;
     }).join('');
+}
+function searchCatalog(type,value){
+    const state=catalogState[type]; if(!state)return;
+    state.searchQuery=value||'';
+    const wrap=document.getElementById(type+'SearchWrap'); if(wrap)wrap.classList.toggle('has-value',!!state.searchQuery.trim());
+    if(type==='shop'&&state.searchQuery.trim()){state.selectedSection='all';renderSections(type);}
+    renderProducts(type);
+}
+function clearCatalogSearch(type){
+    const input=document.getElementById(type+'Search'); if(input){input.value='';input.focus();}
+    searchCatalog(type,'');
 }
 
 async function loadCatalog(type){
@@ -764,7 +785,13 @@ async function loadCatalog(type){
     const productsEl=document.getElementById(type+'Products');
     const sectionsEl=document.getElementById(type+'Sections');
     if(!productsEl || !sectionsEl)return;
-    if(state.loaded){ renderSections(type); renderProducts(type); return; }
+    if(state.loaded){
+        renderSections(type); renderProducts(type);
+        const input=document.getElementById(type+'Search'), wrap=document.getElementById(type+'SearchWrap');
+        if(input)input.value=state.searchQuery||'';
+        if(wrap)wrap.classList.toggle('has-value',!!(state.searchQuery||'').trim());
+        return;
+    }
 
     productsEl.innerHTML='<div class="empty"><span class="loading-dot"></span>Тауарлар жүктелуде...</div>';
     sectionsEl.innerHTML='';
@@ -832,12 +859,18 @@ function addProductToCart(id){
     const all=[...catalogState.shop.products,...catalogState.food.products];
     const product=all.find(p=>p.id===id);
     if(!product)return;
+    const stock=Math.max(0,Number(product.stock??0));
     const basePrice=Number(product.price||0);
     const salePrice=Number(product.sale_price||0);
     const price=(salePrice>0 && salePrice<basePrice)?salePrice:basePrice;
     const item=cart.find(x=>x.productId===id);
-    if(item)item.qty++;
-    else cart.push({productId:id,name:product.name||'Тауар',price,qty:1});
+    if(item){
+        if(item.qty>=stock){alert(`Бұл тауардан қоймада ${stock} дана ғана бар.`);return}
+        item.qty++;
+    }else{
+        if(stock<=0){alert('Бұл тауар қоймада жоқ.');return}
+        cart.push({productId:id,name:product.name||'Тауар',price,basePrice,salePrice:(salePrice>0&&salePrice<basePrice)?salePrice:null,qty:1});
+    }
     updateCart();
     openPage('cart');
 }
@@ -877,8 +910,16 @@ function addToCart(name,price){
     openPage("cart");
 }
 function changeQty(index,delta){
-    cart[index].qty+=delta;
-    if(cart[index].qty<=0) cart.splice(index,1);
+    const item=cart[index];
+    if(!item)return;
+    if(delta>0 && item.productId){
+        const all=[...catalogState.shop.products,...catalogState.food.products];
+        const product=all.find(p=>p.id===item.productId);
+        const stock=product?Number(product.stock??0):Infinity;
+        if(item.qty>=stock){alert(`Қоймада ${stock} дана ғана бар.`);return}
+    }
+    item.qty+=delta;
+    if(item.qty<=0) cart.splice(index,1);
     updateCart();
 }
 function updateCart(){
@@ -933,7 +974,7 @@ function updateCart(){
     badge.textContent=qty;
     badge.style.display="grid";
 }
-function sendCart(){
+async function sendCart(){
     if(!cart.length)return;
     const name=document.getElementById("clientName").value.trim();
     const phone=document.getElementById("clientPhone").value.trim();
@@ -941,15 +982,43 @@ function sendCart(){
     const payment=document.getElementById("payment").value;
     if(!name||!phone||!address){alert("Атыңызды, телефон нөміріңізді және мекенжайыңызды енгізіңіз.");return}
 
-    let total=0;
-    let text="🟡 O GO — ЖАҢА ТАПСЫРЫС\n\n";
-    text+="🛒 Тауарлар:\n";
-    cart.forEach((x,i)=>{
-        const sum=x.price*x.qty; total+=sum;
-        text+=`${i+1}. ${x.name} × ${x.qty} = ${sum} ₸\n`;
-    });
-    text+=`\n💰 Барлығы: ${total} ₸\n👤 Аты: ${name}\n📞 Телефон: ${phone}\n📍 Мекенжай: ${address}\n💳 Төлем: ${payment}`;
-    window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(text)}`,"_blank");
+    const items=cart.filter(x=>x.productId).map(x=>({productId:x.productId,qty:x.qty}));
+    if(items.length!==cart.length){alert("Тауарлардың бір бөлігі ескірген. Себетті жаңартып көріңіз.");return}
+
+    // WhatsApp тапсырысына өткен сәтте қойма санын бір транзакциямен азайтамыз.
+    // Егер бір тауарда жеткілікті қалдық болмаса, ешқайсысы азайтылмайды.
+    try{
+        const {data,error}=await supabaseClient.rpc('decrease_cart_stock',{p_items:items});
+        if(error)throw error;
+        if(!data || data.success!==true){
+            const bad=data?.product_id ? items.find(x=>x.productId===data.product_id) : null;
+            alert(bad ? `«${cart.find(x=>x.productId===bad.productId)?.name||'Тауар'}» үшін қоймадағы сан жеткіліксіз.` : 'Қоймадағы тауар санын жаңарту мүмкін болмады.');
+            catalogState.shop.loaded=false;catalogState.food.loaded=false;
+            if(document.getElementById("shop").classList.contains("active"))await loadCatalog("shop");
+            if(document.getElementById("food").classList.contains("active"))await loadCatalog("food");
+            return;
+        }
+
+        let total=0;
+        let text="🟡 O GO — ЖАҢА ТАПСЫРЫС\n\n";
+        text+="🛒 Тауарлар:\n";
+        cart.forEach((x,i)=>{
+            const sum=x.price*x.qty; total+=sum;
+            text+=`${i+1}. ${x.name} × ${x.qty} = ${sum} ₸\n`;
+        });
+        text+=`\n💰 Барлығы: ${total} ₸\n👤 Аты: ${name}\n📞 Телефон: ${phone}\n📍 Мекенжай: ${address}\n💳 Төлем: ${payment}`;
+
+        // Қойма азайғаннан кейін ғана WhatsApp ашылады.
+        window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(text)}`,"_blank");
+        cart=[];
+        updateCart();
+        catalogState.shop.loaded=false;catalogState.food.loaded=false;
+        if(document.getElementById("shop").classList.contains("active"))await loadCatalog("shop");
+        if(document.getElementById("food").classList.contains("active"))await loadCatalog("food");
+    }catch(error){
+        console.error('O Go stock decrement error:',error);
+        alert('Тапсырысты жіберу кезінде қойманы жаңарту қатесі болды. Тауар саны азайтылған жоқ.\n\n'+(error.message||''));
+    }
 }
 
 /* ТАКСИ / ЖЕТКІЗУ */
@@ -1140,7 +1209,12 @@ async function loadSellerProducts(){
             const img=p.image_url?`<img src="${escapeHtml(p.image_url)}" alt="">`:`<div class="seller-thumb"><i class="fa-solid fa-box"></i></div>`;
             const base=Number(p.price||0), sale=Number(p.sale_price||0), effective=(sale>0&&sale<base)?sale:base;
             const price=(effective<base)?`<span class="old-price">${formatPrice(base)}</span>${formatPrice(effective)}`:formatPrice(base);
-            return `<div class="seller-item">${img}<div class="seller-item-info"><div class="seller-item-name">${escapeHtml(p.name||"Тауар")}</div><div class="seller-item-price">${price} · ${Number(p.stock??0)} дана ${p.published?'· жарияланған':'· жасырын'}</div></div><div class="seller-item-actions"><button onclick="changeSellerStock('${escapeHtml(p.id)}',-1)" title="Қойманы азайту">−</button><button onclick="changeSellerStock('${escapeHtml(p.id)}',1)" title="Қойманы көбейту">+</button><button onclick="toggleSellerPublished('${escapeHtml(p.id)}',${p.published?'false':'true'})">${p.published?'Жасыру':'Жариялау'}</button><button onclick="openEditProduct('${escapeHtml(p.id)}')"><i class="fa-solid fa-pen"></i> Өзгерту</button></div></div>`;
+            const stock=Number(p.stock??0);
+            const stockClass=stock<=3?' seller-stock-low':'';
+            const statusBtn=p.published
+                ? `<button class="hide-btn" onclick="toggleSellerPublished('${escapeHtml(p.id)}',false)">🙈 Жасыру</button>`
+                : `<button class="show-btn" onclick="toggleSellerPublished('${escapeHtml(p.id)}',true)">👁 Жариялау</button>`;
+            return `<div class="seller-item">${img}<div class="seller-item-info"><div class="seller-item-name">${escapeHtml(p.name||"Тауар")}</div><div class="seller-item-price">${price} · <span class="${stockClass}">${stock} дана</span> ${p.published?'· жарияланған':'· жасырын'}</div></div><div class="seller-item-actions"><button onclick="changeSellerStock('${escapeHtml(p.id)}',-1)" title="Қойманы азайту">−</button><button onclick="changeSellerStock('${escapeHtml(p.id)}',1)" title="Қойманы көбейту">+</button>${statusBtn}<button onclick="openEditProduct('${escapeHtml(p.id)}')"><i class="fa-solid fa-pen"></i> Өзгерту</button></div></div>`;
         }).join("");
     }catch(error){
         console.error("O Go seller products error:",error);
