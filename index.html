@@ -745,6 +745,29 @@ function productIcon(service){
     return service==='food' ? 'fa-utensils' : 'fa-box-open';
 }
 
+// Суреті жоқ тауарларға автоматты визуал. Сатушы өз фотосын жүктесе, image_url әрқашан басым болады.
+function autoProductImage(name){
+    const n=normalizeSearchText(name);
+    let label='Тауар', kind='box', bg='#252b27', accent='#ffe600';
+    if(n.includes('coca')){label='Coca-Cola';kind='bottle';bg='#5a1111';accent='#fff';}
+    else if(n.includes('fanta')){label='Fanta';kind='bottle';bg='#e87500';accent='#fff';}
+    else if(n.includes('sprite')){label='Sprite';kind='bottle';bg='#159447';accent='#fff';}
+    else if(n.includes('pepsi')){label='Pepsi';kind='bottle';bg='#0757a6';accent='#fff';}
+    else if(n.includes('juice')||n.includes('шыры')){label='Juice';kind='bottle';bg='#e89b18';accent='#fff';}
+    else if(n.includes('вода')||n.includes('water')){label='Water';kind='bottle';bg='#278bd4';accent='#fff';}
+    else if(n.includes('макарон')||n.includes('pasta')){label='Макарон';kind='bag';bg='#d88a25';accent='#fff';}
+    else if(n.includes('күріш')||n.includes('рис')||n.includes('rice')){label='Күріш';kind='bag';bg='#caa86a';accent='#fff';}
+    else if(n.includes('қант')||n.includes('сахар')||n.includes('sugar')){label='Қант';kind='bag';bg='#f1f1f1';accent='#252b27';}
+    else if(n.includes('ұн')||n.includes('мука')||n.includes('flour')){label='Ұн';kind='bag';bg='#eee0b8';accent='#252b27';}
+
+    const safeLabel=String(label).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    const shape=kind==='bottle'
+      ? `<rect x="27" y="9" width="18" height="7" rx="2" fill="${accent}" opacity=".9"/><path d="M29 16h14v7c0 2 5 5 5 10v23c0 4-3 7-7 7H31c-4 0-7-3-7-7V33c0-5 5-8 5-10z" fill="${accent}" opacity=".96"/><rect x="25" y="34" width="22" height="16" rx="3" fill="${bg}"/><text x="36" y="44" text-anchor="middle" font-size="5.5" font-weight="700" fill="${accent}">${safeLabel}</text>`
+      : `<path d="M18 17l7-7h22l7 7v42c0 3-2 5-5 5H23c-3 0-5-2-5-5z" fill="${accent}" opacity=".96"/><path d="M18 17h36l-5 9H23z" fill="${bg}" opacity=".85"/><text x="36" y="43" text-anchor="middle" font-size="6.5" font-weight="700" fill="${bg}">${safeLabel}</text>`;
+    const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="0 0 72 72"><rect width="72" height="72" rx="18" fill="${bg}"/>${shape}</svg>`;
+    return `<img src="data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}" alt="${escapeHtml(name||'Тауар')}" loading="lazy">`;
+}
+
 function renderSections(type){
     const state=catalogState[type];
     const el=document.getElementById(type+'Sections');
@@ -773,7 +796,7 @@ function renderProducts(type){
         return;
     }
     el.innerHTML=items.map(p=>{
-        const image=p.image_url?`<img src="${escapeHtml(p.image_url)}" alt="${escapeHtml(p.name||'Тауар')}" loading="lazy">`:`<i class="fa-solid ${productIcon(type)}"></i>`;
+        const image=p.image_url?`<img src="${escapeHtml(p.image_url)}" alt="${escapeHtml(p.name||'Тауар')}" loading="lazy">`:autoProductImage(p.name||'Тауар');
         const desc=escapeHtml(p.description||''), name=escapeHtml(p.name||'Тауар');
         const price=Number(p.price||0), salePrice=Number(p.sale_price||0), effectivePrice=(salePrice>0&&salePrice<price)?salePrice:price;
         const promo=p.promo_text?`<span class="promo">${escapeHtml(p.promo_text)}</span>`:'';
@@ -869,6 +892,24 @@ function selectSection(type,sectionId){
     renderProducts(type);
 }
 
+function showCartAddedToast(name){
+    let toast=document.getElementById('cartAddedToast');
+    if(!toast){
+        toast=document.createElement('div');
+        toast.id='cartAddedToast';
+        toast.style.cssText='position:fixed;left:50%;bottom:78px;transform:translate(-50%,12px);background:#252b27;color:#fff;padding:10px 14px;border-radius:14px;font-size:13px;font-weight:700;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.22);opacity:0;pointer-events:none;transition:opacity .18s,transform .18s;max-width:calc(100vw - 32px);text-align:center;';
+        document.body.appendChild(toast);
+    }
+    toast.textContent='✓ '+(name||'Тауар')+' корзинаға қосылды';
+    toast.style.opacity='1';
+    toast.style.transform='translate(-50%,0)';
+    clearTimeout(window.__cartToastTimer);
+    window.__cartToastTimer=setTimeout(()=>{
+        toast.style.opacity='0';
+        toast.style.transform='translate(-50%,12px)';
+    },1300);
+}
+
 function addProductToCart(id){
     const all=[...catalogState.shop.products,...catalogState.food.products];
     const product=all.find(p=>p.id===id);
@@ -886,7 +927,8 @@ function addProductToCart(id){
         cart.push({productId:id,name:product.name||'Тауар',price,basePrice,salePrice:(salePrice>0&&salePrice<basePrice)?salePrice:null,qty:1});
     }
     updateCart();
-    openPage('cart');
+    // Тауар қосылғанда сатып алушы каталогта қалады. Корзинаға төмендегі жеке батырма арқылы кез келген уақытта кіре алады.
+    showCartAddedToast(product.name||'Тауар');
 }
 
 async function testSupabaseConnection(){
@@ -921,7 +963,8 @@ function addToCart(name,price){
     if(item) item.qty++;
     else cart.push({name,price,qty:1});
     updateCart();
-    openPage("cart");
+    // Ескі/қосымша шақырулар үшін де каталогтан корзинаға автоматты өтуді өшіреміз.
+    showCartAddedToast(name);
 }
 function changeQty(index,delta){
     const item=cart[index];
