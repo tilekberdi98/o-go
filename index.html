@@ -708,17 +708,27 @@ async function loadCatalog(type){
     try{
         // 1) Бөлімдер бөлек жүктеледі. Бөлімдерде қате болса да,
         //    тауарлардың шығуына кедергі жасамайды.
-        const sectionsResult=await supabaseClient
+        let sectionsResult=await supabaseClient
             .from('store_sections')
             .select('id,name,service_type,sort_order')
             .eq('service_type',type)
             .order('sort_order',{ascending:true});
 
+        // Егер service_type сүзгісінен қате шықса, барлық бөлімді алып,
+        // браузерде сүземіз. Бұл Supabase/PostgREST сүзгісіне тәуелділікті азайтады.
         if(sectionsResult.error){
-            console.error('O Go sections error:',sectionsResult.error);
+            console.error('O Go sections filtered error:',sectionsResult.error);
+            sectionsResult=await supabaseClient
+                .from('store_sections')
+                .select('id,name,service_type,sort_order')
+                .order('sort_order',{ascending:true});
+        }
+
+        if(sectionsResult.error){
+            console.error('O Go sections fallback error:',sectionsResult.error);
             state.sections=[];
         }else{
-            state.sections=sectionsResult.data||[];
+            state.sections=(sectionsResult.data||[]).filter(section=>section.service_type===type);
         }
 
         // 2) Барлық жарияланған тауарларды аламыз да,
