@@ -418,6 +418,12 @@ main{padding:18px 16px 24px}
 .modal-box h3{font-size:20px;margin-bottom:15px}
 .modal-close{position:absolute;right:15px;top:15px}
 
+/* SELLER */
+#sellerProductImage{padding:10px}
+#sellerProductImage::file-selector-button{border:0;border-radius:9px;background:var(--yellow);color:#111;padding:8px 10px;font-weight:800;margin-right:8px}
+.seller-success{color:var(--green)}
+.seller-error{color:#ff8f8f}
+
 /* RESPONSIVE */
 @media(max-width:380px){
     .hero{min-height:260px}
@@ -609,17 +615,37 @@ main{padding:18px 16px 24px}
     </div>
     <ul class="side-links">
         <li><button onclick="closeMenu(); alert('Серіктестік туралы ақпарат жақында қосылады.')"><i class="fa-solid fa-handshake"></i> Серіктестік</button></li>
-        <li><button onclick="closeMenu(); openLogin()"><i class="fa-solid fa-user-lock"></i> Қызметкерлерге кіру</button></li>
+        <li><button onclick="closeMenu(); openLogin()"><i class="fa-solid fa-store"></i> Сатушы панелі</button></li>
     </ul>
 </aside>
 
 <div id="loginModal" class="modal">
     <div class="modal-box">
         <button class="close modal-close" onclick="closeLogin()"><i class="fa-solid fa-xmark"></i></button>
-        <h3>Қызметкерлерге кіру</h3>
-        <div class="form-group"><label>Логин</label><input id="adminLogin" placeholder="admin"></div>
-        <div class="form-group"><label>Пароль</label><input id="adminPass" type="password" placeholder="••••"></div>
-        <button class="submit" onclick="loginAdmin()">Кіру</button>
+        <h3>Сатушы панелі</h3>
+        <p class="hint">Supabase-та тіркелген сатушы email және паролімен кіріңіз.</p>
+        <div class="form-group"><label>Email</label><input id="sellerEmail" type="email" placeholder="seller@example.com" autocomplete="email"></div>
+        <div class="form-group"><label>Пароль</label><input id="sellerPass" type="password" placeholder="••••••••" autocomplete="current-password"></div>
+        <button class="submit" onclick="loginSeller()">Кіру</button>
+        <div id="loginStatus" class="hint" style="margin-top:10px"></div>
+    </div>
+</div>
+
+<div id="sellerModal" class="modal">
+    <div class="modal-box" style="max-height:90vh;overflow:auto">
+        <button class="close modal-close" onclick="closeSellerPanel()"><i class="fa-solid fa-xmark"></i></button>
+        <h3>Тауар қосу</h3>
+        <p id="sellerStoreInfo" class="hint">Дүкен тексерілуде...</p>
+        <div class="form-group"><label>Қызмет</label><select id="sellerService" onchange="loadSellerSections()"><option value="shop">Дүкен</option><option value="food">Тамақ</option></select></div>
+        <div class="form-group"><label>Бөлім</label><select id="sellerSection"><option value="">Бөлім жүктелуде...</option></select></div>
+        <div class="form-group"><label>Тауар атауы</label><input id="sellerProductName" placeholder="Мысалы: Сүт 1 л"></div>
+        <div class="form-group"><label>Бағасы, ₸</label><input id="sellerProductPrice" type="number" min="0" step="1" placeholder="1000"></div>
+        <div class="form-group"><label>Қоймадағы саны</label><input id="sellerProductStock" type="number" min="0" step="1" value="10"></div>
+        <div class="form-group"><label>Сипаттама</label><textarea id="sellerProductDescription" rows="3" placeholder="Қысқаша сипаттама"></textarea></div>
+        <div class="form-group"><label>Фото</label><input id="sellerProductImage" type="file" accept="image/*"></div>
+        <button class="submit green" onclick="createSellerProduct()"><i class="fa-solid fa-plus"></i> Тауарды жариялау</button>
+        <button class="submit" style="margin-top:9px;background:#252b27;color:#fff" onclick="sellerLogout()">Шығу</button>
+        <div id="sellerStatus" class="hint" style="margin-top:10px"></div>
     </div>
 </div>
 
@@ -902,16 +928,141 @@ function closeMenu(){
     document.getElementById("overlay").classList.remove("show");
 }
 
-/* АДМИН — ҚАЗІРГІ УАҚЫТША НҰСҚА */
-function openLogin(){document.getElementById("loginModal").classList.add("show")}
+/* САТУШЫ ПАНЕЛІ */
+let sellerUser=null;
+let sellerStoreId=null;
+
+function openLogin(){
+    document.getElementById("loginStatus").textContent="";
+    document.getElementById("loginModal").classList.add("show");
+}
 function closeLogin(){document.getElementById("loginModal").classList.remove("show")}
-function loginAdmin(){
-    const login=document.getElementById("adminLogin").value;
-    const pass=document.getElementById("adminPass").value;
-    if(login==="admin"&&pass==="1234"){
+
+async function loginSeller(){
+    const email=document.getElementById("sellerEmail").value.trim();
+    const password=document.getElementById("sellerPass").value;
+    const status=document.getElementById("loginStatus");
+    status.className="hint";
+    if(!email||!password){status.textContent="Email мен парольді енгізіңіз.";return}
+    status.textContent="Кіру тексерілуде...";
+    try{
+        const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});
+        if(error)throw error;
+        sellerUser=data.user;
+
+        const profileResult=await supabaseClient.from("profiles").select("role").eq("id",sellerUser.id).maybeSingle();
+        if(profileResult.error)throw profileResult.error;
+        if(!profileResult.data || profileResult.data.role!=="seller"){
+            await supabaseClient.auth.signOut();
+            sellerUser=null;
+            throw new Error("Бұл аккаунт сатушы ретінде тіркелмеген.");
+        }
+
+        const storeResult=await supabaseClient.from("stores").select("id").limit(1);
+        if(storeResult.error)throw storeResult.error;
+        if(!storeResult.data || !storeResult.data.length)throw new Error("Сатушыға тиесілі дүкен табылмады.");
+        sellerStoreId=storeResult.data[0].id;
         closeLogin();
-        alert("Кіру сәтті. Нақты админ панель Supabase-пен кейін қосылады.");
-    }else alert("Логин немесе пароль қате.");
+        await openSellerPanel();
+    }catch(error){
+        console.error("O Go seller login error:",error);
+        status.className="hint seller-error";
+        status.textContent=error.message||"Кіру кезінде қате болды.";
+    }
+}
+
+async function openSellerPanel(){
+    if(!sellerUser){openLogin();return}
+    document.getElementById("sellerModal").classList.add("show");
+    document.getElementById("sellerStatus").textContent="";
+    document.getElementById("sellerStoreInfo").textContent="Дүкен дайын. Бөлімді таңдаңыз.";
+    await loadSellerSections();
+}
+function closeSellerPanel(){document.getElementById("sellerModal").classList.remove("show")}
+
+async function loadSellerSections(){
+    const service=document.getElementById("sellerService").value;
+    const select=document.getElementById("sellerSection");
+    select.innerHTML="<option value=\"\">Бөлім жүктелуде...</option>";
+    try{
+        const {data,error}=await supabaseClient.from("store_sections").select("id,name,service_type,sort_order").eq("service_type",service).order("sort_order",{ascending:true});
+        if(error)throw error;
+        if(!data || !data.length){select.innerHTML="<option value=\"\">Бөлім жоқ</option>";return}
+        select.innerHTML=data.map(section=>`<option value="${escapeHtml(section.id)}">${escapeHtml(section.name)}</option>`).join("");
+    }catch(error){
+        console.error("O Go seller sections error:",error);
+        select.innerHTML="<option value=\"\">Бөлімдерді жүктеу мүмкін болмады</option>";
+        document.getElementById("sellerStatus").textContent=error.message||"Бөлімдерді жүктеу қатесі.";
+    }
+}
+
+async function createSellerProduct(){
+    const status=document.getElementById("sellerStatus");
+    status.className="hint";
+    const name=document.getElementById("sellerProductName").value.trim();
+    const price=Number(document.getElementById("sellerProductPrice").value);
+    const stock=Number(document.getElementById("sellerProductStock").value);
+    const description=document.getElementById("sellerProductDescription").value.trim();
+    const service=document.getElementById("sellerService").value;
+    const sectionId=document.getElementById("sellerSection").value;
+    const file=document.getElementById("sellerProductImage").files[0];
+
+    if(!sellerUser || !sellerStoreId){status.className="hint seller-error";status.textContent="Сатушы сессиясы немесе дүкен табылмады.";return}
+    if(!name){status.textContent="Тауар атауын енгізіңіз.";return}
+    if(!Number.isFinite(price)||price<0){status.textContent="Бағаны дұрыс енгізіңіз.";return}
+    if(!Number.isInteger(stock)||stock<0){status.textContent="Қойма санын дұрыс енгізіңіз.";return}
+    if(!sectionId){status.textContent="Бөлімді таңдаңыз.";return}
+
+    status.textContent="Тауар жариялануда...";
+    try{
+        let imageUrl=null;
+        if(file){
+            if(!file.type.startsWith("image/"))throw new Error("Тек сурет файлын таңдаңыз.");
+            if(file.size>5*1024*1024)throw new Error("Фото 5 МБ-тан үлкен болмауы керек.");
+            const ext=(file.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"")||"jpg";
+            const path=`${sellerUser.id}/${crypto.randomUUID()}.${ext}`;
+            const upload=await supabaseClient.storage.from("product-images").upload(path,file,{contentType:file.type,upsert:false});
+            if(upload.error)throw upload.error;
+            imageUrl=supabaseClient.storage.from("product-images").getPublicUrl(path).data.publicUrl;
+        }
+
+        const payload={
+            store_id:sellerStoreId,
+            seller_id:sellerUser.id,
+            name,
+            price,
+            description:description||null,
+            image_url:imageUrl,
+            stock,
+            category:service,
+            service_type:service,
+            section_id:sectionId,
+            published:true
+        };
+        const {error}=await supabaseClient.from("products").insert(payload);
+        if(error)throw error;
+
+        status.className="hint seller-success";
+        status.textContent="✅ Тауар сәтті жарияланды!";
+        document.getElementById("sellerProductName").value="";
+        document.getElementById("sellerProductPrice").value="";
+        document.getElementById("sellerProductStock").value="10";
+        document.getElementById("sellerProductDescription").value="";
+        document.getElementById("sellerProductImage").value="";
+        catalogState[service].loaded=false;
+        if(document.getElementById(service).classList.contains("active"))await loadCatalog(service);
+    }catch(error){
+        console.error("O Go create product error:",error);
+        status.className="hint seller-error";
+        status.textContent=error.message||"Тауарды жариялау кезінде қате болды.";
+    }
+}
+
+async function sellerLogout(){
+    await supabaseClient.auth.signOut();
+    sellerUser=null;
+    sellerStoreId=null;
+    closeSellerPanel();
 }
 
 /* ҚОЛДАНБА */
