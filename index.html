@@ -448,12 +448,49 @@ main{padding:18px 16px 24px}
 .catalog-search-hint{margin:0 2px 10px;color:#8d938e;font-size:11px;line-height:1.35}
 .catalog-search-empty{padding:18px 12px;border:1px dashed var(--line);border-radius:14px;color:#aeb4af;text-align:center;background:#111511}
 
+/* RESTAURANTS / FOOD */
+.restaurant-grid{display:grid;gap:12px}
+.restaurant-card{width:100%;border:1px solid rgba(22,25,22,.10);border-radius:20px;background:#fff;padding:16px;display:flex;align-items:center;gap:13px;text-align:left;box-shadow:0 5px 18px rgba(22,25,22,.05);transition:.18s}
+.restaurant-card:active{transform:scale(.985)}
+.restaurant-logo{width:54px;height:54px;border-radius:17px;background:var(--yellow);color:#161916;display:grid;place-items:center;font-size:22px;flex:0 0 54px}
+.restaurant-card:nth-child(even) .restaurant-logo{background:var(--green)}
+.restaurant-card b{display:block;font-size:16px;margin-bottom:3px}
+.restaurant-card small{display:block;color:var(--muted);font-size:11px}
+.restaurant-arrow{margin-left:auto;width:36px;height:36px;border-radius:11px;background:#f5f6f3;display:grid;place-items:center;color:#161916}
+.restaurant-head{display:flex;align-items:center;gap:11px;margin-bottom:14px}
+.restaurant-head .back{flex:0 0 40px}
+.restaurant-head h3{font-size:21px}
+.choice-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.choice-card{border:1px solid rgba(22,25,22,.10);background:#fff;border-radius:18px;padding:16px;text-align:left;display:flex;flex-direction:column;gap:8px;box-shadow:0 5px 18px rgba(22,25,22,.05)}
+.choice-card .service-icon{width:45px;height:45px;flex-basis:45px}
+.choice-card b{font-size:15px}.choice-card small{color:var(--muted);font-size:11px}
+
 /* RESPONSIVE */
 @media(max-width:380px){
     .hero{min-height:260px}
     .hero h1{font-size:29px}
     .service h3{font-size:16px}
 }
+
+/* O GO LIGHT THEME */
+:root{
+    --black:#ffffff;--dark:#f5f6f3;--card:#ffffff;--white:#161916;--muted:#66706a;--line:rgba(22,25,22,.10);
+}
+body{background:#eef0ec;color:#161916}
+.app{background:#fff;box-shadow:0 0 50px rgba(0,0,0,.08)}
+header{background:rgba(255,255,255,.92);border-bottom:1px solid rgba(22,25,22,.10)}
+.header-btn{background:#f5f6f3;color:#161916;border-color:rgba(22,25,22,.10)}
+.header-btn:hover{border-color:rgba(255,212,0,.65);color:#111}
+.hero{background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(0,0,0,.72)),radial-gradient(circle at 80% 20%,rgba(168,230,61,.22),transparent 35%),#dfe5dc}
+.form-card,.download,.total,.cart-item,.category,.product-card{background:#fff;border-color:rgba(22,25,22,.10);box-shadow:0 5px 18px rgba(22,25,22,.05)}
+input,select,textarea{background:#fff!important;color:#161916!important;border-color:rgba(22,25,22,.14)!important}
+.side{background:#fff;color:#161916;border-left-color:rgba(22,25,22,.10)}
+.side-links button{color:#161916}
+.bottom{background:rgba(255,255,255,.96);border-top-color:rgba(22,25,22,.10)}
+.nav{color:#6b746e}
+.nav.active{color:#161916}
+.close,.back{color:#161916}
+
 </style>
 
 <!-- SUPABASE -->
@@ -469,6 +506,7 @@ main{padding:18px 16px 24px}
     </button>
     <div class="brand">O <span style="color:var(--yellow)">GO</span></div>
     <div class="header-actions">
+        <button id="langBtn" class="header-btn lang-btn" onclick="toggleLanguage()" aria-label="Тілді ауыстыру">Kz</button>
         <button class="header-btn" onclick="openMenu()" aria-label="Меню"><i class="fa-solid fa-bars"></i></button>
     </div>
 </header>
@@ -479,14 +517,14 @@ main{padding:18px 16px 24px}
         <div class="hero">
             <div class="hero-logo">O <span>GO</span></div>
             <div class="hero-badge"><i class="fa-solid fa-location-dot"></i> Осакаровка</div>
-            <h1>Керек нәрсенің бәрі — бір жерде.</h1>
-            <p>Дүкен, такси, тамақ және жеткізу — O Go арқылы оңай.</p>
-            <div class="hero-note"><i class="fa-solid fa-bolt"></i> Тез. Оңай. Жақын.</div>
+            <h1 id="heroTitle">Керек нәрсенің бәрі — бір жерде.</h1>
+            <p id="heroText">Дүкен, такси, тамақ және жеткізу — O Go арқылы оңай.</p>
+            <div class="hero-note" id="heroNote"><i class="fa-solid fa-bolt"></i> Тез. Оңай. Жақын.</div>
         </div>
 
         <div class="section-head">
-            <h2>O Go қызметтері</h2>
-            <span>4 қызмет</span>
+            <h2 id="servicesTitle">O Go қызметтері</h2>
+            <span id="servicesCount">4 қызмет</span>
         </div>
 
         <div class="services">
@@ -495,7 +533,7 @@ main{padding:18px 16px 24px}
                 <span class="service-content">
                     <span class="service-left">
                         <span class="service-icon"><i class="fa-solid fa-basket-shopping"></i></span>
-                        <span><h3>Дүкен</h3><p>Күнделікті керек заттарды тапсырыс бер</p></span>
+                        <span><h3 data-service-title="shop">Дүкен</h3><p data-service-desc="shop">Күнделікті керек заттарды тапсырыс бер</p></span>
                     </span>
                     <span class="arrow"><i class="fa-solid fa-chevron-right"></i></span>
                 </span>
@@ -506,7 +544,7 @@ main{padding:18px 16px 24px}
                 <span class="service-content">
                     <span class="service-left">
                         <span class="service-icon"><i class="fa-solid fa-car-side"></i></span>
-                        <span><h3>Такси</h3><p>Қала ішінде көлікке тапсырыс бер</p></span>
+                        <span><h3 data-service-title="taxi">Такси</h3><p data-service-desc="taxi">Қала ішінде көлікке тапсырыс бер</p></span>
                     </span>
                     <span class="arrow"><i class="fa-solid fa-chevron-right"></i></span>
                 </span>
@@ -517,7 +555,7 @@ main{padding:18px 16px 24px}
                 <span class="service-content">
                     <span class="service-left">
                         <span class="service-icon"><i class="fa-solid fa-utensils"></i></span>
-                        <span><h3>Тамақ</h3><p>Кафе мен тағамдарға тапсырыс бер</p></span>
+                        <span><h3 data-service-title="food">Тамақ</h3><p data-service-desc="food">Кафе мен тағамдарға тапсырыс бер</p></span>
                     </span>
                     <span class="arrow"><i class="fa-solid fa-chevron-right"></i></span>
                 </span>
@@ -528,7 +566,7 @@ main{padding:18px 16px 24px}
                 <span class="service-content">
                     <span class="service-left">
                         <span class="service-icon"><i class="fa-solid fa-box"></i></span>
-                        <span><h3>Жеткізу</h3><p>Сәлемдеме мен заттарды жеткіз</p></span>
+                        <span><h3 data-service-title="delivery">Жеткізу</h3><p data-service-desc="delivery">Сәлемдеме мен заттарды жеткіз</p></span>
                     </span>
                     <span class="arrow"><i class="fa-solid fa-chevron-right"></i></span>
                 </span>
@@ -537,8 +575,8 @@ main{padding:18px 16px 24px}
 
         <div class="download" id="download">
             <div class="mini-logo">O <span>GO</span></div>
-            <h3>Қолданбаны жүктеу</h3>
-            <p>O Go жақында App Store және Google Play-де қолжетімді болады.</p>
+            <h3 id="downloadTitle">Қолданбаны жүктеу</h3>
+            <p id="downloadText">O Go жақында App Store және Google Play-де қолжетімді болады.</p>
             <div class="store-buttons">
                 <a class="store-btn" href="#" onclick="soon(event)"><i class="fa-brands fa-apple"></i> App Store</a>
                 <a class="store-btn" href="#" onclick="soon(event)"><i class="fa-brands fa-google-play"></i> Google Play</a>
@@ -550,7 +588,7 @@ main{padding:18px 16px 24px}
     <section id="shop" class="page">
         <div class="page-top">
             <button class="back" onclick="goHome()"><i class="fa-solid fa-arrow-left"></i></button>
-            <div><h2 class="page-title">Дүкен</h2><div class="page-subtitle">Күнделікті тауарлар</div></div>
+            <div><h2 class="page-title" data-page-title="shop">Дүкен</h2><div class="page-subtitle" data-page-subtitle="shop">Күнделікті тауарлар</div></div>
         </div>
         <div class="catalog-search" id="shopSearchWrap">
             <i class="fa-solid fa-magnifying-glass"></i>
@@ -568,7 +606,7 @@ main{padding:18px 16px 24px}
     <section id="taxi" class="page">
         <div class="page-top">
             <button class="back" onclick="goHome()"><i class="fa-solid fa-arrow-left"></i></button>
-            <div><h2 class="page-title">Такси</h2><div class="page-subtitle">Қала ішінде тапсырыс</div></div>
+            <div><h2 class="page-title" data-page-title="taxi">Такси</h2><div class="page-subtitle" data-page-subtitle="taxi">Қала ішінде тапсырыс</div></div>
         </div>
         <div class="form-card">
             <div class="form-group"><label>Қай жерден?</label><input id="taxiFrom" placeholder="Мысалы: Абай 25"></div>
@@ -583,11 +621,16 @@ main{padding:18px 16px 24px}
     <section id="food" class="page">
         <div class="page-top">
             <button class="back" onclick="goHome()"><i class="fa-solid fa-arrow-left"></i></button>
-            <div><h2 class="page-title">Тамақ</h2><div class="page-subtitle">Кафе мен тағамдар</div></div>
+            <div><h2 class="page-title" data-page-title="food">Тағамдар</h2><div class="page-subtitle" data-page-subtitle="food">Дәмхана мен ресторандар</div></div>
         </div>
-        <div id="foodSections" class="category-row" aria-label="Тамақ бөлімдері"></div>
-        <div id="foodProducts" class="products">
-            <div class="empty">Тағамдар жүктелуде...</div>
+        <div id="foodRestaurants" class="restaurant-grid"></div>
+        <div id="restaurantMenu" style="display:none">
+            <div class="restaurant-head">
+                <button class="back" onclick="showFoodRestaurants()"><i class="fa-solid fa-arrow-left"></i></button>
+                <div><h3 id="restaurantTitle">Номер 1</h3><div id="restaurantSubtitle" class="page-subtitle">Тағамдар</div></div>
+            </div>
+            <div id="foodCategories" class="category-row"></div>
+            <div id="restaurantProducts" class="products"><div class="empty" id="restaurantEmpty">Тағамдар әзірге қосылған жоқ.</div></div>
         </div>
     </section>
 
@@ -595,7 +638,7 @@ main{padding:18px 16px 24px}
     <section id="delivery" class="page">
         <div class="page-top">
             <button class="back" onclick="goHome()"><i class="fa-solid fa-arrow-left"></i></button>
-            <div><h2 class="page-title">Жеткізу</h2><div class="page-subtitle">Зат пен сәлемдеме</div></div>
+            <div><h2 class="page-title" data-page-title="delivery">Жеткізу</h2><div class="page-subtitle" data-page-subtitle="delivery">Зат пен сәлемдеме</div></div>
         </div>
         <div class="form-card">
             <p class="hint">Қай жерден алып, қай жерге жеткізу керегін жазыңыз.</p>
@@ -603,15 +646,26 @@ main{padding:18px 16px 24px}
             <div class="form-group"><label>Жеткізетін жер</label><input id="deliveryTo" placeholder="Мекенжай"></div>
             <div class="form-group"><label>Телефон</label><input id="deliveryPhone" type="tel" placeholder="+7 700 000 00 00"></div>
             <div class="form-group"><label>Не жеткізу керек?</label><textarea id="deliveryComment" rows="3" placeholder="Мысалы: құжат, пакет, азық-түлік"></textarea></div>
-            <button class="submit green" onclick="orderService('delivery')"><i class="fa-brands fa-whatsapp"></i> Жеткізуге тапсырыс беру</button>
+            <button class="submit green" onclick="orderService('delivery')"><i class="fa-brands fa-whatsapp"></i> <span id="deliveryOrderBtnText">Тапсырыс беру</span></button>
         </div>
     </section>
+
+    <!-- SERVICE CHOOSER -->
+    <div id="serviceChooser" class="modal" style="display:none">
+        <div class="modal-box">
+            <div class="modal-head"><h3 id="serviceChooserTitle">Қызметті таңдаңыз</h3><button class="close" onclick="closeServiceChooser()">×</button></div>
+            <div class="choice-grid">
+                <button class="choice-card" onclick="closeServiceChooser();openPage('taxi')"><span class="service-icon"><i class="fa-solid fa-car-side"></i></span><b id="choiceTaxi">Такси</b><small id="choiceTaxiSub">Қала ішінде</small></button>
+                <button class="choice-card" onclick="closeServiceChooser();openPage('delivery')"><span class="service-icon"><i class="fa-solid fa-box"></i></span><b id="choiceDelivery">Жеткізу</b><small id="choiceDeliverySub">Сәлемдеме мен заттар</small></button>
+            </div>
+        </div>
+    </div>
 
     <!-- CART -->
     <section id="cart" class="page">
         <div class="page-top">
             <button class="back" onclick="goHome()"><i class="fa-solid fa-arrow-left"></i></button>
-            <div><h2 class="page-title">Корзина</h2><div class="page-subtitle">Таңдаған тауарларыңыз</div></div>
+            <div><h2 class="page-title" data-page-title="cart">Корзина</h2><div class="page-subtitle" data-page-subtitle="cart">Таңдаған тауарларыңыз</div></div>
         </div>
         <div id="cartList" class="cart-list"></div>
         <div id="cartEmpty" class="empty">Корзина әзірге бос.</div>
@@ -635,9 +689,9 @@ main{padding:18px 16px 24px}
 <nav class="bottom">
     <button class="nav active" data-page="home" onclick="openPage('home')"><i class="fa-solid fa-house"></i><span>Басты бет</span></button>
     <button class="nav" data-page="shop" onclick="openPage('shop')"><i class="fa-solid fa-basket-shopping"></i><span>Дүкен</span></button>
-    <button class="nav" data-page="food" onclick="openPage('food')"><i class="fa-solid fa-utensils"></i><span>Тамақ</span></button>
-    <button class="nav" data-page="delivery" onclick="openPage('delivery')"><i class="fa-solid fa-box"></i><span>Жеткізу</span></button>
-    <button class="nav" data-page="cart" onclick="openPage('cart')" style="position:relative"><i class="fa-solid fa-cart-shopping"></i><span>Корзина</span><span id="badge" class="badge">0</span></button>
+    <button class="nav" data-page="food" onclick="openPage('food')"><i class="fa-solid fa-utensils"></i><span id="navFoodText">Тағамдар</span></button>
+    <button class="nav" data-page="delivery" onclick="openServiceChooser()"><i class="fa-solid fa-box"></i><span id="navDeliveryText">Такси/Жеткізу</span></button>
+    <button class="nav" data-page="cart" onclick="openPage('cart')" style="position:relative"><i class="fa-solid fa-cart-shopping"></i><span id="navCartText">Себет</span><span id="badge" class="badge">0</span></button>
 </nav>
 </div>
 
@@ -648,8 +702,8 @@ main{padding:18px 16px 24px}
         <button class="close" onclick="closeMenu()"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <ul class="side-links">
-        <li><button onclick="closeMenu(); alert('Серіктестік туралы ақпарат жақында қосылады.')"><i class="fa-solid fa-handshake"></i> Серіктестік</button></li>
-        <li><button onclick="closeMenu(); openLogin()"><i class="fa-solid fa-store"></i> Сатушы панелі</button></li>
+        <li><button onclick="closeMenu(); alert('Серіктестік туралы ақпарат жақында қосылады.')"><i class="fa-solid fa-handshake"></i> <span id="menuPartner">Серіктестік</span></button></li>
+        <li><button onclick="closeMenu(); openLogin()"><i class="fa-solid fa-store"></i> <span id="menuSeller">Сатушы панелі</span></button></li>
     </ul>
 </aside>
 
@@ -947,6 +1001,59 @@ async function testSupabaseConnection(){
 }
 
 
+/* ТАҒАМДАР: ДӘМХАНА/РЕСТОРАН ТАҢДАУ */
+const OGO_RESTAURANTS=[1,2,3,4,5].map(n=>({id:n,name:`Номер ${n}`}));
+const OGO_FOOD_CATEGORIES=[
+  {id:'all',kz:'Барлығы',ru:'Все'},
+  {id:'burger',kz:'Бургер',ru:'Бургеры'},
+  {id:'sushi',kz:'Суши',ru:'Суши'},
+  {id:'pizza',kz:'Пицца',ru:'Пицца'},
+  {id:'doner',kz:'Донер',ru:'Донер'},
+  {id:'salad',kz:'Салат',ru:'Салаты'},
+  {id:'dessert',kz:'Десерт',ru:'Десерты'},
+  {id:'drinks',kz:'Сусындар',ru:'Напитки'}
+];
+let selectedRestaurant=1;
+let selectedFoodCategory='all';
+function renderFoodRestaurants(){
+  const el=document.getElementById('foodRestaurants'); if(!el)return;
+  const ru=OGO_CURRENT_LANG==='ru';
+  el.innerHTML=OGO_RESTAURANTS.map(r=>`<button class="restaurant-card" onclick="openRestaurant(${r.id})"><span class="restaurant-logo"><i class="fa-solid fa-utensils"></i></span><span><b>${ru?'Номер':'Номер'} ${r.id}</b><small>${ru?'Кафе / ресторан':'Дәмхана / ресторан'}</small></span><span class="restaurant-arrow"><i class="fa-solid fa-chevron-right"></i></span></button>`).join('');
+}
+function showFoodRestaurants(){
+  const list=document.getElementById('foodRestaurants'),menu=document.getElementById('restaurantMenu');
+  if(list)list.style.display='grid'; if(menu)menu.style.display='none';
+  renderFoodRestaurants();
+}
+function openRestaurant(id){
+  selectedRestaurant=id;selectedFoodCategory='all';
+  const list=document.getElementById('foodRestaurants'),menu=document.getElementById('restaurantMenu'),title=document.getElementById('restaurantTitle'),sub=document.getElementById('restaurantSubtitle');
+  if(list)list.style.display='none'; if(menu)menu.style.display='block';
+  if(title)title.textContent=`Номер ${id}`;
+  if(sub)sub.textContent=OGO_CURRENT_LANG==='ru'?'Меню ресторана':'Мейірхананың мәзірі';
+  renderFoodCategories();
+  renderRestaurantProducts();
+}
+function renderFoodCategories(){
+  const el=document.getElementById('foodCategories');if(!el)return; const ru=OGO_CURRENT_LANG==='ru';
+  el.innerHTML=OGO_FOOD_CATEGORIES.map(c=>`<button class="category ${selectedFoodCategory===c.id?'active':''}" onclick="selectFoodCategory('${c.id}')">${ru?c.ru:c.kz}</button>`).join('');
+}
+function selectFoodCategory(id){selectedFoodCategory=id;renderFoodCategories();renderRestaurantProducts();}
+function renderRestaurantProducts(){
+  const el=document.getElementById('restaurantProducts');if(!el)return;
+  const ru=OGO_CURRENT_LANG==='ru';
+  const cat=OGO_FOOD_CATEGORIES.find(c=>c.id===selectedFoodCategory);
+  el.innerHTML=`<div class="empty">${ru?'В этом ресторане блюда пока не добавлены.':'Бұл дәмханада тағамдар әзірге қосылған жоқ.'}<br><small>${ru?'Выбранная категория':'Таңдалған бөлім'}: <b>${ru?cat.ru:cat.kz}</b></small></div>`;
+}
+function openServiceChooser(){
+  const m=document.getElementById('serviceChooser');if(m)m.style.display='flex';
+  const L=OGO_LANG[OGO_CURRENT_LANG]||OGO_LANG.kz;
+  const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v};
+  set('serviceChooserTitle',OGO_CURRENT_LANG==='ru'?'Выберите услугу':'Қызметті таңдаңыз');
+  set('choiceTaxi',L.taxi);set('choiceDelivery',L.delivery);set('choiceTaxiSub',OGO_CURRENT_LANG==='ru'?'По городу':'Қала ішінде');set('choiceDeliverySub',OGO_CURRENT_LANG==='ru'?'Посылки и вещи':'Сәлемдеме мен заттар');
+}
+function closeServiceChooser(){const m=document.getElementById('serviceChooser');if(m)m.style.display='none'}
+
 /* БЕТ АУЫСТЫРУ */
 function openPage(page){
     document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
@@ -958,7 +1065,7 @@ function openPage(page){
     });
     window.scrollTo({top:0,behavior:"smooth"});
     if(page==='shop') loadCatalog('shop');
-    if(page==='food') loadCatalog('food');
+    if(page==='food') showFoodRestaurants();
 }
 function goHome(){openPage("home")}
 
@@ -1588,7 +1695,66 @@ function escapeHtml(str){
 updateCart();
 testSupabaseConnection();
 loadCatalog('shop');
-loadCatalog('food');
+renderFoodRestaurants();
+</script>
+<script>
+
+/* O GO — LANGUAGE SYSTEM */
+const OGO_LANG={
+  kz:{
+    lang:'Kz',services:'O Go қызметтері',count:'4 қызмет',heroTitle:'Керек нәрсенің бәрі — бір жерде.',heroText:'Дүкен, такси, тамақ және жеткізу — O Go арқылы оңай.',heroNote:'Тез. Оңай. Жақын.',
+    shop:'Дүкен',shopDesc:'Күнделікті керек заттарды тапсырыс бер',shopSub:'Күнделікті тауарлар',taxi:'Такси',taxiDesc:'Қала ішінде көлікке тапсырыс бер',taxiSub:'Қала ішінде тапсырыс',food:'Тағамдар',foodDesc:'Кафе мен тағамдарға тапсырыс бер',foodSub:'Кафе мен тағамдар',delivery:'Жеткізу',deliveryDesc:'Сәлемдеме мен заттарды жеткіз',deliverySub:'Зат пен сәлемдеме',cart:'Себет',cartSub:'Таңдаған тауарларыңыз',
+    download:'Қолданбаны жүктеу',downloadText:'O Go жақында App Store және Google Play-де қолжетімді болады.',partner:'Серіктестік',seller:'Сатушы панелі',order:'Тапсырыс беру',deliveryHint:'Қай жерден алып, қай жерге жеткізу керегін жазыңыз.',
+    back:'Артқа',name:'Атыңыз',phone:'Телефон',address:'Мекенжай',payment:'Төлем',send:'WhatsApp арқылы тапсырыс беру',products:'Тауарлар',shipping:'Доставка',total:'Барлығы'
+  },
+  ru:{
+    lang:'Ru',services:'Сервисы O Go',count:'4 сервиса',heroTitle:'Всё необходимое — в одном месте.',heroText:'Магазин, такси, еда и доставка — легко с O Go.',heroNote:'Быстро. Просто. Рядом.',
+    shop:'Магазин',shopDesc:'Заказывайте всё необходимое на каждый день',shopSub:'Товары на каждый день',taxi:'Такси',taxiDesc:'Закажите поездку по городу',taxiSub:'Заказ по городу',food:'Еда',foodDesc:'Заказывайте блюда из кафе',foodSub:'Кафе и блюда',delivery:'Доставка',deliveryDesc:'Доставляйте посылки и вещи',deliverySub:'Посылки и вещи',cart:'Корзина',cartSub:'Выбранные товары',
+    download:'Скачать приложение',downloadText:'O Go скоро будет доступен в App Store и Google Play.',partner:'Партнёрство',seller:'Панель продавца',order:'Заказать',deliveryHint:'Укажите, откуда забрать и куда доставить.',
+    back:'Назад',name:'Ваше имя',phone:'Телефон',address:'Адрес',payment:'Оплата',send:'Заказать через WhatsApp',products:'Товары',shipping:'Доставка',total:'Итого'
+  }
+};
+let OGO_CURRENT_LANG=localStorage.getItem('ogo_lang')||'kz';
+function setLang(lang){
+  OGO_CURRENT_LANG=lang==='ru'?'ru':'kz'; localStorage.setItem('ogo_lang',OGO_CURRENT_LANG);
+  const L=OGO_LANG[OGO_CURRENT_LANG];
+  const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v};
+  set('langBtn',L.lang);set('servicesTitle',L.services);set('servicesCount',L.count);set('heroTitle',L.heroTitle);set('heroText',L.heroText);const hn=document.getElementById('heroNote');if(hn)hn.innerHTML='<i class="fa-solid fa-bolt"></i> '+L.heroNote;
+  set('downloadTitle',L.download);set('downloadText',L.downloadText);set('menuPartner',L.partner);set('menuSeller',L.seller);set('deliveryOrderBtnText',L.order);set('navFoodText',L.food);set('navDeliveryText',OGO_CURRENT_LANG==='ru'?'Такси/Доставка':'Такси/Жеткізу');set('navCartText',OGO_CURRENT_LANG==='ru'?'Корзина':'Себет');
+  document.querySelectorAll('[data-service-title]').forEach(e=>e.textContent=L[e.dataset.serviceTitle]);
+  document.querySelectorAll('[data-service-desc]').forEach(e=>e.textContent=L[e.dataset.serviceDesc+'Desc']);
+  document.querySelectorAll('[data-page-title]').forEach(e=>e.textContent=L[e.dataset.pageTitle]);
+  document.querySelectorAll('[data-page-subtitle]').forEach(e=>e.textContent=L[e.dataset.pageSubtitle+'Sub']);
+  const ph={shopSearch:OGO_CURRENT_LANG==='ru'?'Поиск товара в магазине...':'Дүкеннен тауар іздеу...',clientName:L.name,clientAddress:OGO_CURRENT_LANG==='ru'?'Город, улица, дом, квартира':'Қала, көше, үй, пәтер',taxiFrom:OGO_CURRENT_LANG==='ru'?'Например: Абая 25':'Мысалы: Абай 25',taxiTo:OGO_CURRENT_LANG==='ru'?'Например: Магазин':'Мысалы: Дүкен',taxiComment:OGO_CURRENT_LANG==='ru'?'Если нужно, напишите':'Қажет болса жазыңыз',deliveryFrom:L.address,deliveryTo:L.address,deliveryComment:OGO_CURRENT_LANG==='ru'?'Например: документы, пакет, продукты':'Мысалы: құжат, пакет, азық-түлік',sellerProductName:OGO_CURRENT_LANG==='ru'?'Например: Молоко 1 л':'Мысалы: Сүт 1 л',sellerProductDescription:OGO_CURRENT_LANG==='ru'?'Краткое описание':'Қысқаша сипаттама'};
+  Object.keys(ph).forEach(id=>{const e=document.getElementById(id);if(e)e.placeholder=ph[id]});
+  const labels=document.querySelectorAll('#cartCheckout .form-group label'); if(labels.length>=4){labels[0].textContent=L.name;labels[1].textContent=L.phone;labels[2].textContent=L.address;labels[3].textContent=L.payment;}
+  const cartRows=document.querySelectorAll('#cartCheckout .total div span:first-child'); if(cartRows.length>=3){cartRows[0].textContent=L.products;cartRows[1].textContent=L.shipping;cartRows[2].textContent=L.total;}
+  const send=document.querySelector('#cartCheckout .submit'); if(send)send.innerHTML='<i class="fa-brands fa-whatsapp"></i> '+L.send;
+  const text=(sel,v)=>{const e=document.querySelector(sel);if(e)e.textContent=v};
+  text('.catalog-search-hint',OGO_CURRENT_LANG==='ru'?'Введите полное название товара или несколько букв — поиск идёт по всем разделам.':'Тауар атауын толық немесе бірнеше әріппен жазыңыз — барлық бөлімнен ізделеді.');
+  const empty=document.getElementById('cartEmpty');if(empty)empty.textContent=OGO_CURRENT_LANG==='ru'?'Корзина пока пуста.':'Себет әзірге бос.';
+  const shopBack=document.querySelector('#shop .back');if(shopBack)shopBack.setAttribute('aria-label',L.back);
+  const labelsTaxi=document.querySelectorAll('#taxi .form-group label');if(labelsTaxi.length>=4){labelsTaxi[0].textContent=OGO_CURRENT_LANG==='ru'?'Откуда?':'Қай жерден?';labelsTaxi[1].textContent=OGO_CURRENT_LANG==='ru'?'Куда?':'Қай жерге?';labelsTaxi[2].textContent=L.phone;labelsTaxi[3].textContent=OGO_CURRENT_LANG==='ru'?'Дополнительная информация':'Қосымша ақпарат';}
+  const taxiBtn=document.querySelector('#taxi .submit');if(taxiBtn)taxiBtn.innerHTML='<i class="fa-brands fa-whatsapp"></i> '+(OGO_CURRENT_LANG==='ru'?'Заказать через WhatsApp':'WhatsApp арқылы тапсырыс');
+  const labelsDel=document.querySelectorAll('#delivery .form-group label');if(labelsDel.length>=4){labelsDel[0].textContent=OGO_CURRENT_LANG==='ru'?'Место забора':'Алып кететін жер';labelsDel[1].textContent=OGO_CURRENT_LANG==='ru'?'Место доставки':'Жеткізетін жер';labelsDel[2].textContent=L.phone;labelsDel[3].textContent=OGO_CURRENT_LANG==='ru'?'Что доставить?':'Не жеткізу керек?';}
+  const delHint=document.querySelector('#delivery .hint');if(delHint)delHint.textContent=L.deliveryHint;
+  const sellerLabels=document.querySelectorAll('#sellerModal .form-group label');
+  const sellerLabelKz=['Қызмет','Бөлім','Тауар атауы','Бағасы, ₸','Акциялық баға, ₸ (қаласаңыз)','Акция атауы (қаласаңыз)','Қоймадағы саны','Сипаттама','Фото'];
+  const sellerLabelRu=['Сервис','Раздел','Название товара','Цена, ₸','Акционная цена, ₸ (по желанию)','Название акции (по желанию)','Количество на складе','Описание','Фото'];
+  sellerLabels.forEach((e,i)=>{if(i<9)e.textContent=(OGO_CURRENT_LANG==='ru'?sellerLabelRu:sellerLabelKz)[i]});
+  const sellerService=document.getElementById('sellerService');if(sellerService){sellerService.options[0].text=OGO_CURRENT_LANG==='ru'?'Магазин':'Дүкен';sellerService.options[1].text=OGO_CURRENT_LANG==='ru'?'Еда':'Тағамдар';}
+  const editService=document.getElementById('editProductService');if(editService){editService.options[0].text=OGO_CURRENT_LANG==='ru'?'Магазин':'Дүкен';editService.options[1].text=OGO_CURRENT_LANG==='ru'?'Еда':'Тағамдар';}
+  set('navDeliveryText',OGO_CURRENT_LANG==='ru'?'Такси/Доставка':'Такси/Жеткізу');
+  const foodPageTitle=document.querySelector('#food [data-page-title="food"]');if(foodPageTitle)foodPageTitle.textContent=L.food;
+  const foodSub=document.querySelector('#food [data-page-subtitle="food"]');if(foodSub)foodSub.textContent=OGO_CURRENT_LANG==='ru'?'Кафе и рестораны':'Дәмхана мен ресторандар';
+  renderFoodRestaurants();
+  if(document.getElementById('restaurantMenu')?.style.display!=='none'){renderFoodCategories();renderRestaurantProducts();}
+  const rb=document.getElementById('restaurantEmpty');if(rb)rb.textContent=OGO_CURRENT_LANG==='ru'?'В этом ресторане блюда пока не добавлены.':'Бұл дәмханада тағамдар әзірге қосылған жоқ.';
+  document.documentElement.lang=OGO_CURRENT_LANG==='ru'?'ru':'kk';
+}
+function toggleLanguage(){setLang(OGO_CURRENT_LANG==='kz'?'ru':'kz')}
+document.addEventListener('DOMContentLoaded',()=>setLang(OGO_CURRENT_LANG));
+
 </script>
 </body>
 </html>
