@@ -881,6 +881,22 @@ function changeQty(index,delta){
     updateCart();
 }
 function updateCart(){
+    // Себеттегі бағаны каталогтағы ең соңғы бағамен синхрондаймыз.
+    // Сатушы акция қосса/өзгертсе, себетте де акциялық баға бірден қолданылады.
+    cart.forEach(item=>{
+        if(!item.productId)return;
+        const all=[...catalogState.shop.products,...catalogState.food.products];
+        const product=all.find(p=>p.id===item.productId);
+        if(product){
+            const basePrice=Number(product.price||0);
+            const salePrice=Number(product.sale_price||0);
+            item.price=(salePrice>0 && salePrice<basePrice)?salePrice:basePrice;
+            item.basePrice=basePrice;
+            item.salePrice=(salePrice>0 && salePrice<basePrice)?salePrice:null;
+            item.promoText=product.promo_text||null;
+        }
+    });
+
     const list=document.getElementById("cartList");
     const empty=document.getElementById("cartEmpty");
     const checkout=document.getElementById("cartCheckout");
