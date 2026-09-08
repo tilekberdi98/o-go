@@ -423,6 +423,16 @@ main{padding:18px 16px 24px}
 #sellerProductImage::file-selector-button{border:0;border-radius:9px;background:var(--yellow);color:#111;padding:8px 10px;font-weight:800;margin-right:8px}
 .seller-success{color:var(--green)}
 .seller-error{color:#ff8f8f}
+.seller-products{margin-top:18px;padding-top:15px;border-top:1px solid var(--line)}
+.seller-products h4{font-size:16px;margin-bottom:10px}
+.seller-item{display:flex;align-items:center;gap:10px;padding:10px;margin-bottom:8px;background:#111511;border:1px solid var(--line);border-radius:14px}
+.seller-item img,.seller-item .seller-thumb{width:48px;height:48px;border-radius:11px;object-fit:cover;background:#252b27;display:grid;place-items:center;color:var(--yellow);flex-shrink:0}
+.seller-item-info{flex:1;min-width:0}
+.seller-item-name{font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.seller-item-price{font-size:12px;color:var(--yellow);margin-top:3px}
+.seller-item button{border:0;border-radius:10px;background:#2b312c;color:#fff;padding:8px 10px;font-weight:800;font-size:11px}
+.promo{display:inline-block;margin-left:5px;padding:2px 6px;border-radius:7px;background:#ffcc00;color:#111;font-size:9px;font-weight:900}
+.old-price{text-decoration:line-through;color:#8d938e;font-size:11px;margin-right:6px}
 
 /* RESPONSIVE */
 @media(max-width:380px){
@@ -640,12 +650,35 @@ main{padding:18px 16px 24px}
         <div class="form-group"><label>Бөлім</label><select id="sellerSection"><option value="">Бөлім жүктелуде...</option></select></div>
         <div class="form-group"><label>Тауар атауы</label><input id="sellerProductName" placeholder="Мысалы: Сүт 1 л"></div>
         <div class="form-group"><label>Бағасы, ₸</label><input id="sellerProductPrice" type="number" min="0" step="1" placeholder="1000"></div>
+        <div class="form-group"><label>Акциялық баға, ₸ <span class="hint">(қаласаңыз)</span></label><input id="sellerProductSalePrice" type="number" min="0" step="1" placeholder="Мысалы: 850"></div>
+        <div class="form-group"><label>Акция атауы <span class="hint">(қаласаңыз)</span></label><input id="sellerProductPromo" maxlength="60" placeholder="Мысалы: -15% акция"></div>
         <div class="form-group"><label>Қоймадағы саны</label><input id="sellerProductStock" type="number" min="0" step="1" value="10"></div>
         <div class="form-group"><label>Сипаттама</label><textarea id="sellerProductDescription" rows="3" placeholder="Қысқаша сипаттама"></textarea></div>
         <div class="form-group"><label>Фото</label><input id="sellerProductImage" type="file" accept="image/*"></div>
         <button class="submit green" onclick="createSellerProduct()"><i class="fa-solid fa-plus"></i> Тауарды жариялау</button>
+        <div class="seller-products"><h4>Менің тауарларым</h4><div id="sellerProductsList"><div class="hint">Жүктелуде...</div></div></div>
         <button class="submit" style="margin-top:9px;background:#252b27;color:#fff" onclick="sellerLogout()">Шығу</button>
         <div id="sellerStatus" class="hint" style="margin-top:10px"></div>
+    </div>
+</div>
+
+<div id="editProductModal" class="modal">
+    <div class="modal-box" style="max-height:90vh;overflow:auto">
+        <button class="close modal-close" onclick="closeEditProduct()"><i class="fa-solid fa-xmark"></i></button>
+        <h3>Тауарды өзгерту</h3>
+        <input id="editProductId" type="hidden">
+        <div class="form-group"><label>Қызмет</label><select id="editProductService" onchange="loadEditSections()"><option value="shop">Дүкен</option><option value="food">Тамақ</option></select></div>
+        <div class="form-group"><label>Бөлім</label><select id="editProductSection"><option value="">Бөлім жүктелуде...</option></select></div>
+        <div class="form-group"><label>Тауар атауы</label><input id="editProductName"></div>
+        <div class="form-group"><label>Бағасы, ₸</label><input id="editProductPrice" type="number" min="0" step="1"></div>
+        <div class="form-group"><label>Акциялық баға, ₸ <span class="hint">(0 = акция жоқ)</span></label><input id="editProductSalePrice" type="number" min="0" step="1"></div>
+        <div class="form-group"><label>Акция атауы</label><input id="editProductPromo" maxlength="60" placeholder="Мысалы: -15% акция"></div>
+        <div class="form-group"><label>Қоймадағы саны</label><input id="editProductStock" type="number" min="0" step="1"></div>
+        <div class="form-group"><label>Сипаттама</label><textarea id="editProductDescription" rows="3"></textarea></div>
+        <div class="form-group"><label>Жаңа фото <span class="hint">(қаласаңыз)</span></label><input id="editProductImage" type="file" accept="image/*"></div>
+        <button class="submit green" onclick="saveEditedProduct()"><i class="fa-solid fa-floppy-disk"></i> Өзгерісті сақтау</button>
+        <button class="submit" style="margin-top:9px;background:#8f2222;color:#fff" onclick="deleteEditedProduct()"><i class="fa-solid fa-trash"></i> Тауарды өшіру</button>
+        <div id="editProductStatus" class="hint" style="margin-top:10px"></div>
     </div>
 </div>
 
@@ -706,6 +739,10 @@ function renderProducts(type){
         const desc=escapeHtml(p.description || '');
         const name=escapeHtml(p.name || 'Тауар');
         const price=Number(p.price||0);
+        const salePrice=Number(p.sale_price||0);
+        const effectivePrice=(salePrice>0 && salePrice<price)?salePrice:price;
+        const promo=p.promo_text ? `<span class="promo">${escapeHtml(p.promo_text)}</span>` : '';
+        const priceHtml=(effectivePrice<price)?`<span class="old-price">${formatPrice(price)}</span>${formatPrice(effectivePrice)} ${promo}`:`${formatPrice(price)} ${promo}`;
         const stock=Number(p.stock ?? 0);
         const disabled=stock<=0 ? 'disabled' : '';
         const stockText=stock<=0 ? 'Қоймада жоқ' : (desc || 'Тауар');
@@ -714,7 +751,7 @@ function renderProducts(type){
             <div class="product-info">
                 <div class="product-name">${name}</div>
                 <div class="product-desc">${stockText}</div>
-                <div class="price">${formatPrice(price)}</div>
+                <div class="price">${priceHtml}</div>
             </div>
             <button class="add" ${disabled} onclick="addProductToCart('${escapeHtml(p.id)}')">+</button>
         </article>`;
@@ -762,7 +799,7 @@ async function loadCatalog(type){
         //    Бұл PostgREST .or() сүзгісіне тәуелділікті жояды.
         const productsResult=await supabaseClient
             .from('products')
-            .select('id,name,price,description,image_url,stock,published,section_id,service_type,category,store_id,created_at')
+            .select('id,name,price,sale_price,promo_text,description,image_url,stock,published,section_id,service_type,category,store_id,created_at')
             .eq('published',true)
             .order('created_at',{ascending:false});
 
@@ -794,7 +831,9 @@ function addProductToCart(id){
     const all=[...catalogState.shop.products,...catalogState.food.products];
     const product=all.find(p=>p.id===id);
     if(!product)return;
-    const price=Number(product.price||0);
+    const basePrice=Number(product.price||0);
+    const salePrice=Number(product.sale_price||0);
+    const price=(salePrice>0 && salePrice<basePrice)?salePrice:basePrice;
     const item=cart.find(x=>x.productId===id);
     if(item)item.qty++;
     else cart.push({productId:id,name:product.name||'Тауар',price,qty:1});
@@ -977,6 +1016,7 @@ async function openSellerPanel(){
     document.getElementById("sellerStatus").textContent="";
     document.getElementById("sellerStoreInfo").textContent="Дүкен дайын. Бөлімді таңдаңыз.";
     await loadSellerSections();
+    await loadSellerProducts();
 }
 function closeSellerPanel(){document.getElementById("sellerModal").classList.remove("show")}
 
@@ -1001,6 +1041,9 @@ async function createSellerProduct(){
     status.className="hint";
     const name=document.getElementById("sellerProductName").value.trim();
     const price=Number(document.getElementById("sellerProductPrice").value);
+    const salePriceRaw=document.getElementById("sellerProductSalePrice").value.trim();
+    const salePrice=salePriceRaw===""?null:Number(salePriceRaw);
+    const promo=document.getElementById("sellerProductPromo").value.trim();
     const stock=Number(document.getElementById("sellerProductStock").value);
     const description=document.getElementById("sellerProductDescription").value.trim();
     const service=document.getElementById("sellerService").value;
@@ -1010,6 +1053,7 @@ async function createSellerProduct(){
     if(!sellerUser || !sellerStoreId){status.className="hint seller-error";status.textContent="Сатушы сессиясы немесе дүкен табылмады.";return}
     if(!name){status.textContent="Тауар атауын енгізіңіз.";return}
     if(!Number.isFinite(price)||price<0){status.textContent="Бағаны дұрыс енгізіңіз.";return}
+    if(salePrice!==null && (!Number.isFinite(salePrice)||salePrice<0||salePrice>=price)){status.textContent="Акциялық баға негізгі бағадан төмен болуы керек.";return}
     if(!Number.isInteger(stock)||stock<0){status.textContent="Қойма санын дұрыс енгізіңіз.";return}
     if(!sectionId){status.textContent="Бөлімді таңдаңыз.";return}
 
@@ -1031,6 +1075,8 @@ async function createSellerProduct(){
             seller_id:sellerUser.id,
             name,
             price,
+            sale_price:salePrice,
+            promo_text:promo||null,
             description:description||null,
             image_url:imageUrl,
             stock,
@@ -1046,16 +1092,137 @@ async function createSellerProduct(){
         status.textContent="✅ Тауар сәтті жарияланды!";
         document.getElementById("sellerProductName").value="";
         document.getElementById("sellerProductPrice").value="";
+        document.getElementById("sellerProductSalePrice").value="";
+        document.getElementById("sellerProductPromo").value="";
         document.getElementById("sellerProductStock").value="10";
         document.getElementById("sellerProductDescription").value="";
         document.getElementById("sellerProductImage").value="";
         catalogState[service].loaded=false;
         if(document.getElementById(service).classList.contains("active"))await loadCatalog(service);
+        await loadSellerProducts();
     }catch(error){
         console.error("O Go create product error:",error);
         status.className="hint seller-error";
         status.textContent=error.message||"Тауарды жариялау кезінде қате болды.";
     }
+}
+
+async function loadSellerProducts(){
+    const el=document.getElementById("sellerProductsList");
+    if(!el||!sellerUser||!sellerStoreId)return;
+    el.innerHTML='<div class="hint">Жүктелуде...</div>';
+    try{
+        const {data,error}=await supabaseClient.from("products")
+            .select("id,name,price,sale_price,promo_text,description,image_url,stock,published,section_id,service_type,category,store_id,created_at")
+            .eq("seller_id",sellerUser.id)
+            .eq("store_id",sellerStoreId)
+            .order("created_at",{ascending:false});
+        if(error)throw error;
+        if(!data||!data.length){el.innerHTML='<div class="hint">Әзірге тауар жоқ.</div>';return}
+        el.innerHTML=data.map(p=>{
+            const img=p.image_url?`<img src="${escapeHtml(p.image_url)}" alt="">`:`<div class="seller-thumb"><i class="fa-solid fa-box"></i></div>`;
+            const base=Number(p.price||0), sale=Number(p.sale_price||0), effective=(sale>0&&sale<base)?sale:base;
+            const price=(effective<base)?`<span class="old-price">${formatPrice(base)}</span>${formatPrice(effective)}`:formatPrice(base);
+            return `<div class="seller-item">${img}<div class="seller-item-info"><div class="seller-item-name">${escapeHtml(p.name||"Тауар")}</div><div class="seller-item-price">${price} · ${Number(p.stock??0)} дана ${p.published?'':'· жасырын'}</div></div><button onclick="openEditProduct('${escapeHtml(p.id)}')"><i class="fa-solid fa-pen"></i> Өзгерту</button></div>`;
+        }).join("");
+    }catch(error){
+        console.error("O Go seller products error:",error);
+        el.innerHTML=`<div class="hint seller-error">${escapeHtml(error.message||"Тауарларды жүктеу қатесі.")}</div>`;
+    }
+}
+
+async function loadEditSections(selectedId=""){
+    const service=document.getElementById("editProductService").value;
+    const select=document.getElementById("editProductSection");
+    select.innerHTML='<option value="">Бөлім жүктелуде...</option>';
+    try{
+        const {data,error}=await supabaseClient.from("store_sections").select("id,name,service_type,sort_order").eq("service_type",service).order("sort_order",{ascending:true});
+        if(error)throw error;
+        select.innerHTML=(data||[]).map(section=>`<option value="${escapeHtml(section.id)}">${escapeHtml(section.name)}</option>`).join("");
+        if(selectedId)select.value=selectedId;
+    }catch(error){
+        select.innerHTML='<option value="">Бөлім жоқ</option>';
+        document.getElementById("editProductStatus").textContent=error.message||"Бөлімдерді жүктеу қатесі.";
+    }
+}
+
+async function openEditProduct(id){
+    const status=document.getElementById("editProductStatus");
+    status.className="hint";status.textContent="";
+    try{
+        const {data,error}=await supabaseClient.from("products").select("id,name,price,sale_price,promo_text,description,image_url,stock,published,section_id,service_type,category,store_id").eq("id",id).eq("seller_id",sellerUser.id).eq("store_id",sellerStoreId).maybeSingle();
+        if(error)throw error;
+        if(!data)throw new Error("Тауар табылмады немесе бұл тауар сізге тиесілі емес.");
+        document.getElementById("editProductId").value=data.id;
+        document.getElementById("editProductName").value=data.name||"";
+        document.getElementById("editProductPrice").value=Number(data.price||0);
+        document.getElementById("editProductSalePrice").value=Number(data.sale_price||0)>0?Number(data.sale_price):"";
+        document.getElementById("editProductPromo").value=data.promo_text||"";
+        document.getElementById("editProductStock").value=Number(data.stock??0);
+        document.getElementById("editProductDescription").value=data.description||"";
+        document.getElementById("editProductService").value=(data.service_type||data.category||"shop");
+        document.getElementById("editProductImage").value="";
+        document.getElementById("editProductModal").classList.add("show");
+        await loadEditSections(data.section_id||"");
+    }catch(error){status.className="hint seller-error";status.textContent=error.message||"Тауарды ашу қатесі.";}
+}
+function closeEditProduct(){document.getElementById("editProductModal").classList.remove("show")}
+
+async function saveEditedProduct(){
+    const status=document.getElementById("editProductStatus");status.className="hint";status.textContent="Сақталуда...";
+    const id=document.getElementById("editProductId").value;
+    const name=document.getElementById("editProductName").value.trim();
+    const price=Number(document.getElementById("editProductPrice").value);
+    const saleRaw=document.getElementById("editProductSalePrice").value.trim();
+    const salePrice=saleRaw===""?null:Number(saleRaw);
+    const promo=document.getElementById("editProductPromo").value.trim();
+    const stock=Number(document.getElementById("editProductStock").value);
+    const description=document.getElementById("editProductDescription").value.trim();
+    const service=document.getElementById("editProductService").value;
+    const sectionId=document.getElementById("editProductSection").value;
+    const file=document.getElementById("editProductImage").files[0];
+    if(!id||!name){status.textContent="Тауар атауын енгізіңіз.";return}
+    if(!Number.isFinite(price)||price<0){status.textContent="Бағаны дұрыс енгізіңіз.";return}
+    if(salePrice!==null&&(!Number.isFinite(salePrice)||salePrice<0||salePrice>=price)){status.textContent="Акциялық баға негізгі бағадан төмен болуы керек.";return}
+    if(!Number.isInteger(stock)||stock<0){status.textContent="Қойма санын дұрыс енгізіңіз.";return}
+    if(!sectionId){status.textContent="Бөлімді таңдаңыз.";return}
+    try{
+        let imageUrl;
+        if(file){
+            if(!file.type.startsWith("image/"))throw new Error("Тек сурет файлын таңдаңыз.");
+            if(file.size>5*1024*1024)throw new Error("Фото 5 МБ-тан үлкен болмауы керек.");
+            const ext=(file.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"")||"jpg";
+            const path=`${sellerUser.id}/${crypto.randomUUID()}.${ext}`;
+            const upload=await supabaseClient.storage.from("product-images").upload(path,file,{contentType:file.type,upsert:false});
+            if(upload.error)throw upload.error;
+            imageUrl=supabaseClient.storage.from("product-images").getPublicUrl(path).data.publicUrl;
+        }
+        const payload={name,price,sale_price:salePrice,promo_text:promo||null,stock,description:description||null,section_id:sectionId,service_type:service,category:service,updated_at:new Date().toISOString()};
+        if(imageUrl)payload.image_url=imageUrl;
+        const {error}=await supabaseClient.from("products").update(payload).eq("id",id).eq("seller_id",sellerUser.id).eq("store_id",sellerStoreId);
+        if(error)throw error;
+        status.className="hint seller-success";status.textContent="✅ Өзгерістер сақталды!";
+        catalogState.shop.loaded=false;catalogState.food.loaded=false;
+        await loadSellerProducts();
+        if(document.getElementById("shop").classList.contains("active"))await loadCatalog("shop");
+        if(document.getElementById("food").classList.contains("active"))await loadCatalog("food");
+    }catch(error){status.className="hint seller-error";status.textContent=error.message||"Сақтау кезінде қате болды.";}
+}
+
+async function deleteEditedProduct(){
+    const id=document.getElementById("editProductId").value;
+    if(!id)return;
+    if(!confirm("Осы тауарды өшіруге сенімдісіз бе?"))return;
+    const status=document.getElementById("editProductStatus");status.className="hint";status.textContent="Өшірілуде...";
+    try{
+        const {error}=await supabaseClient.from("products").delete().eq("id",id).eq("seller_id",sellerUser.id).eq("store_id",sellerStoreId);
+        if(error)throw error;
+        closeEditProduct();
+        await loadSellerProducts();
+        catalogState.shop.loaded=false;catalogState.food.loaded=false;
+        if(document.getElementById("shop").classList.contains("active"))await loadCatalog("shop");
+        if(document.getElementById("food").classList.contains("active"))await loadCatalog("food");
+    }catch(error){status.className="hint seller-error";status.textContent=error.message||"Өшіру кезінде қате болды.";}
 }
 
 async function sellerLogout(){
