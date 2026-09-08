@@ -616,7 +616,11 @@ main{padding:18px 16px 24px}
         <div id="cartList" class="cart-list"></div>
         <div id="cartEmpty" class="empty">Корзина әзірге бос.</div>
         <div id="cartCheckout" style="display:none">
-            <div class="total"><span>Барлығы</span><strong><span id="total">0</span> ₸</strong></div>
+            <div class="total" style="display:block">
+                <div style="display:flex;justify-content:space-between;gap:12px;margin-bottom:8px"><span>Тауарлар</span><strong><span id="subtotal">0</span> ₸</strong></div>
+                <div style="display:flex;justify-content:space-between;gap:12px;margin-bottom:10px"><span>Доставка</span><strong>600 ₸</strong></div>
+                <div style="border-top:1px solid var(--line);padding-top:10px;display:flex;justify-content:space-between;gap:12px"><span>Барлығы</span><strong><span id="total">0</span> ₸</strong></div>
+            </div>
             <div class="form-card">
                 <div class="form-group"><label>Атыңыз</label><input id="clientName" placeholder="Атыңыз"></div>
                 <div class="form-group"><label>Телефон</label><input id="clientPhone" type="tel" placeholder="+7 700 000 00 00"></div>
@@ -728,6 +732,7 @@ const supabaseClient = window.supabase.createClient(
 );
 
 const WHATSAPP = "77756108898";
+const DELIVERY_FEE = 600;
 let cart = [];
 
 /* SUPABASE — ДҮКЕН/ТАМАҚТЫ ДИНАМИКАЛЫҚ ЖҮКТЕУ */
@@ -1027,7 +1032,9 @@ function updateCart(){
             </div>
         </div>`;
     }).join("");
-    document.getElementById("total").textContent=total.toLocaleString("ru-RU");
+    const grandTotal=total+DELIVERY_FEE;
+    document.getElementById("subtotal").textContent=total.toLocaleString("ru-RU");
+    document.getElementById("total").textContent=grandTotal.toLocaleString("ru-RU");
     badge.textContent=qty;
     badge.style.display="grid";
 }
@@ -1037,7 +1044,11 @@ async function sendCart(){
     const phone=document.getElementById("clientPhone").value.trim();
     const address=document.getElementById("clientAddress").value.trim();
     const payment=document.getElementById("payment").value;
-    if(!name||!phone||!address){alert("Атыңызды, телефон нөміріңізді және мекенжайыңызды енгізіңіз.");return}
+    if(!phone||!address){
+        alert("Тапсырысты жіберу үшін телефон нөмірі мен мекенжайды міндетті түрде енгізіңіз.");
+        return;
+    }
+    const customerName=name||"Клиент";
 
     const items=cart.filter(x=>x.productId).map(x=>({productId:x.productId,qty:x.qty}));
     if(items.length!==cart.length){alert("Тауарлардың бір бөлігі ескірген. Себетті жаңартып көріңіз.");return}
@@ -1056,14 +1067,15 @@ async function sendCart(){
             return;
         }
 
-        let total=0;
+        let subtotal=0;
         let text="🟡 O GO — ЖАҢА ТАПСЫРЫС\n\n";
         text+="🛒 Тауарлар:\n";
         cart.forEach((x,i)=>{
-            const sum=x.price*x.qty; total+=sum;
+            const sum=x.price*x.qty; subtotal+=sum;
             text+=`${i+1}. ${x.name} × ${x.qty} = ${sum} ₸\n`;
         });
-        text+=`\n💰 Барлығы: ${total} ₸\n👤 Аты: ${name}\n📞 Телефон: ${phone}\n📍 Мекенжай: ${address}\n💳 Төлем: ${payment}`;
+        const grandTotal=subtotal+DELIVERY_FEE;
+        text+=`\n🧾 Тауарлар: ${subtotal} ₸\n🚚 Доставка: ${DELIVERY_FEE} ₸\n💰 Барлығы: ${grandTotal} ₸\n👤 Аты: ${customerName}\n📞 Телефон: ${phone}\n📍 Мекенжай: ${address}\n💳 Төлем: ${payment}`;
 
         // Қойма азайғаннан кейін ғана WhatsApp ашылады.
         window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(text)}`,"_blank");
