@@ -511,6 +511,7 @@ body{background:#f6b35f!important;color:#171717!important}
 
 <!-- SUPABASE -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 
 <body>
@@ -775,10 +776,10 @@ body{background:#f6b35f!important;color:#171717!important}
     <div class="modal-box" style="max-height:90vh;overflow:auto">
         <button class="close modal-close" onclick="closeBulkUpload()"><i class="fa-solid fa-xmark"></i></button>
         <h3 id="bulkTitle">Көп тауарды бірден жүктеу</h3>
-        <p id="bulkHint" class="hint">CSV файл арқылы ондаған немесе жүздеген тауарды бірден қосыңыз.</p>
+        <p id="bulkHint" class="hint">UMAG-тен экспортталған Excel (.xlsx) немесе CSV файл арқылы ондаған немесе жүздеген тауарды бірден қосыңыз.</p>
         <button class="submit" style="background:#252b27;color:#fff" onclick="downloadBulkTemplate()"><i class="fa-solid fa-download"></i> <span id="bulkTemplateText">Дайын үлгіні жүктеу</span></button>
-        <div class="hint" style="margin:10px 0">Бағандар: <b>service, section, name, price, sale_price, promo_text, stock, description, image_url</b><br>Мысалы: <b>shop, Сусындар, Piala Ice Tea, 650, 520, -20%, 15, Манго дәмі,</b></div>
-        <div class="form-group"><label id="csvFileLabel">CSV файл</label><input id="bulkUploadFile" type="file" accept=".csv,text/csv"></div>
+        <div class="hint" style="margin:10px 0">UMAG Excel: <b>Название товара, Штрихкод, Прод. цена, Ед. изм, Артикул</b> және басқа бағандар автоматты танылады.<br>Штрихкод бірдей болса — O Go-дағы сол тауар жаңартылады.</div>
+        <div class="form-group"><label id="csvFileLabel">UMAG Excel / CSV файл</label><input id="bulkUploadFile" type="file" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"></div>
         <button class="submit green" onclick="processBulkUpload()"><i class="fa-solid fa-cloud-arrow-up"></i> <span id="bulkUploadText">Тауарларды жүктеу</span></button>
         <div id="bulkUploadStatus" class="hint" style="margin-top:10px"></div>
     </div>
@@ -881,9 +882,10 @@ const OGO_PRODUCT_TEXT={
  'ұн 1кг':{kz:{name:'Ұн 1кг',desc:'Бидай ұны'},ru:{name:'Мука 1 кг',desc:'Пшеничная мука'}}
 };
 function localizedProduct(product){
-    const key=normalizeSearchText(product?.name||'');
+    const rawName=product?.name||product?.title||'';
+    const key=normalizeSearchText(rawName);
     const tr=OGO_PRODUCT_TEXT[key]?.[OGO_CURRENT_LANG];
-    return {name:tr?.name||product?.name||'Тауар',description:tr?.desc||product?.description||''};
+    return {name:tr?.name||rawName||'Тауар',description:tr?.desc||product?.description||product?.unit||''};
 }
 
 function renderSections(type){
@@ -920,7 +922,7 @@ function renderProducts(type){
         const price=Number(p.price||0), salePrice=Number(p.sale_price||0), effectivePrice=(salePrice>0&&salePrice<price)?salePrice:price;
         const promo=p.promo_text?`<span class="promo">${escapeHtml(p.promo_text)}</span>`:'';
         const priceHtml=effectivePrice<price?`<span class="old-price">${formatPrice(price)}</span>${formatPrice(effectivePrice)} ${promo}`:`${formatPrice(price)} ${promo}`;
-        const stock=Number(p.stock??0), disabled=stock<=0?'disabled':'', stockText=stock<=0?'Қоймада жоқ':(desc||'Тауар');
+        const stock=Number.isFinite(Number(p.stock))?Number(p.stock):999999, disabled='', stockText=desc||'Тауар';
         return `<article class="product"><div class="product-img">${image}</div><div class="product-info"><div class="product-name">${name}</div><div class="product-desc">${stockText}</div><div class="price">${priceHtml}</div></div><button class="add" ${disabled} onclick="addProductToCart('${escapeHtml(p.id)}')">+</button></article>`;
     }).join('');
 }
@@ -941,65 +943,29 @@ async function loadCatalog(type){
     const productsEl=document.getElementById(type+'Products');
     const sectionsEl=document.getElementById(type+'Sections');
     if(!productsEl || !sectionsEl)return;
-    if(state.loaded){
-        renderSections(type); renderProducts(type);
-        const input=document.getElementById(type+'Search'), wrap=document.getElementById(type+'SearchWrap');
-        if(input)input.value=state.searchQuery||'';
-        if(wrap)wrap.classList.toggle('has-value',!!(state.searchQuery||'').trim());
-        return;
-    }
-
+    if(state.loaded){ renderSections(type); renderProducts(type); return; }
     productsEl.innerHTML='<div class="empty"><span class="loading-dot"></span>Тауарлар жүктелуде...</div>';
     sectionsEl.innerHTML='';
-
     try{
-        // 1) Бөлімдер бөлек жүктеледі. Бөлімдерде қате болса да,
-        //    тауарлардың шығуына кедергі жасамайды.
-        let sectionsResult=await supabaseClient
-            .from('store_sections')
-            .select('id,name,service_type,sort_order')
-            .eq('service_type',type)
-            .order('sort_order',{ascending:true});
+        const sectionsResult=await supabaseClient.from('store_sections')
+            .select('id,name,service_type,sort_order').eq('service_type',type).order('sort_order',{ascending:true});
+        state.sections=sectionsResult.error?[]:(sectionsResult.data||[]);
 
-        // Егер service_type сүзгісінен қате шықса, барлық бөлімді алып,
-        // браузерде сүземіз. Бұл Supabase/PostgREST сүзгісіне тәуелділікті азайтады.
-        if(sectionsResult.error){
-            console.error('O Go sections filtered error:',sectionsResult.error);
-            sectionsResult=await supabaseClient
-                .from('store_sections')
-                .select('id,name,service_type,sort_order')
-                .order('sort_order',{ascending:true});
-        }
-
-        if(sectionsResult.error){
-            console.error('O Go sections fallback error:',sectionsResult.error);
-            state.sections=[];
-        }else{
-            state.sections=(sectionsResult.data||[]).filter(section=>section.service_type===type);
-        }
-
-        // 2) Барлық жарияланған тауарларды аламыз да,
-        //    shop/food сүзгісін браузерде жасаймыз.
-        //    Бұл PostgREST .or() сүзгісіне тәуелділікті жояды.
-        const productsResult=await supabaseClient
-            .from('products')
-            .select('id,name,price,sale_price,promo_text,description,image_url,stock,published,section_id,service_type,category,store_id,created_at')
-            .eq('published',true)
-            .order('created_at',{ascending:false});
-
+        // products кестесінің нақты құрылымы: id, seller_id, barcode, title, price, unit, sku, extra_code, is_active, updated_at.
+        const productsResult=await supabaseClient.from('products')
+            .select('id,seller_id,barcode,title,price,unit,sku,extra_code,is_active,updated_at')
+            .eq('is_active',true).order('updated_at',{ascending:false});
         if(productsResult.error)throw productsResult.error;
-
-        state.products=(productsResult.data||[]).filter(p=>
-            p.category===type || p.service_type===type
-        );
+        state.products=(productsResult.data||[]).map(p=>({
+            ...p, name:p.title, published:p.is_active, stock:999999,
+            sale_price:null, promo_text:null, description:p.unit||'',
+            image_url:null, category:'shop', service_type:'shop', section_id:null
+        }));
         state.loaded=true;
-        renderSections(type);
-        renderProducts(type);
+        renderSections(type); renderProducts(type);
     }catch(error){
         console.error('O Go Supabase catalog error:',error);
-        state.sections=[];
-        state.products=[];
-        state.loaded=false;
+        state.sections=[]; state.products=[]; state.loaded=false;
         sectionsEl.innerHTML='';
         productsEl.innerHTML='<div class="empty">Тауарларды жүктеу кезінде қате болды. Supabase байланысын тексеріңіз.</div>';
     }
@@ -1033,21 +999,17 @@ function addProductToCart(id){
     const all=[...catalogState.shop.products,...catalogState.food.products];
     const product=all.find(p=>p.id===id);
     if(!product)return;
-    const stock=Math.max(0,Number(product.stock??0));
     const basePrice=Number(product.price||0);
     const salePrice=Number(product.sale_price||0);
     const price=(salePrice>0 && salePrice<basePrice)?salePrice:basePrice;
     const item=cart.find(x=>x.productId===id);
     if(item){
-        if(item.qty>=stock){alert(`Бұл тауардан қоймада ${stock} дана ғана бар.`);return}
         item.qty++;
     }else{
-        if(stock<=0){alert('Бұл тауар қоймада жоқ.');return}
-        cart.push({productId:id,name:product.name||'Тауар',price,basePrice,salePrice:(salePrice>0&&salePrice<basePrice)?salePrice:null,qty:1});
+        cart.push({productId:id,name:product.name||product.title||'Тауар',price,basePrice,salePrice:(salePrice>0&&salePrice<basePrice)?salePrice:null,qty:1});
     }
     updateCart();
-    // Тауар қосылғанда сатып алушы каталогта қалады. Корзинаға төмендегі жеке батырма арқылы кез келген уақытта кіре алады.
-    showCartAddedToast(product.name||'Тауар');
+    showCartAddedToast(product.name||product.title||'Тауар');
 }
 
 async function testSupabaseConnection(){
@@ -1168,12 +1130,6 @@ function addToCart(name,price){
 function changeQty(index,delta){
     const item=cart[index];
     if(!item)return;
-    if(delta>0 && item.productId){
-        const all=[...catalogState.shop.products,...catalogState.food.products];
-        const product=all.find(p=>p.id===item.productId);
-        const stock=product?Number(product.stock??0):Infinity;
-        if(item.qty>=stock){alert(`Қоймада ${stock} дана ғана бар.`);return}
-    }
     item.qty+=delta;
     if(item.qty<=0) cart.splice(index,1);
     updateCart();
@@ -1238,50 +1194,16 @@ async function sendCart(){
     const phone=document.getElementById("clientPhone").value.trim();
     const address=document.getElementById("clientAddress").value.trim();
     const payment=document.getElementById("payment").value;
-    if(!phone||!address){
-        alert("Тапсырысты жіберу үшін телефон нөмірі мен мекенжайды міндетті түрде енгізіңіз.");
-        return;
-    }
+    if(!phone||!address){alert("Тапсырысты жіберу үшін телефон нөмірі мен мекенжайды міндетті түрде енгізіңіз.");return;}
     const customerName=name||"Клиент";
-
-    const items=cart.filter(x=>x.productId).map(x=>({productId:x.productId,qty:x.qty}));
-    if(items.length!==cart.length){alert("Тауарлардың бір бөлігі ескірген. Себетті жаңартып көріңіз.");return}
-
-    // WhatsApp тапсырысына өткен сәтте қойма санын бір транзакциямен азайтамыз.
-    // Егер бір тауарда жеткілікті қалдық болмаса, ешқайсысы азайтылмайды.
-    try{
-        const {data,error}=await supabaseClient.rpc('decrease_cart_stock',{p_items:items});
-        if(error)throw error;
-        if(!data || data.success!==true){
-            const bad=data?.product_id ? items.find(x=>x.productId===data.product_id) : null;
-            alert(bad ? `«${cart.find(x=>x.productId===bad.productId)?.name||'Тауар'}» үшін қоймадағы сан жеткіліксіз.` : 'Қоймадағы тауар санын жаңарту мүмкін болмады.');
-            catalogState.shop.loaded=false;catalogState.food.loaded=false;
-            if(document.getElementById("shop").classList.contains("active"))await loadCatalog("shop");
-            if(document.getElementById("food").classList.contains("active"))await loadCatalog("food");
-            return;
-        }
-
-        let subtotal=0;
-        let text="🟡 O GO — ЖАҢА ТАПСЫРЫС\n\n";
-        text+="🛒 Тауарлар:\n";
-        cart.forEach((x,i)=>{
-            const sum=x.price*x.qty; subtotal+=sum;
-            text+=`${i+1}. ${x.name} × ${x.qty} = ${sum} ₸\n`;
-        });
-        const grandTotal=subtotal+DELIVERY_FEE;
-        text+=`\n🧾 Тауарлар: ${subtotal} ₸\n🚚 Доставка: ${DELIVERY_FEE} ₸\n💰 Барлығы: ${grandTotal} ₸\n👤 Аты: ${customerName}\n📞 Телефон: ${phone}\n📍 Мекенжай: ${address}\n💳 Төлем: ${payment}`;
-
-        // Қойма азайғаннан кейін ғана WhatsApp ашылады.
-        window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(text)}`,"_blank");
-        cart=[];
-        updateCart();
-        catalogState.shop.loaded=false;catalogState.food.loaded=false;
-        if(document.getElementById("shop").classList.contains("active"))await loadCatalog("shop");
-        if(document.getElementById("food").classList.contains("active"))await loadCatalog("food");
-    }catch(error){
-        console.error('O Go stock decrement error:',error);
-        alert('Тапсырысты жіберу кезінде қойманы жаңарту қатесі болды. Тауар саны азайтылған жоқ.\n\n'+(error.message||''));
-    }
+    let subtotal=0;
+    let text="🟡 O GO — ЖАҢА ТАПСЫРЫС\n\n";
+    text+="🛒 Тауарлар:\n";
+    cart.forEach((x,i)=>{const sum=x.price*x.qty;subtotal+=sum;text+=`${i+1}. ${x.name} × ${x.qty} = ${sum} ₸\n`;});
+    const grandTotal=subtotal+DELIVERY_FEE;
+    text+=`\n🧾 Тауарлар: ${subtotal} ₸\n🚚 Доставка: ${DELIVERY_FEE} ₸\n💰 Барлығы: ${grandTotal} ₸\n👤 Аты: ${customerName}\n📞 Телефон: ${phone}\n📍 Мекенжай: ${address}\n💳 Төлем: ${payment}`;
+    window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(text)}`,"_blank");
+    cart=[]; updateCart();
 }
 
 /* ТАКСИ / ЖЕТКІЗУ */
@@ -1386,73 +1308,28 @@ async function loadSellerSections(){
 }
 
 async function createSellerProduct(){
-    const status=document.getElementById("sellerStatus");
-    status.className="hint";
-    const name=document.getElementById("sellerProductName").value.trim();
-    const price=Number(document.getElementById("sellerProductPrice").value);
-    const salePriceRaw=document.getElementById("sellerProductSalePrice").value.trim();
-    const salePrice=salePriceRaw===""?null:Number(salePriceRaw);
-    const promo=document.getElementById("sellerProductPromo").value.trim();
-    const stock=Number(document.getElementById("sellerProductStock").value);
-    const description=document.getElementById("sellerProductDescription").value.trim();
-    const service=document.getElementById("sellerService").value;
-    const sectionId=document.getElementById("sellerSection").value;
-    const file=document.getElementById("sellerProductImage").files[0];
-
-    if(!sellerUser || !sellerStoreId){status.className="hint seller-error";status.textContent="Сатушы сессиясы немесе дүкен табылмады.";return}
-    if(!name){status.textContent="Тауар атауын енгізіңіз.";return}
-    if(!Number.isFinite(price)||price<0){status.textContent="Бағаны дұрыс енгізіңіз.";return}
-    if(salePrice!==null && (!Number.isFinite(salePrice)||salePrice<0||salePrice>=price)){status.textContent="Акциялық баға негізгі бағадан төмен болуы керек.";return}
-    if(!Number.isInteger(stock)||stock<0){status.textContent="Қойма санын дұрыс енгізіңіз.";return}
-    if(!sectionId){status.textContent="Бөлімді таңдаңыз.";return}
-
-    status.textContent="Тауар жариялануда...";
+    const status=document.getElementById('sellerStatus'); status.className='hint';
+    const name=document.getElementById('sellerProductName').value.trim();
+    const price=Number(document.getElementById('sellerProductPrice').value);
+    const unit='';
+    const sku='';
+    if(!sellerUser){status.className='hint seller-error';status.textContent='Сатушы сессиясы табылмады.';return}
+    if(!name){status.textContent='Тауар атауын енгізіңіз.';return}
+    if(!Number.isFinite(price)||price<0){status.textContent='Бағаны дұрыс енгізіңіз.';return}
+    status.textContent='Тауар жариялануда...';
     try{
-        let imageUrl=null;
-        if(file){
-            if(!file.type.startsWith("image/"))throw new Error("Тек сурет файлын таңдаңыз.");
-            if(file.size>5*1024*1024)throw new Error("Фото 5 МБ-тан үлкен болмауы керек.");
-            const ext=(file.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"")||"jpg";
-            const path=`${sellerUser.id}/${crypto.randomUUID()}.${ext}`;
-            const upload=await supabaseClient.storage.from("product-images").upload(path,file,{contentType:file.type,upsert:false});
-            if(upload.error)throw upload.error;
-            imageUrl=supabaseClient.storage.from("product-images").getPublicUrl(path).data.publicUrl;
-        }
-
-        const payload={
-            store_id:sellerStoreId,
-            seller_id:sellerUser.id,
-            name,
-            price,
-            sale_price:salePrice,
-            promo_text:promo||null,
-            description:description||null,
-            image_url:imageUrl,
-            stock,
-            category:service,
-            service_type:service,
-            section_id:sectionId,
-            published:true
-        };
-        const {error}=await supabaseClient.from("products").insert(payload);
+        const payload={seller_id:sellerUser.id,barcode:null,title:name,price,unit:unit||null,sku:sku||null,extra_code:null,is_active:true,updated_at:new Date().toISOString()};
+        const {error}=await supabaseClient.from('products').insert(payload);
         if(error)throw error;
-
-        status.className="hint seller-success";
-        status.textContent="✅ Тауар сәтті жарияланды!";
-        document.getElementById("sellerProductName").value="";
-        document.getElementById("sellerProductPrice").value="";
-        document.getElementById("sellerProductSalePrice").value="";
-        document.getElementById("sellerProductPromo").value="";
-        document.getElementById("sellerProductStock").value="10";
-        document.getElementById("sellerProductDescription").value="";
-        document.getElementById("sellerProductImage").value="";
-        catalogState[service].loaded=false;
-        if(document.getElementById(service).classList.contains("active"))await loadCatalog(service);
+        status.className='hint seller-success'; status.textContent='✅ Тауар сәтті жарияланды!';
+        document.getElementById('sellerProductName').value='';
+        document.getElementById('sellerProductPrice').value='';
+        catalogState.shop.loaded=false; catalogState.food.loaded=false;
         await loadSellerProducts();
+        if(document.getElementById('shop').classList.contains('active'))await loadCatalog('shop');
     }catch(error){
-        console.error("O Go create product error:",error);
-        status.className="hint seller-error";
-        status.textContent=error.message||"Тауарды жариялау кезінде қате болды.";
+        console.error('O Go create product error:',error);
+        status.className='hint seller-error'; status.textContent=error.message||'Тауарды жариялау кезінде қате болды.';
     }
 }
 
@@ -1466,12 +1343,15 @@ function openBulkUpload(){
 function closeBulkUpload(){document.getElementById("bulkUploadModal").classList.remove("show")}
 
 function downloadBulkTemplate(){
-    const header="service,section,name,price,sale_price,promo_text,stock,description,image_url\n";
-    const example="shop,Сусындар,Piala Ice Tea,650,520,-20%,15,Манго дәмі,\n";
+    // UMAG import template is intentionally simple: O Go recognizes the
+    // original UMAG column names automatically.
+    const header="Название товара,Штрихкод,Прод. цена,Ед. изм,Артикул,Остаток\n";
+    const example="Piala Ice Tea,4870000000000,650,шт,12345,15\n";
     const csv="\uFEFF"+header+example;
     const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"});
     const url=URL.createObjectURL(blob);
-    const a=document.createElement("a");a.href=url;a.download="O_Go_products_template.csv";document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+    const a=document.createElement("a");a.href=url;a.download="O_Go_UMAG_template.csv";
+    document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
 }
 
 function parseCSV(text){
@@ -1480,24 +1360,18 @@ function parseCSV(text){
 
     for(let i=0;i<text.length;i++){
         const ch=text[i],next=text[i+1];
-
         if(ch==='"'){
             if(quoted&&next==='"'){cell+='"';i++;}
             else quoted=!quoted;
         }else if(ch===','&&!quoted){
-            row.push(cell);
-            cell="";
+            row.push(cell);cell="";
         }else if((ch==='\n'||ch==='\r')&&!quoted){
             if(ch==='\r'&&next==='\n')i++;
-            row.push(cell);
-            cell="";
+            row.push(cell);cell="";
             if(row.some(v=>String(v).trim()!==""))rows.push(row);
             row=[];
-        }else{
-            cell+=ch;
-        }
+        }else cell+=ch;
     }
-
     if(cell!==""||row.length){
         row.push(cell);
         if(row.some(v=>String(v).trim()!==""))rows.push(row);
@@ -1505,151 +1379,154 @@ function parseCSV(text){
     return rows;
 }
 
+function ogoNormalizeColumn(value){
+    return String(value??"")
+        .toLowerCase()
+        .replace(/ё/g,"е")
+        .replace(/[^a-zа-я0-9]+/gi,"");
+}
+function ogoFindColumn(headers,aliases){
+    const normalized=headers.map(ogoNormalizeColumn);
+    for(const alias of aliases){
+        const key=ogoNormalizeColumn(alias);
+        const i=normalized.indexOf(key);
+        if(i!==-1)return headers[i];
+    }
+    for(let i=0;i<normalized.length;i++){
+        for(const alias of aliases){
+            const key=ogoNormalizeColumn(alias);
+            if(key && (normalized[i].includes(key)||key.includes(normalized[i])))return headers[i];
+        }
+    }
+    return null;
+}
+function ogoNumber(value){
+    if(value===null||value===undefined||value==="")return 0;
+    let s=String(value).trim().replace(/\u00a0/g," ").replace(/\s+/g,"").replace(/₸/g,"").replace(/,/g,".");
+    s=s.replace(/[^\d.-]/g,"");
+    const n=Number(s);
+    return Number.isFinite(n)?n:0;
+}
+function ogoBarcode(value){
+    if(value===null||value===undefined)return "";
+    const s=String(value).trim();
+    if(/e\+/i.test(s)){
+        const n=Number(s);
+        if(Number.isFinite(n))return String(Math.trunc(n));
+    }
+    return s.replace(/\.0+$/,"");
+}
+async function ogoReadUMAGFile(file){
+    const ext=file.name.toLowerCase().split(".").pop();
+    if(ext==="csv")return parseCSV(file?await file.text():"");
+    const buffer=await file.arrayBuffer();
+    const wb=XLSX.read(buffer,{type:"array",cellDates:false,raw:false});
+    const sheet=wb.Sheets[wb.SheetNames[0]];
+    return XLSX.utils.sheet_to_json(sheet,{defval:"",raw:false});
+}
+
 async function processBulkUpload(){
-    const status=document.getElementById("bulkUploadStatus");
-    const file=document.getElementById("bulkUploadFile").files[0];
-    status.className="hint";status.textContent="";
-    if(!sellerUser||!sellerStoreId){status.className="hint seller-error";status.textContent="Сатушы сессиясы табылмады.";return}
-    if(!file){status.textContent="CSV файлды таңдаңыз.";return}
-    if(file.size>5*1024*1024){status.textContent="CSV файл 5 МБ-тан үлкен болмауы керек.";return}
+    const status=document.getElementById('bulkUploadStatus');
+    const file=document.getElementById('bulkUploadFile').files[0];
+    status.className='hint'; status.textContent='';
+    if(!sellerUser){status.className='hint seller-error';status.textContent='Сатушы сессиясы табылмады.';return}
+    if(!file){status.textContent='UMAG Excel файлын таңдаңыз.';return}
+    if(file.size>20*1024*1024){status.textContent='Файл 20 МБ-тан үлкен болмауы керек.';return}
+    if(!window.XLSX){status.className='hint seller-error';status.textContent='Excel модулі жүктелмеді. Интернет қосылымын тексеріңіз.';return}
     try{
-        status.textContent="Файл оқылуда...";
-        const text=await file.text();
-        const rows=parseCSV(text);
-        if(rows.length<2)throw new Error("CSV ішінде тауарлар жоқ.");
-        const headers=rows[0].map(v=>String(v).trim().toLowerCase());
-        const required=["service","section","name","price","stock"];
-        const missing=required.filter(x=>!headers.includes(x));
-        if(missing.length)throw new Error("Міндетті бағандар жоқ: "+missing.join(", "));
-        const idx=name=>headers.indexOf(name);
-        const {data:sections,error:sectionError}=await supabaseClient.from("store_sections").select("id,name,service_type");
-        if(sectionError)throw sectionError;
-        const sectionMap=new Map((sections||[]).map(x=>[normalizeSearchText(x.service_type)+"|"+normalizeSearchText(x.name),x]));
+        status.textContent='UMAG файлы оқылуда...';
+        const raw=await ogoReadUMAGFile(file);
+        let rows=[];
+        if(Array.isArray(raw)&&raw.length&&Array.isArray(raw[0])){
+            const headers=raw[0].map(v=>String(v??'').trim());
+            rows=raw.slice(1).map(r=>Object.fromEntries(headers.map((h,i)=>[h,r[i]??''])));
+        }else rows=raw;
+        if(!rows.length)throw new Error('Файл ішінде тауарлар жоқ.');
+        const headers=Object.keys(rows[0]);
+        const nameCol=ogoFindColumn(headers,['Название товара','Название','Товар','Наименование','Наименование товара']);
+        const barcodeCol=ogoFindColumn(headers,['Штрихкод','Штрих код','Barcode','Штрихкод товара']);
+        const priceCol=ogoFindColumn(headers,['Прод. цена','Продажная цена','Цена продажи','Цена','Розничная цена','Прод цена']);
+        const unitCol=ogoFindColumn(headers,['Ед. изм.','Ед изм','Единица измерения','Ед. измерения','Единица']);
+        const skuCol=ogoFindColumn(headers,['Артикул','Article','SKU']);
+        if(!nameCol||!priceCol)throw new Error('UMAG файлынан «Название товара» және «Прод. цена» бағандары табылмады.');
+
         const products=[],errors=[];
-        rows.slice(1).forEach((r,n)=>{
+        rows.forEach((row,n)=>{
             const line=n+2;
-            const service=String(r[idx("service")]||"shop").trim().toLowerCase();
-            const sectionName=String(r[idx("section")]||"").trim();
-            const name=String(r[idx("name")]||"").trim();
-            const price=Number(String(r[idx("price")]||"").replace(/\s/g,"").replace(",","."));
-            const saleRaw=idx("sale_price")>=0?String(r[idx("sale_price")]||"").trim():"";
-            const salePrice=saleRaw===""?null:Number(saleRaw.replace(/\s/g,"").replace(",","."));
-            const promo=idx("promo_text")>=0?String(r[idx("promo_text")]||"").trim():"";
-            const stock=Number(String(r[idx("stock")]||"").replace(/\s/g,""));
-            const description=idx("description")>=0?String(r[idx("description")]||"").trim():"";
-            const imageUrl=idx("image_url")>=0?String(r[idx("image_url")]||"").trim():"";
-            const normalizedService=normalizeSearchText(service);
-            const normalizedSection=normalizeSearchText(sectionName);
-            let section=sectionMap.get(normalizedService+"|"+normalizedSection);
-
-            // CSV бөлім атауы база атауынан өзгеше болса, қауіпсіз alias/keyword арқылы сәйкестендіреміз.
-            if(!section && normalizedService==="shop"){
-                const sectionAliases={
-                    "сусындар":["вода, напитки","напитки","сусын","сусындар","drinks"],
-                    "напитки":["вода, напитки","напитки","сусын","сусындар","drinks"],
-                    "продукты":["продукты","азық-түлік","азық тулік","food products","бакалея"]
-                };
-                const aliases=sectionAliases[normalizedSection]||[];
-                for(const alias of aliases){
-                    section=sections.find(x=>{
-                        if(normalizeSearchText(x.service_type)!=="shop")return false;
-                        const n=normalizeSearchText(x.name);
-                        return n===normalizeSearchText(alias) || n.includes(normalizeSearchText(alias)) || normalizeSearchText(alias).includes(n);
-                    });
-                    if(section)break;
-                }
-            }
-
-            if(!["shop","food"].includes(service))errors.push(`№${line}: service shop немесе food болуы керек`);
-            else if(!section)errors.push(`№${line}: «${sectionName}» бөлімі табылмады. CSV-дегі бөлім атауын тексеріңіз.`);
-            else if(!name)errors.push(`№${line}: тауар атауы бос`);
+            const title=String(row[nameCol]??'').trim();
+            const barcode=barcodeCol?ogoBarcode(row[barcodeCol]):'';
+            const price=ogoNumber(row[priceCol]);
+            const unit=unitCol?String(row[unitCol]??'').trim():'';
+            const sku=skuCol?String(row[skuCol]??'').trim():'';
+            if(!title)errors.push(`№${line}: тауар атауы бос`);
             else if(!Number.isFinite(price)||price<0)errors.push(`№${line}: баға қате`);
-            else if(salePrice!==null&&(!Number.isFinite(salePrice)||salePrice<0||salePrice>=price))errors.push(`№${line}: акциялық баға қате`);
-            else if(!Number.isInteger(stock)||stock<0)errors.push(`№${line}: қойма саны қате`);
-            else products.push({store_id:sellerStoreId,seller_id:sellerUser.id,name,price,sale_price:salePrice,promo_text:promo||null,description:description||null,image_url:imageUrl||null,stock,category:service,service_type:service,section_id:section.id,published:true});
+            else products.push({
+                seller_id:sellerUser.id, barcode:barcode||null, title, price,
+                unit:unit||null, sku:sku||null, extra_code:null, is_active:true,
+                updated_at:new Date().toISOString()
+            });
         });
         if(errors.length){
-            status.className="hint seller-error";
-            status.innerHTML=`❌ ${errors.length} қате табылды. Алғашқы 10:<br>${errors.slice(0,10).map(escapeHtml).join("<br>")}`;
+            status.className='hint seller-error';
+            status.innerHTML=`❌ ${errors.length} қате. Алғашқы 10:<br>${errors.slice(0,10).map(escapeHtml).join('<br>')}`;
             if(!products.length)return;
+            await new Promise(r=>setTimeout(r,700));
         }
-        if(!products.length)throw new Error("Жүктеуге жарамды тауар жоқ.");
-        status.textContent=`${products.length} тауар дайын. Supabase-ке жүктелуде...`;
-        let inserted=0;
+        status.textContent=`${products.length} тауар дайын. Базаға жүктелуде...`;
+        let done=0;
         for(let i=0;i<products.length;i+=100){
             const batch=products.slice(i,i+100);
-            const {error}=await supabaseClient.from("products").insert(batch);
+            const {error}=await supabaseClient.from('products').upsert(batch,{onConflict:'seller_id,barcode',ignoreDuplicates:false});
             if(error)throw error;
-            inserted+=batch.length;
-            status.textContent=`Жүктелуде: ${inserted}/${products.length}...`;
+            done+=batch.length;
+            status.textContent=`Жүктелуде: ${done}/${products.length}...`;
         }
-        status.className="hint seller-success";
-        status.innerHTML=`✅ ${inserted} тауар сәтті қосылды!${errors.length?`<br>⚠️ ${errors.length} жол қосылмады.`:""}`;
-        catalogState.shop.loaded=false;catalogState.food.loaded=false;
+        status.className='hint seller-success';
+        status.innerHTML=`✅ ${done} тауар UMAG-тан сәтті жүктелді!<br>Штрихкод сәйкес келсе — бұрынғы тауар жаңартылды. Суреттерге қол тиген жоқ.`;
+        catalogState.shop.loaded=false; catalogState.food.loaded=false;
         await loadSellerProducts();
-        if(document.getElementById("shop").classList.contains("active"))await loadCatalog("shop");
-        if(document.getElementById("food").classList.contains("active"))await loadCatalog("food");
+        if(document.getElementById('shop').classList.contains('active'))await loadCatalog('shop');
+        closeBulkUpload();
     }catch(error){
-        console.error("O Go bulk upload error:",error);
-        status.className="hint seller-error";
-        status.textContent=error.message||"Жаппай жүктеу кезінде қате болды.";
+        console.error('O Go UMAG bulk upload error:',error);
+        status.className='hint seller-error'; status.textContent=error.message||'UMAG жаппай жүктеу кезінде қате болды.';
     }
 }
 
 async function loadSellerProducts(){
-    const el=document.getElementById("sellerProductsList");
-    if(!el||!sellerUser||!sellerStoreId)return;
+    const el=document.getElementById('sellerProductsList');
+    if(!el||!sellerUser)return;
     el.innerHTML='<div class="hint">Жүктелуде...</div>';
     try{
-        const {data,error}=await supabaseClient.from("products")
-            .select("id,name,price,sale_price,promo_text,description,image_url,stock,published,section_id,service_type,category,store_id,created_at")
-            .eq("seller_id",sellerUser.id)
-            .eq("store_id",sellerStoreId)
-            .order("created_at",{ascending:false});
+        const {data,error}=await supabaseClient.from('products')
+            .select('id,seller_id,barcode,title,price,unit,sku,extra_code,is_active,updated_at')
+            .eq('seller_id',sellerUser.id).order('updated_at',{ascending:false});
         if(error)throw error;
         if(!data||!data.length){el.innerHTML='<div class="hint">Әзірге тауар жоқ.</div>';return}
         el.innerHTML=data.map(p=>{
-            const localized=localizedProduct(p);
-            const img=p.image_url?`<img src="${escapeHtml(p.image_url)}" alt="">`:`<div class="seller-thumb"><i class="fa-solid fa-box"></i></div>`;
-            const base=Number(p.price||0), sale=Number(p.sale_price||0), effective=(sale>0&&sale<base)?sale:base;
-            const price=(effective<base)?`<span class="old-price">${formatPrice(base)}</span>${formatPrice(effective)}`:formatPrice(base);
-            const stock=Number(p.stock??0);
-            const stockClass=stock<=3?' seller-stock-low':'';
-            const statusBtn=p.published
+            const name=localizedProduct(p).name;
+            const price=formatPrice(Number(p.price||0));
+            const statusBtn=p.is_active
                 ? `<button class="hide-btn" onclick="toggleSellerPublished('${escapeHtml(p.id)}',false)">🙈 Жасыру</button>`
                 : `<button class="show-btn" onclick="toggleSellerPublished('${escapeHtml(p.id)}',true)">👁 Жариялау</button>`;
-            return `<div class="seller-item">${img}<div class="seller-item-info"><div class="seller-item-name">${escapeHtml(localized.name||"Тауар")}</div><div class="seller-item-price">${price} · <span class="${stockClass}">${stock} ${OGO_CURRENT_LANG==='ru'?'шт.':'дана'}</span> ${p.published?(OGO_CURRENT_LANG==='ru'?'· опубликован':'· жарияланған'):(OGO_CURRENT_LANG==='ru'?'· скрыт':'· жасырын')}</div></div><div class="seller-item-actions"><button onclick="changeSellerStock('${escapeHtml(p.id)}',-1)" title="${OGO_CURRENT_LANG==='ru'?'Уменьшить остаток':'Қойманы азайту'}">−</button><button onclick="changeSellerStock('${escapeHtml(p.id)}',1)" title="${OGO_CURRENT_LANG==='ru'?'Увеличить остаток':'Қойманы көбейту'}">+</button>${statusBtn}<button onclick="openEditProduct('${escapeHtml(p.id)}')"><i class="fa-solid fa-pen"></i> ${OGO_CURRENT_LANG==='ru'?'Изменить':'Өзгерту'}</button></div></div>`;
-        }).join("");
+            return `<div class="seller-item"><div class="seller-thumb"><i class="fa-solid fa-box"></i></div><div class="seller-item-info"><div class="seller-item-name">${escapeHtml(name)}</div><div class="seller-item-price">${price} · ${p.unit?escapeHtml(p.unit):''} ${p.barcode?`· ${escapeHtml(p.barcode)}`:''} ${p.is_active?'· жарияланған':'· жасырын'}</div></div><div class="seller-item-actions">${statusBtn}<button onclick="openEditProduct('${escapeHtml(p.id)}')"><i class="fa-solid fa-pen"></i> Өзгерту</button></div></div>`;
+        }).join('');
     }catch(error){
-        console.error("O Go seller products error:",error);
-        el.innerHTML=`<div class="hint seller-error">${escapeHtml(error.message||"Тауарларды жүктеу қатесі.")}</div>`;
+        console.error('O Go seller products error:',error);
+        el.innerHTML=`<div class="hint seller-error">${escapeHtml(error.message||'Тауарларды жүктеу қатесі.')}</div>`;
     }
 }
 
-async function changeSellerStock(id, delta){
-    try{
-        const {data,error}=await supabaseClient.from("products").select("stock").eq("id",id).eq("seller_id",sellerUser.id).eq("store_id",sellerStoreId).maybeSingle();
-        if(error)throw error;
-        if(!data)throw new Error("Тауар табылмады.");
-        const next=Math.max(0,Number(data.stock||0)+delta);
-        const result=await supabaseClient.from("products").update({stock:next,updated_at:new Date().toISOString()}).eq("id",id).eq("seller_id",sellerUser.id).eq("store_id",sellerStoreId);
-        if(result.error)throw result.error;
-        await loadSellerProducts();
-        catalogState.shop.loaded=false;catalogState.food.loaded=false;
-        if(document.getElementById("shop").classList.contains("active"))await loadCatalog("shop");
-        if(document.getElementById("food").classList.contains("active"))await loadCatalog("food");
-    }catch(error){alert(error.message||"Қойма санын өзгерту кезінде қате болды.");}
-}
+async function changeSellerStock(id, delta){ alert('Бұл база нұсқасында қойма саны сақталмайды.'); }
 
 async function toggleSellerPublished(id, published){
     try{
-        const result=await supabaseClient.from("products").update({published,updated_at:new Date().toISOString()}).eq("id",id).eq("seller_id",sellerUser.id).eq("store_id",sellerStoreId);
+        const result=await supabaseClient.from('products').update({is_active:published,updated_at:new Date().toISOString()}).eq('id',id).eq('seller_id',sellerUser.id);
         if(result.error)throw result.error;
         await loadSellerProducts();
-        catalogState.shop.loaded=false;catalogState.food.loaded=false;
-        if(document.getElementById("shop").classList.contains("active"))await loadCatalog("shop");
-        if(document.getElementById("food").classList.contains("active"))await loadCatalog("food");
-    }catch(error){alert(error.message||"Статусты өзгерту кезінде қате болды.");}
+        catalogState.shop.loaded=false; catalogState.food.loaded=false;
+        if(document.getElementById('shop').classList.contains('active'))await loadCatalog('shop');
+    }catch(error){alert(error.message||'Статусты өзгерту кезінде қате болды.');}
 }
 
 async function loadEditSections(selectedId=""){
@@ -1668,98 +1545,56 @@ async function loadEditSections(selectedId=""){
 }
 
 async function openEditProduct(id){
-    const status=document.getElementById("editProductStatus");
-    status.className="hint";status.textContent="";
+    const status=document.getElementById('editProductStatus'); status.className='hint'; status.textContent='';
     try{
-        const {data,error}=await supabaseClient.from("products").select("id,name,price,sale_price,promo_text,description,image_url,stock,published,section_id,service_type,category,store_id").eq("id",id).eq("seller_id",sellerUser.id).eq("store_id",sellerStoreId).maybeSingle();
-        if(error)throw error;
-        if(!data)throw new Error("Тауар табылмады немесе бұл тауар сізге тиесілі емес.");
-        document.getElementById("editProductId").value=data.id;
-        document.getElementById("editProductName").value=data.name||"";
-        document.getElementById("editProductPrice").value=Number(data.price||0);
-        document.getElementById("editProductSalePrice").value=Number(data.sale_price||0)>0?Number(data.sale_price):"";
-        document.getElementById("editProductPromo").value=data.promo_text||"";
-        document.getElementById("editProductStock").value=Number(data.stock??0);
-        document.getElementById("editProductPublished").value=data.published ? "true" : "false";
-        document.getElementById("editProductDescription").value=data.description||"";
-        document.getElementById("editProductService").value=(data.service_type||data.category||"shop");
-        document.getElementById("editProductImage").value="";
-        document.getElementById("editProductModal").classList.add("show");
-        await loadEditSections(data.section_id||"");
-    }catch(error){status.className="hint seller-error";status.textContent=error.message||"Тауарды ашу қатесі.";}
+        const {data,error}=await supabaseClient.from('products').select('id,barcode,title,price,unit,sku,is_active').eq('id',id).eq('seller_id',sellerUser.id).maybeSingle();
+        if(error)throw error; if(!data)throw new Error('Тауар табылмады немесе бұл тауар сізге тиесілі емес.');
+        document.getElementById('editProductId').value=data.id;
+        document.getElementById('editProductName').value=data.title||'';
+        document.getElementById('editProductPrice').value=Number(data.price||0);
+        document.getElementById('editProductSalePrice').value='';
+        document.getElementById('editProductPromo').value='';
+        document.getElementById('editProductStock').value='';
+        document.getElementById('editProductPublished').value=data.is_active?'true':'false';
+        document.getElementById('editProductDescription').value=data.unit||'';
+        document.getElementById('editProductService').value='shop';
+        document.getElementById('editProductImage').value='';
+        document.getElementById('editProductModal').classList.add('show');
+    }catch(error){status.className='hint seller-error';status.textContent=error.message||'Тауарды ашу қатесі.';}
 }
+
 function closeEditProduct(){document.getElementById("editProductModal").classList.remove("show")}
 
 async function saveEditedProduct(){
-    const status=document.getElementById("editProductStatus");status.className="hint";status.textContent="Сақталуда...";
-    const id=document.getElementById("editProductId").value;
-    const name=document.getElementById("editProductName").value.trim();
-    const price=Number(document.getElementById("editProductPrice").value);
-    const saleRaw=document.getElementById("editProductSalePrice").value.trim();
-    const salePrice=saleRaw===""?null:Number(saleRaw);
-    const promo=document.getElementById("editProductPromo").value.trim();
-    const stock=Number(document.getElementById("editProductStock").value);
-    const published=document.getElementById("editProductPublished").value==="true";
-    const description=document.getElementById("editProductDescription").value.trim();
-    const service=document.getElementById("editProductService").value;
-    const sectionId=document.getElementById("editProductSection").value;
-    const file=document.getElementById("editProductImage").files[0];
-    if(!id||!name){status.textContent="Тауар атауын енгізіңіз.";return}
-    if(!Number.isFinite(price)||price<0){status.textContent="Бағаны дұрыс енгізіңіз.";return}
-    if(salePrice!==null&&(!Number.isFinite(salePrice)||salePrice<0||salePrice>=price)){status.textContent="Акциялық баға негізгі бағадан төмен болуы керек.";return}
-    if(!Number.isInteger(stock)||stock<0){status.textContent="Қойма санын дұрыс енгізіңіз.";return}
-    if(!sectionId){status.textContent="Бөлімді таңдаңыз.";return}
+    const status=document.getElementById('editProductStatus'); status.className='hint'; status.textContent='Сақталуда...';
+    const id=document.getElementById('editProductId').value;
+    const title=document.getElementById('editProductName').value.trim();
+    const price=Number(document.getElementById('editProductPrice').value);
+    const unit=document.getElementById('editProductDescription').value.trim();
+    const isActive=document.getElementById('editProductPublished').value==='true';
+    if(!id||!title){status.textContent='Тауар атауын енгізіңіз.';return}
+    if(!Number.isFinite(price)||price<0){status.textContent='Бағаны дұрыс енгізіңіз.';return}
     try{
-        let imageUrl;
-        if(file){
-            if(!file.type.startsWith("image/"))throw new Error("Тек сурет файлын таңдаңыз.");
-            if(file.size>5*1024*1024)throw new Error("Фото 5 МБ-тан үлкен болмауы керек.");
-            const ext=(file.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"")||"jpg";
-            const path=`${sellerUser.id}/${crypto.randomUUID()}.${ext}`;
-            const upload=await supabaseClient.storage.from("product-images").upload(path,file,{contentType:file.type,upsert:false});
-            if(upload.error)throw upload.error;
-            imageUrl=supabaseClient.storage.from("product-images").getPublicUrl(path).data.publicUrl;
-        }
-        const payload={name,price,sale_price:salePrice,promo_text:promo||null,stock,published,description:description||null,section_id:sectionId,service_type:service,category:service,updated_at:new Date().toISOString()};
-        if(imageUrl)payload.image_url=imageUrl;
-        const {error}=await supabaseClient.from("products").update(payload).eq("id",id).eq("seller_id",sellerUser.id).eq("store_id",sellerStoreId);
+        const {error}=await supabaseClient.from('products').update({title,price,unit:unit||null,is_active:isActive,updated_at:new Date().toISOString()}).eq('id',id).eq('seller_id',sellerUser.id);
         if(error)throw error;
-
-        // Тауар корзинада бұрыннан тұрса, жаңа бағаны бірден қолданамыз.
-        // Мысалы: 650 ₸ -> 520 ₸ акцияға өзгертілсе, корзина да 520 ₸ көрсетуі керек.
-        const effectivePrice=(salePrice!==null && salePrice>0 && salePrice<price)?salePrice:price;
-        cart.forEach(item=>{
-            if(item.productId===id){
-                item.price=effectivePrice;
-                item.basePrice=price;
-                item.salePrice=(effectivePrice<price)?effectivePrice:null;
-                item.promoText=promo||null;
-            }
-        });
-        updateCart();
-
-        status.className="hint seller-success";status.textContent="✅ Өзгерістер сақталды!";
-        catalogState.shop.loaded=false;catalogState.food.loaded=false;
+        status.className='hint seller-success'; status.textContent='✅ Өзгерістер сақталды!';
+        catalogState.shop.loaded=false; catalogState.food.loaded=false;
         await loadSellerProducts();
-        if(document.getElementById("shop").classList.contains("active"))await loadCatalog("shop");
-        if(document.getElementById("food").classList.contains("active"))await loadCatalog("food");
-    }catch(error){status.className="hint seller-error";status.textContent=error.message||"Сақтау кезінде қате болды.";}
+        if(document.getElementById('shop').classList.contains('active'))await loadCatalog('shop');
+    }catch(error){status.className='hint seller-error';status.textContent=error.message||'Сақтау кезінде қате болды.';}
 }
 
 async function deleteEditedProduct(){
-    const id=document.getElementById("editProductId").value;
-    if(!id)return;
-    if(!confirm("Осы тауарды өшіруге сенімдісіз бе?"))return;
-    const status=document.getElementById("editProductStatus");status.className="hint";status.textContent="Өшірілуде...";
+    const id=document.getElementById('editProductId').value; if(!id)return;
+    if(!confirm('Осы тауарды өшіруге сенімдісіз бе?'))return;
+    const status=document.getElementById('editProductStatus'); status.className='hint'; status.textContent='Өшірілуде...';
     try{
-        const {error}=await supabaseClient.from("products").delete().eq("id",id).eq("seller_id",sellerUser.id).eq("store_id",sellerStoreId);
+        const {error}=await supabaseClient.from('products').delete().eq('id',id).eq('seller_id',sellerUser.id);
         if(error)throw error;
-        closeEditProduct();
-        await loadSellerProducts();
-        catalogState.shop.loaded=false;catalogState.food.loaded=false;
-        if(document.getElementById("shop").classList.contains("active"))await loadCatalog("shop");
-        if(document.getElementById("food").classList.contains("active"))await loadCatalog("food");
-    }catch(error){status.className="hint seller-error";status.textContent=error.message||"Өшіру кезінде қате болды.";}
+        closeEditProduct(); await loadSellerProducts();
+        catalogState.shop.loaded=false; catalogState.food.loaded=false;
+        if(document.getElementById('shop').classList.contains('active'))await loadCatalog('shop');
+    }catch(error){status.className='hint seller-error';status.textContent=error.message||'Өшіру кезінде қате болды.';}
 }
 
 async function sellerLogout(){
@@ -1788,7 +1623,7 @@ renderFoodRestaurants();
 <script>
 /* O GO — COMPLETE LANGUAGE SYSTEM */
 const OGO_LANG={
- kz:{lang:'Kz',home:'Басты бет',shop:'Дүкен',food:'Тағамдар',taxi:'Такси',delivery:'Жеткізу',cart:'Себет',services:'O Go қызметтері',count:'4 қызмет',heroTitle:'Керек нәрсенің бәрі — бір жерде.',heroText:'Дүкен, такси, тағамдар және жеткізу — O Go арқылы оңай.',heroNote:'Тез. Оңай. Жақын.',shopDesc:'Күнделікті керек заттарды тапсырыс бер',shopSub:'Күнделікті тауарлар',taxiDesc:'Қала ішінде көлікке тапсырыс бер',taxiSub:'Қала ішінде тапсырыс',foodDesc:'Кафе мен тағамдарға тапсырыс бер',foodSub:'Кафе мен ресторандар',deliveryDesc:'Сәлемдеме мен заттарды жеткіз',deliverySub:'Зат пен сәлемдеме',cartSub:'Таңдаған тауарларыңыз',download:'Қолданбаны жүктеу',downloadText:'O Go жақында App Store және Google Play-де қолжетімді болады.',partner:'Серіктестік',seller:'Сатушы панелі',order:'Тапсырыс беру',deliveryHint:'Қай жерден алып, қай жерге жеткізу керегін жазыңыз.',back:'Артқа',name:'Атыңыз',phone:'Телефон',address:'Мекенжай',payment:'Төлем',send:'WhatsApp арқылы тапсырыс беру',products:'Тауарлар',shipping:'Жеткізу',total:'Барлығы',search:'Дүкеннен тауар іздеу...',searchHint:'Тауар атауын толық немесе бірнеше әріппен жазыңыз — барлық бөлімнен ізделеді.',loginTitle:'Сатушы панелі',loginHint:'Supabase-та тіркелген сатушы email және паролімен кіріңіз.',login:'Кіру',addProduct:'Тауар қосу',publish:'Тауарды жариялау',bulk:'Көп тауарды бірден жүктеу',myProducts:'Менің тауарларым',logout:'Шығу',bulkTitle:'Көп тауарды бірден жүктеу',bulkHint:'CSV файл арқылы ондаған немесе жүздеген тауарды бірден қосыңыз.',template:'Дайын үлгіні жүктеу',csv:'CSV файл',upload:'Тауарларды жүктеу',edit:'Тауарды өзгерту',save:'Өзгерісті сақтау',delete:'Тауарды өшіру',service:'Қызмет',section:'Бөлім',productName:'Тауар атауы',price:'Бағасы, ₸',sale:'Акциялық баға, ₸ (қаласаңыз)',promo:'Акция атауы (қаласаңыз)',stock:'Қоймадағы саны',description:'Сипаттама',photo:'Фото',status:'Статус',published:'Жарияланған',hidden:'Жасырын',newSection:'Бөлім жүктелуде...',foodEmpty:'Бұл дәмханада тағамдар әзірге қосылған жоқ.',foodSubTitle:'Дәмхана мен ресторандар',all:'Барлығы',burger:'Бургер',sushi:'Суши',pizza:'Пицца',doner:'Донер',salad:'Салат',dessert:'Десерт',drinks:'Сусындар',choiceTitle:'Қызметті таңдаңыз',choiceTaxi:'Такси',choiceTaxiSub:'Қала ішінде',choiceDelivery:'Жеткізу',choiceDeliverySub:'Сәлемдеме мен заттар'},
+ kz:{lang:'Kz',home:'Басты бет',shop:'Дүкен',food:'Тағамдар',taxi:'Такси',delivery:'Жеткізу',cart:'Себет',services:'O Go қызметтері',count:'4 қызмет',heroTitle:'Керек нәрсенің бәрі — бір жерде.',heroText:'Дүкен, такси, тағамдар және жеткізу — O Go арқылы оңай.',heroNote:'Тез. Оңай. Жақын.',shopDesc:'Күнделікті керек заттарды тапсырыс бер',shopSub:'Күнделікті тауарлар',taxiDesc:'Қала ішінде көлікке тапсырыс бер',taxiSub:'Қала ішінде тапсырыс',foodDesc:'Кафе мен тағамдарға тапсырыс бер',foodSub:'Кафе мен ресторандар',deliveryDesc:'Сәлемдеме мен заттарды жеткіз',deliverySub:'Зат пен сәлемдеме',cartSub:'Таңдаған тауарларыңыз',download:'Қолданбаны жүктеу',downloadText:'O Go жақында App Store және Google Play-де қолжетімді болады.',partner:'Серіктестік',seller:'Сатушы панелі',order:'Тапсырыс беру',deliveryHint:'Қай жерден алып, қай жерге жеткізу керегін жазыңыз.',back:'Артқа',name:'Атыңыз',phone:'Телефон',address:'Мекенжай',payment:'Төлем',send:'WhatsApp арқылы тапсырыс беру',products:'Тауарлар',shipping:'Жеткізу',total:'Барлығы',search:'Дүкеннен тауар іздеу...',searchHint:'Тауар атауын толық немесе бірнеше әріппен жазыңыз — барлық бөлімнен ізделеді.',loginTitle:'Сатушы панелі',loginHint:'Supabase-та тіркелген сатушы email және паролімен кіріңіз.',login:'Кіру',addProduct:'Тауар қосу',publish:'Тауарды жариялау',bulk:'Көп тауарды бірден жүктеу',myProducts:'Менің тауарларым',logout:'Шығу',bulkTitle:'Көп тауарды бірден жүктеу',bulkHint:'UMAG-тен экспортталған Excel (.xlsx) немесе CSV файл арқылы ондаған немесе жүздеген тауарды бірден қосыңыз.',template:'Дайын үлгіні жүктеу',csv:'CSV файл',upload:'Тауарларды жүктеу',edit:'Тауарды өзгерту',save:'Өзгерісті сақтау',delete:'Тауарды өшіру',service:'Қызмет',section:'Бөлім',productName:'Тауар атауы',price:'Бағасы, ₸',sale:'Акциялық баға, ₸ (қаласаңыз)',promo:'Акция атауы (қаласаңыз)',stock:'Қоймадағы саны',description:'Сипаттама',photo:'Фото',status:'Статус',published:'Жарияланған',hidden:'Жасырын',newSection:'Бөлім жүктелуде...',foodEmpty:'Бұл дәмханада тағамдар әзірге қосылған жоқ.',foodSubTitle:'Дәмхана мен ресторандар',all:'Барлығы',burger:'Бургер',sushi:'Суши',pizza:'Пицца',doner:'Донер',salad:'Салат',dessert:'Десерт',drinks:'Сусындар',choiceTitle:'Қызметті таңдаңыз',choiceTaxi:'Такси',choiceTaxiSub:'Қала ішінде',choiceDelivery:'Жеткізу',choiceDeliverySub:'Сәлемдеме мен заттар'},
  ru:{lang:'Ru',home:'Главная',shop:'Магазин',food:'Еда',taxi:'Такси',delivery:'Доставка',cart:'Корзина',services:'Сервисы O Go',count:'4 сервиса',heroTitle:'Всё необходимое — в одном месте.',heroText:'Магазин, такси, еда и доставка — легко с O Go.',heroNote:'Быстро. Просто. Рядом.',shopDesc:'Заказывайте всё необходимое на каждый день',shopSub:'Товары на каждый день',taxiDesc:'Закажите поездку по городу',taxiSub:'Заказ по городу',foodDesc:'Заказывайте блюда из кафе',foodSub:'Кафе и рестораны',deliveryDesc:'Доставляйте посылки и вещи',deliverySub:'Посылки и вещи',cartSub:'Выбранные товары',download:'Скачать приложение',downloadText:'O Go скоро будет доступен в App Store и Google Play.',partner:'Партнёрство',seller:'Панель продавца',order:'Заказать',deliveryHint:'Укажите, откуда забрать и куда доставить.',back:'Назад',name:'Ваше имя',phone:'Телефон',address:'Адрес',payment:'Оплата',send:'Заказать через WhatsApp',products:'Товары',shipping:'Доставка',total:'Итого',search:'Поиск товара в магазине...',searchHint:'Введите полное название товара или несколько букв — поиск идёт по всем разделам.',loginTitle:'Панель продавца',loginHint:'Войдите с email и паролем продавца, зарегистрированными в Supabase.',login:'Войти',addProduct:'Добавить товар',publish:'Опубликовать товар',bulk:'Загрузить много товаров',myProducts:'Мои товары',logout:'Выйти',bulkTitle:'Загрузка нескольких товаров',bulkHint:'Добавьте десятки или сотни товаров одним CSV-файлом.',template:'Скачать готовый шаблон',csv:'CSV файл',upload:'Загрузить товары',edit:'Изменить товар',save:'Сохранить изменения',delete:'Удалить товар',service:'Сервис',section:'Раздел',productName:'Название товара',price:'Цена, ₸',sale:'Акционная цена, ₸ (по желанию)',promo:'Название акции (по желанию)',stock:'Количество на складе',description:'Описание',photo:'Фото',status:'Статус',published:'Опубликован',hidden:'Скрыт',newSection:'Загрузка разделов...',foodEmpty:'В этом ресторане блюда пока не добавлены.',foodSubTitle:'Кафе и рестораны',all:'Все',burger:'Бургеры',sushi:'Суши',pizza:'Пицца',doner:'Донер',salad:'Салаты',dessert:'Десерты',drinks:'Напитки',choiceTitle:'Выберите услугу',choiceTaxi:'Такси',choiceTaxiSub:'По городу',choiceDelivery:'Доставка',choiceDeliverySub:'Посылки и вещи'}
 };
 let OGO_CURRENT_LANG=localStorage.getItem('ogo_lang')||'kz';
