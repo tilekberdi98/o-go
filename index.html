@@ -252,11 +252,27 @@ main{padding:18px 16px 24px}
     min-width:39px;height:39px;border-radius:12px;
     font-size:17px;font-weight:900;
 }
+.add:disabled{opacity:.35;cursor:not-allowed}
 .empty{
     padding:28px 15px;text-align:center;
     border:1px dashed #303530;border-radius:18px;
     color:var(--muted);font-size:13px;
 }
+
+
+/* SUPABASE БӨЛІМДЕРІ */
+.category-row{
+    display:flex;gap:8px;overflow-x:auto;padding:2px 1px 10px;
+    scrollbar-width:none;margin-bottom:4px;
+}
+.category-row::-webkit-scrollbar{display:none}
+.category-btn{
+    flex:0 0 auto;border:1px solid var(--line);background:#151815;color:#c7ccc9;
+    border-radius:999px;padding:9px 12px;font-size:11px;font-weight:800;
+}
+.category-btn.active{background:var(--yellow);color:#111;border-color:var(--yellow)}
+.loading-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--yellow);margin-right:7px;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:.35}50%{opacity:1}}
 
 /* FORMS */
 .form-card{
@@ -506,17 +522,9 @@ main{padding:18px 16px 24px}
             <button class="back" onclick="goHome()"><i class="fa-solid fa-arrow-left"></i></button>
             <div><h2 class="page-title">Дүкен</h2><div class="page-subtitle">Күнделікті тауарлар</div></div>
         </div>
+        <div id="shopSections" class="category-row" aria-label="Дүкен бөлімдері"></div>
         <div id="shopProducts" class="products">
-            <article class="product">
-                <div class="product-img"><i class="fa-solid fa-apple-whole"></i></div>
-                <div class="product-info"><div class="product-name">Жаңа алма</div><div class="product-desc">1 кг</div><div class="price">850 ₸</div></div>
-                <button class="add" onclick="addToCart('Жаңа алма',850)">+</button>
-            </article>
-            <article class="product">
-                <div class="product-img"><i class="fa-solid fa-bottle-water"></i></div>
-                <div class="product-info"><div class="product-name">Ауыз су</div><div class="product-desc">1,5 л</div><div class="price">300 ₸</div></div>
-                <button class="add" onclick="addToCart('Ауыз су',300)">+</button>
-            </article>
+            <div class="empty">Тауарлар жүктелуде...</div>
         </div>
     </section>
 
@@ -541,17 +549,9 @@ main{padding:18px 16px 24px}
             <button class="back" onclick="goHome()"><i class="fa-solid fa-arrow-left"></i></button>
             <div><h2 class="page-title">Тамақ</h2><div class="page-subtitle">Кафе мен тағамдар</div></div>
         </div>
+        <div id="foodSections" class="category-row" aria-label="Тамақ бөлімдері"></div>
         <div id="foodProducts" class="products">
-            <article class="product">
-                <div class="product-img"><i class="fa-solid fa-burger"></i></div>
-                <div class="product-info"><div class="product-name">Бургер комбо</div><div class="product-desc">Бургер + фри + сусын</div><div class="price">2 200 ₸</div></div>
-                <button class="add" onclick="addToCart('Бургер комбо',2200)">+</button>
-            </article>
-            <article class="product">
-                <div class="product-img"><i class="fa-solid fa-pizza-slice"></i></div>
-                <div class="product-info"><div class="product-name">Пицца</div><div class="product-desc">Орташа өлшем</div><div class="price">2 500 ₸</div></div>
-                <button class="add" onclick="addToCart('Пицца',2500)">+</button>
-            </article>
+            <div class="empty">Тағамдар жүктелуде...</div>
         </div>
     </section>
 
@@ -636,6 +636,134 @@ const supabaseClient = window.supabase.createClient(
 const WHATSAPP = "77756108898";
 let cart = [];
 
+/* SUPABASE — ДҮКЕН/ТАМАҚТЫ ДИНАМИКАЛЫҚ ЖҮКТЕУ */
+const catalogState = {
+    shop:{sections:[],products:[],selectedSection:'all',loaded:false},
+    food:{sections:[],products:[],selectedSection:'all',loaded:false}
+};
+
+function formatPrice(value){
+    const number=Number(value||0);
+    return number.toLocaleString('ru-RU')+' ₸';
+}
+
+function productIcon(service){
+    return service==='food' ? 'fa-utensils' : 'fa-box-open';
+}
+
+function renderSections(type){
+    const state=catalogState[type];
+    const el=document.getElementById(type+'Sections');
+    if(!el)return;
+    const buttons=[`<button class="category-btn ${state.selectedSection==='all'?'active':''}" onclick="selectSection('${type}','all')">Барлығы</button>`];
+    state.sections.forEach(section=>{
+        buttons.push(`<button class="category-btn ${state.selectedSection===section.id?'active':''}" onclick="selectSection('${type}','${section.id}')">${escapeHtml(section.name)}</button>`);
+    });
+    el.innerHTML=buttons.join('');
+}
+
+function renderProducts(type){
+    const state=catalogState[type];
+    const el=document.getElementById(type+'Products');
+    if(!el)return;
+    const items=state.selectedSection==='all'
+        ? state.products
+        : state.products.filter(p=>p.section_id===state.selectedSection);
+
+    if(!items.length){
+        el.innerHTML='<div class="empty">Бұл бөлімде әзірге тауар жоқ.</div>';
+        return;
+    }
+
+    el.innerHTML=items.map(p=>{
+        const image=p.image_url ? `<img src="${escapeHtml(p.image_url)}" alt="${escapeHtml(p.name||'Тауар')}" loading="lazy">` : `<i class="fa-solid ${productIcon(type)}"></i>`;
+        const desc=escapeHtml(p.description || '');
+        const name=escapeHtml(p.name || 'Тауар');
+        const price=Number(p.price||0);
+        const stock=Number(p.stock ?? 0);
+        const disabled=stock<=0 ? 'disabled' : '';
+        const stockText=stock<=0 ? 'Қоймада жоқ' : (desc || 'Тауар');
+        return `<article class="product">
+            <div class="product-img">${image}</div>
+            <div class="product-info">
+                <div class="product-name">${name}</div>
+                <div class="product-desc">${stockText}</div>
+                <div class="price">${formatPrice(price)}</div>
+            </div>
+            <button class="add" ${disabled} onclick="addProductToCart('${escapeHtml(p.id)}')">+</button>
+        </article>`;
+    }).join('');
+}
+
+async function loadCatalog(type){
+    const state=catalogState[type];
+    const productsEl=document.getElementById(type+'Products');
+    const sectionsEl=document.getElementById(type+'Sections');
+    if(!productsEl || !sectionsEl)return;
+    if(state.loaded){ renderSections(type); renderProducts(type); return; }
+
+    productsEl.innerHTML='<div class="empty"><span class="loading-dot"></span>Тауарлар жүктелуде...</div>';
+    sectionsEl.innerHTML='';
+
+    try{
+        const [{data:sections,error:sectionsError},{data:products,error:productsError}]=await Promise.all([
+            supabaseClient
+                .from('store_sections')
+                .select('id,name,service_type,sort_order')
+                .eq('service_type',type)
+                .order('sort_order',{ascending:true}),
+            supabaseClient
+                .from('products')
+                .select('id,name,price,description,image_url,stock,published,section_id,service_type,category,store_id')
+                .eq('published',true)
+                .or(`category.eq.${type},service_type.eq.${type}`)
+                .order('created_at',{ascending:false})
+        ]);
+
+        if(sectionsError)throw sectionsError;
+        if(productsError)throw productsError;
+
+        state.sections=sections||[];
+        state.products=(products||[]).filter(p=>p.published!==false);
+        state.loaded=true;
+        renderSections(type);
+        renderProducts(type);
+    }catch(error){
+        console.error('O Go Supabase catalog error:',error);
+        sectionsEl.innerHTML='';
+        productsEl.innerHTML='<div class="empty">Тауарларды жүктеу кезінде қате болды. Supabase байланысын тексеріңіз.</div>';
+    }
+}
+
+function selectSection(type,sectionId){
+    catalogState[type].selectedSection=sectionId;
+    renderSections(type);
+    renderProducts(type);
+}
+
+function addProductToCart(id){
+    const all=[...catalogState.shop.products,...catalogState.food.products];
+    const product=all.find(p=>p.id===id);
+    if(!product)return;
+    const price=Number(product.price||0);
+    const item=cart.find(x=>x.productId===id);
+    if(item)item.qty++;
+    else cart.push({productId:id,name:product.name||'Тауар',price,qty:1});
+    updateCart();
+    openPage('cart');
+}
+
+async function testSupabaseConnection(){
+    try{
+        const {error}=await supabaseClient.from('store_sections').select('id').limit(1);
+        if(error)throw error;
+        console.log('O Go: Supabase connection OK');
+    }catch(error){
+        console.error('O Go: Supabase connection error',error);
+    }
+}
+
+
 /* БЕТ АУЫСТЫРУ */
 function openPage(page){
     document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
@@ -646,6 +774,8 @@ function openPage(page){
         n.classList.toggle("active", n.dataset.page===page);
     });
     window.scrollTo({top:0,behavior:"smooth"});
+    if(page==='shop') loadCatalog('shop');
+    if(page==='food') loadCatalog('food');
 }
 function goHome(){openPage("home")}
 
@@ -773,6 +903,9 @@ function escapeHtml(str){
 }
 
 updateCart();
+testSupabaseConnection();
+loadCatalog('shop');
+loadCatalog('food');
 </script>
 </body>
 </html>
