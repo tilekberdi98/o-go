@@ -491,6 +491,15 @@ input,select,textarea{background:#fff!important;color:#161916!important;border-c
 .nav.active{color:#161916}
 .close,.back{color:#161916}
 
+
+/* O GO — USER REQUESTED LIGHT ORANGE THEME + HIGH CONTRAST */
+body{background:#f6b35f!important;color:#171717!important}
+.app{background:#fff!important}
+.service h3,.service p{color:#fff!important;text-shadow:0 1px 3px rgba(0,0,0,.65)!important}
+.service-content{background:linear-gradient(90deg,rgba(0,0,0,.72),rgba(0,0,0,.20))!important}
+.side,.side-links button,.side-head .brand,.side-links{color:#fff!important}
+.side-links button{color:#fff!important;text-shadow:0 1px 3px rgba(0,0,0,.35)}
+.header-btn{color:#161916!important}
 </style>
 
 <!-- SUPABASE -->
@@ -687,8 +696,8 @@ input,select,textarea{background:#fff!important;color:#161916!important;border-c
 </main>
 
 <nav class="bottom">
-    <button class="nav active" data-page="home" onclick="openPage('home')"><i class="fa-solid fa-house"></i><span>Басты бет</span></button>
-    <button class="nav" data-page="shop" onclick="openPage('shop')"><i class="fa-solid fa-basket-shopping"></i><span>Дүкен</span></button>
+    <button class="nav active" data-page="home" onclick="openPage('home')"><i class="fa-solid fa-house"></i><span id="navHomeText">Басты бет</span></button>
+    <button class="nav" data-page="shop" onclick="openPage('shop')"><i class="fa-solid fa-basket-shopping"></i><span id="navShopText">Дүкен</span></button>
     <button class="nav" data-page="food" onclick="openPage('food')"><i class="fa-solid fa-utensils"></i><span id="navFoodText">Тағамдар</span></button>
     <button class="nav" data-page="delivery" onclick="openServiceChooser()"><i class="fa-solid fa-box"></i><span id="navDeliveryText">Такси/Жеткізу</span></button>
     <button class="nav" data-page="cart" onclick="openPage('cart')" style="position:relative"><i class="fa-solid fa-cart-shopping"></i><span id="navCartText">Себет</span><span id="badge" class="badge">0</span></button>
@@ -710,11 +719,11 @@ input,select,textarea{background:#fff!important;color:#161916!important;border-c
 <div id="loginModal" class="modal">
     <div class="modal-box">
         <button class="close modal-close" onclick="closeLogin()"><i class="fa-solid fa-xmark"></i></button>
-        <h3>Сатушы панелі</h3>
-        <p class="hint">Supabase-та тіркелген сатушы email және паролімен кіріңіз.</p>
+        <h3 id="loginTitle">Сатушы панелі</h3>
+        <p id="loginHint" class="hint">Supabase-та тіркелген сатушы email және паролімен кіріңіз.</p>
         <div class="form-group"><label>Email</label><input id="sellerEmail" type="email" placeholder="seller@example.com" autocomplete="email"></div>
         <div class="form-group"><label>Пароль</label><input id="sellerPass" type="password" placeholder="••••••••" autocomplete="current-password"></div>
-        <button class="submit" onclick="loginSeller()">Кіру</button>
+        <button id="loginButton" class="submit" onclick="loginSeller()">Кіру</button>
         <div id="loginStatus" class="hint" style="margin-top:10px"></div>
     </div>
 </div>
@@ -722,7 +731,7 @@ input,select,textarea{background:#fff!important;color:#161916!important;border-c
 <div id="sellerModal" class="modal">
     <div class="modal-box" style="max-height:90vh;overflow:auto">
         <button class="close modal-close" onclick="closeSellerPanel()"><i class="fa-solid fa-xmark"></i></button>
-        <h3>Тауар қосу</h3>
+        <h3 id="sellerAddTitle">Тауар қосу</h3>
         <p id="sellerStoreInfo" class="hint">Дүкен тексерілуде...</p>
         <div class="form-group"><label>Қызмет</label><select id="sellerService" onchange="loadSellerSections()"><option value="shop">Дүкен</option><option value="food">Тамақ</option></select></div>
         <div class="form-group"><label>Бөлім</label><select id="sellerSection"><option value="">Бөлім жүктелуде...</option></select></div>
@@ -733,10 +742,10 @@ input,select,textarea{background:#fff!important;color:#161916!important;border-c
         <div class="form-group"><label>Қоймадағы саны</label><input id="sellerProductStock" type="number" min="0" step="1" value="10"></div>
         <div class="form-group"><label>Сипаттама</label><textarea id="sellerProductDescription" rows="3" placeholder="Қысқаша сипаттама"></textarea></div>
         <div class="form-group"><label>Фото</label><input id="sellerProductImage" type="file" accept="image/*"></div>
-        <button class="submit green" onclick="createSellerProduct()"><i class="fa-solid fa-plus"></i> Тауарды жариялау</button>
-        <button class="submit" style="margin-top:9px;background:#252b27;color:#fff" onclick="openBulkUpload()"><i class="fa-solid fa-file-import"></i> Көп тауарды бірден жүктеу</button>
-        <div class="seller-products"><h4>Менің тауарларым</h4><div id="sellerProductsList"><div class="hint">Жүктелуде...</div></div></div>
-        <button class="submit" style="margin-top:9px;background:#252b27;color:#fff" onclick="sellerLogout()">Шығу</button>
+        <button id="sellerPublishBtn" class="submit green" onclick="createSellerProduct()"><i class="fa-solid fa-plus"></i> Тауарды жариялау</button>
+        <button class="submit" style="margin-top:9px;background:#252b27;color:#fff" onclick="openBulkUpload()"><i class="fa-solid fa-file-import"></i> <span id="bulkOpenText">Көп тауарды бірден жүктеу</span></button>
+        <div class="seller-products"><h4 id="myProductsTitle">Менің тауарларым</h4><div id="sellerProductsList"><div class="hint">Жүктелуде...</div></div></div>
+        <button class="submit" style="margin-top:9px;background:#252b27;color:#fff" onclick="sellerLogout()"><span id="sellerLogoutText">Шығу</span></button>
         <div id="sellerStatus" class="hint" style="margin-top:10px"></div>
     </div>
 </div>
@@ -744,12 +753,12 @@ input,select,textarea{background:#fff!important;color:#161916!important;border-c
 <div id="bulkUploadModal" class="modal">
     <div class="modal-box" style="max-height:90vh;overflow:auto">
         <button class="close modal-close" onclick="closeBulkUpload()"><i class="fa-solid fa-xmark"></i></button>
-        <h3>Көп тауарды бірден жүктеу</h3>
-        <p class="hint">CSV файл арқылы ондаған немесе жүздеген тауарды бірден қосыңыз.</p>
-        <button class="submit" style="background:#252b27;color:#fff" onclick="downloadBulkTemplate()"><i class="fa-solid fa-download"></i> Дайын үлгіні жүктеу</button>
+        <h3 id="bulkTitle">Көп тауарды бірден жүктеу</h3>
+        <p id="bulkHint" class="hint">CSV файл арқылы ондаған немесе жүздеген тауарды бірден қосыңыз.</p>
+        <button class="submit" style="background:#252b27;color:#fff" onclick="downloadBulkTemplate()"><i class="fa-solid fa-download"></i> <span id="bulkTemplateText">Дайын үлгіні жүктеу</span></button>
         <div class="hint" style="margin:10px 0">Бағандар: <b>service, section, name, price, sale_price, promo_text, stock, description, image_url</b><br>Мысалы: <b>shop, Сусындар, Piala Ice Tea, 650, 520, -20%, 15, Манго дәмі,</b></div>
-        <div class="form-group"><label>CSV файл</label><input id="bulkUploadFile" type="file" accept=".csv,text/csv"></div>
-        <button class="submit green" onclick="processBulkUpload()"><i class="fa-solid fa-cloud-arrow-up"></i> Тауарларды жүктеу</button>
+        <div class="form-group"><label id="csvFileLabel">CSV файл</label><input id="bulkUploadFile" type="file" accept=".csv,text/csv"></div>
+        <button class="submit green" onclick="processBulkUpload()"><i class="fa-solid fa-cloud-arrow-up"></i> <span id="bulkUploadText">Тауарларды жүктеу</span></button>
         <div id="bulkUploadStatus" class="hint" style="margin-top:10px"></div>
     </div>
 </div>
@@ -757,7 +766,7 @@ input,select,textarea{background:#fff!important;color:#161916!important;border-c
 <div id="editProductModal" class="modal">
     <div class="modal-box" style="max-height:90vh;overflow:auto">
         <button class="close modal-close" onclick="closeEditProduct()"><i class="fa-solid fa-xmark"></i></button>
-        <h3>Тауарды өзгерту</h3>
+        <h3 id="editTitle">Тауарды өзгерту</h3>
         <input id="editProductId" type="hidden">
         <div class="form-group"><label>Қызмет</label><select id="editProductService" onchange="loadEditSections()"><option value="shop">Дүкен</option><option value="food">Тамақ</option></select></div>
         <div class="form-group"><label>Бөлім</label><select id="editProductSection"><option value="">Бөлім жүктелуде...</option></select></div>
@@ -769,8 +778,8 @@ input,select,textarea{background:#fff!important;color:#161916!important;border-c
         <div class="form-group"><label>Статус</label><select id="editProductPublished"><option value="true">Жарияланған</option><option value="false">Жасырын</option></select></div>
         <div class="form-group"><label>Сипаттама</label><textarea id="editProductDescription" rows="3"></textarea></div>
         <div class="form-group"><label>Жаңа фото <span class="hint">(қаласаңыз)</span></label><input id="editProductImage" type="file" accept="image/*"></div>
-        <button class="submit green" onclick="saveEditedProduct()"><i class="fa-solid fa-floppy-disk"></i> Өзгерісті сақтау</button>
-        <button class="submit" style="margin-top:9px;background:#8f2222;color:#fff" onclick="deleteEditedProduct()"><i class="fa-solid fa-trash"></i> Тауарды өшіру</button>
+        <button class="submit green" onclick="saveEditedProduct()"><i class="fa-solid fa-floppy-disk"></i> <span id="editSaveText">Өзгерісті сақтау</span></button>
+        <button class="submit" style="margin-top:9px;background:#8f2222;color:#fff" onclick="deleteEditedProduct()"><i class="fa-solid fa-trash"></i> <span id="editDeleteText">Тауарды өшіру</span></button>
         <div id="editProductStatus" class="hint" style="margin-top:10px"></div>
     </div>
 </div>
@@ -827,13 +836,42 @@ function autoProductImage(name){
     return `<img src="data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}" alt="${escapeHtml(name||'Тауар')}" loading="lazy">`;
 }
 
+function localizeSectionName(name){
+    const n=normalizeSearchText(name);
+    if(OGO_CURRENT_LANG==='ru'){
+        if(n.includes('вода, напитки')||n==='сусындар'||n==='сусындар')return 'Напитки';
+        if(n.includes('продукты')||n.includes('азық-түлік'))return 'Продукты';
+    }else{
+        if(n.includes('вода, напитки')||n.includes('напитки')||n==='сусын')return 'Сусындар';
+        if(n.includes('продукты')||n.includes('азық-түлік'))return 'Азық-түлік';
+    }
+    return name;
+}
+const OGO_PRODUCT_TEXT={
+ 'coca-cola 1l':{kz:{name:'Coca-Cola 1L',desc:'Газдалған сусын'},ru:{name:'Coca-Cola 1L',desc:'Газированный напиток'}},
+ 'fanta 1l':{kz:{name:'Fanta 1L',desc:'Газдалған сусын'},ru:{name:'Fanta 1L',desc:'Газированный напиток'}},
+ 'sprite 1l':{kz:{name:'Sprite 1L',desc:'Газдалған сусын'},ru:{name:'Sprite 1L',desc:'Газированный напиток'}},
+ 'pepsi 1l':{kz:{name:'Pepsi 1L',desc:'Газдалған сусын'},ru:{name:'Pepsi 1L',desc:'Газированный напиток'}},
+ 'вода 1l':{kz:{name:'Вода 1L',desc:'Ауыз су'},ru:{name:'Вода 1L',desc:'Питьевая вода'}},
+ 'juice 1l':{kz:{name:'Juice 1L',desc:'Жеміс шырыны'},ru:{name:'Juice 1L',desc:'Фруктовый сок'}},
+ 'макарон 450г':{kz:{name:'Макарон 450г',desc:'Макарон'},ru:{name:'Макароны 450 г',desc:'Макаронные изделия'}},
+ 'күріш 1кг':{kz:{name:'Күріш 1кг',desc:'Күріш'},ru:{name:'Рис 1 кг',desc:'Рис'}},
+ 'қант 1кг':{kz:{name:'Қант 1кг',desc:'Қант'},ru:{name:'Сахар 1 кг',desc:'Сахар'}},
+ 'ұн 1кг':{kz:{name:'Ұн 1кг',desc:'Бидай ұны'},ru:{name:'Мука 1 кг',desc:'Пшеничная мука'}}
+};
+function localizedProduct(product){
+    const key=normalizeSearchText(product?.name||'');
+    const tr=OGO_PRODUCT_TEXT[key]?.[OGO_CURRENT_LANG];
+    return {name:tr?.name||product?.name||'Тауар',description:tr?.desc||product?.description||''};
+}
+
 function renderSections(type){
     const state=catalogState[type];
     const el=document.getElementById(type+'Sections');
     if(!el)return;
     const buttons=[`<button class="category-btn ${state.selectedSection==='all'?'active':''}" onclick="selectSection('${type}','all')">Барлығы</button>`];
     state.sections.forEach(section=>{
-        buttons.push(`<button class="category-btn ${state.selectedSection===section.id?'active':''}" onclick="selectSection('${type}','${section.id}')">${escapeHtml(section.name)}</button>`);
+        buttons.push(`<button class="category-btn ${state.selectedSection===section.id?'active':''}" onclick="selectSection('${type}','${section.id}')">${escapeHtml(localizeSectionName(section.name))}</button>`);
     });
     el.innerHTML=buttons.join('');
 }
@@ -856,7 +894,8 @@ function renderProducts(type){
     }
     el.innerHTML=items.map(p=>{
         const image=p.image_url?`<img src="${escapeHtml(p.image_url)}" alt="${escapeHtml(p.name||'Тауар')}" loading="lazy">`:autoProductImage(p.name||'Тауар');
-        const desc=escapeHtml(p.description||''), name=escapeHtml(p.name||'Тауар');
+        const localized=localizedProduct(p);
+        const desc=escapeHtml(localized.description||''), name=escapeHtml(localized.name||'Тауар');
         const price=Number(p.price||0), salePrice=Number(p.sale_price||0), effectivePrice=(salePrice>0&&salePrice<price)?salePrice:price;
         const promo=p.promo_text?`<span class="promo">${escapeHtml(p.promo_text)}</span>`:'';
         const priceHtml=effectivePrice<price?`<span class="old-price">${formatPrice(price)}</span>${formatPrice(effectivePrice)} ${promo}`:`${formatPrice(price)} ${promo}`;
@@ -1290,7 +1329,7 @@ async function loadSellerSections(){
         const {data,error}=await supabaseClient.from("store_sections").select("id,name,service_type,sort_order").eq("service_type",service).order("sort_order",{ascending:true});
         if(error)throw error;
         if(!data || !data.length){select.innerHTML="<option value=\"\">Бөлім жоқ</option>";return}
-        select.innerHTML=data.map(section=>`<option value="${escapeHtml(section.id)}">${escapeHtml(section.name)}</option>`).join("");
+        select.innerHTML=data.map(section=>`<option value="${escapeHtml(section.id)}">${escapeHtml(localizeSectionName(section.name))}</option>`).join("");
     }catch(error){
         console.error("O Go seller sections error:",error);
         select.innerHTML="<option value=\"\">Бөлімдерді жүктеу мүмкін болмады</option>";
@@ -1522,6 +1561,7 @@ async function loadSellerProducts(){
         if(error)throw error;
         if(!data||!data.length){el.innerHTML='<div class="hint">Әзірге тауар жоқ.</div>';return}
         el.innerHTML=data.map(p=>{
+            const localized=localizedProduct(p);
             const img=p.image_url?`<img src="${escapeHtml(p.image_url)}" alt="">`:`<div class="seller-thumb"><i class="fa-solid fa-box"></i></div>`;
             const base=Number(p.price||0), sale=Number(p.sale_price||0), effective=(sale>0&&sale<base)?sale:base;
             const price=(effective<base)?`<span class="old-price">${formatPrice(base)}</span>${formatPrice(effective)}`:formatPrice(base);
@@ -1530,7 +1570,7 @@ async function loadSellerProducts(){
             const statusBtn=p.published
                 ? `<button class="hide-btn" onclick="toggleSellerPublished('${escapeHtml(p.id)}',false)">🙈 Жасыру</button>`
                 : `<button class="show-btn" onclick="toggleSellerPublished('${escapeHtml(p.id)}',true)">👁 Жариялау</button>`;
-            return `<div class="seller-item">${img}<div class="seller-item-info"><div class="seller-item-name">${escapeHtml(p.name||"Тауар")}</div><div class="seller-item-price">${price} · <span class="${stockClass}">${stock} дана</span> ${p.published?'· жарияланған':'· жасырын'}</div></div><div class="seller-item-actions"><button onclick="changeSellerStock('${escapeHtml(p.id)}',-1)" title="Қойманы азайту">−</button><button onclick="changeSellerStock('${escapeHtml(p.id)}',1)" title="Қойманы көбейту">+</button>${statusBtn}<button onclick="openEditProduct('${escapeHtml(p.id)}')"><i class="fa-solid fa-pen"></i> Өзгерту</button></div></div>`;
+            return `<div class="seller-item">${img}<div class="seller-item-info"><div class="seller-item-name">${escapeHtml(localized.name||"Тауар")}</div><div class="seller-item-price">${price} · <span class="${stockClass}">${stock} ${OGO_CURRENT_LANG==='ru'?'шт.':'дана'}</span> ${p.published?(OGO_CURRENT_LANG==='ru'?'· опубликован':'· жарияланған'):(OGO_CURRENT_LANG==='ru'?'· скрыт':'· жасырын')}</div></div><div class="seller-item-actions"><button onclick="changeSellerStock('${escapeHtml(p.id)}',-1)" title="${OGO_CURRENT_LANG==='ru'?'Уменьшить остаток':'Қойманы азайту'}">−</button><button onclick="changeSellerStock('${escapeHtml(p.id)}',1)" title="${OGO_CURRENT_LANG==='ru'?'Увеличить остаток':'Қойманы көбейту'}">+</button>${statusBtn}<button onclick="openEditProduct('${escapeHtml(p.id)}')"><i class="fa-solid fa-pen"></i> ${OGO_CURRENT_LANG==='ru'?'Изменить':'Өзгерту'}</button></div></div>`;
         }).join("");
     }catch(error){
         console.error("O Go seller products error:",error);
@@ -1571,7 +1611,7 @@ async function loadEditSections(selectedId=""){
     try{
         const {data,error}=await supabaseClient.from("store_sections").select("id,name,service_type,sort_order").eq("service_type",service).order("sort_order",{ascending:true});
         if(error)throw error;
-        select.innerHTML=(data||[]).map(section=>`<option value="${escapeHtml(section.id)}">${escapeHtml(section.name)}</option>`).join("");
+        select.innerHTML=(data||[]).map(section=>`<option value="${escapeHtml(section.id)}">${escapeHtml(localizeSectionName(section.name))}</option>`).join("");
         if(selectedId)select.value=selectedId;
     }catch(error){
         select.innerHTML='<option value="">Бөлім жоқ</option>';
@@ -1698,63 +1738,40 @@ loadCatalog('shop');
 renderFoodRestaurants();
 </script>
 <script>
-
-/* O GO — LANGUAGE SYSTEM */
+/* O GO — COMPLETE LANGUAGE SYSTEM */
 const OGO_LANG={
-  kz:{
-    lang:'Kz',services:'O Go қызметтері',count:'4 қызмет',heroTitle:'Керек нәрсенің бәрі — бір жерде.',heroText:'Дүкен, такси, тамақ және жеткізу — O Go арқылы оңай.',heroNote:'Тез. Оңай. Жақын.',
-    shop:'Дүкен',shopDesc:'Күнделікті керек заттарды тапсырыс бер',shopSub:'Күнделікті тауарлар',taxi:'Такси',taxiDesc:'Қала ішінде көлікке тапсырыс бер',taxiSub:'Қала ішінде тапсырыс',food:'Тағамдар',foodDesc:'Кафе мен тағамдарға тапсырыс бер',foodSub:'Кафе мен тағамдар',delivery:'Жеткізу',deliveryDesc:'Сәлемдеме мен заттарды жеткіз',deliverySub:'Зат пен сәлемдеме',cart:'Себет',cartSub:'Таңдаған тауарларыңыз',
-    download:'Қолданбаны жүктеу',downloadText:'O Go жақында App Store және Google Play-де қолжетімді болады.',partner:'Серіктестік',seller:'Сатушы панелі',order:'Тапсырыс беру',deliveryHint:'Қай жерден алып, қай жерге жеткізу керегін жазыңыз.',
-    back:'Артқа',name:'Атыңыз',phone:'Телефон',address:'Мекенжай',payment:'Төлем',send:'WhatsApp арқылы тапсырыс беру',products:'Тауарлар',shipping:'Доставка',total:'Барлығы'
-  },
-  ru:{
-    lang:'Ru',services:'Сервисы O Go',count:'4 сервиса',heroTitle:'Всё необходимое — в одном месте.',heroText:'Магазин, такси, еда и доставка — легко с O Go.',heroNote:'Быстро. Просто. Рядом.',
-    shop:'Магазин',shopDesc:'Заказывайте всё необходимое на каждый день',shopSub:'Товары на каждый день',taxi:'Такси',taxiDesc:'Закажите поездку по городу',taxiSub:'Заказ по городу',food:'Еда',foodDesc:'Заказывайте блюда из кафе',foodSub:'Кафе и блюда',delivery:'Доставка',deliveryDesc:'Доставляйте посылки и вещи',deliverySub:'Посылки и вещи',cart:'Корзина',cartSub:'Выбранные товары',
-    download:'Скачать приложение',downloadText:'O Go скоро будет доступен в App Store и Google Play.',partner:'Партнёрство',seller:'Панель продавца',order:'Заказать',deliveryHint:'Укажите, откуда забрать и куда доставить.',
-    back:'Назад',name:'Ваше имя',phone:'Телефон',address:'Адрес',payment:'Оплата',send:'Заказать через WhatsApp',products:'Товары',shipping:'Доставка',total:'Итого'
-  }
+ kz:{lang:'Kz',home:'Басты бет',shop:'Дүкен',food:'Тағамдар',taxi:'Такси',delivery:'Жеткізу',cart:'Себет',services:'O Go қызметтері',count:'4 қызмет',heroTitle:'Керек нәрсенің бәрі — бір жерде.',heroText:'Дүкен, такси, тағамдар және жеткізу — O Go арқылы оңай.',heroNote:'Тез. Оңай. Жақын.',shopDesc:'Күнделікті керек заттарды тапсырыс бер',shopSub:'Күнделікті тауарлар',taxiDesc:'Қала ішінде көлікке тапсырыс бер',taxiSub:'Қала ішінде тапсырыс',foodDesc:'Кафе мен тағамдарға тапсырыс бер',foodSub:'Кафе мен ресторандар',deliveryDesc:'Сәлемдеме мен заттарды жеткіз',deliverySub:'Зат пен сәлемдеме',cartSub:'Таңдаған тауарларыңыз',download:'Қолданбаны жүктеу',downloadText:'O Go жақында App Store және Google Play-де қолжетімді болады.',partner:'Серіктестік',seller:'Сатушы панелі',order:'Тапсырыс беру',deliveryHint:'Қай жерден алып, қай жерге жеткізу керегін жазыңыз.',back:'Артқа',name:'Атыңыз',phone:'Телефон',address:'Мекенжай',payment:'Төлем',send:'WhatsApp арқылы тапсырыс беру',products:'Тауарлар',shipping:'Жеткізу',total:'Барлығы',search:'Дүкеннен тауар іздеу...',searchHint:'Тауар атауын толық немесе бірнеше әріппен жазыңыз — барлық бөлімнен ізделеді.',loginTitle:'Сатушы панелі',loginHint:'Supabase-та тіркелген сатушы email және паролімен кіріңіз.',login:'Кіру',addProduct:'Тауар қосу',publish:'Тауарды жариялау',bulk:'Көп тауарды бірден жүктеу',myProducts:'Менің тауарларым',logout:'Шығу',bulkTitle:'Көп тауарды бірден жүктеу',bulkHint:'CSV файл арқылы ондаған немесе жүздеген тауарды бірден қосыңыз.',template:'Дайын үлгіні жүктеу',csv:'CSV файл',upload:'Тауарларды жүктеу',edit:'Тауарды өзгерту',save:'Өзгерісті сақтау',delete:'Тауарды өшіру',service:'Қызмет',section:'Бөлім',productName:'Тауар атауы',price:'Бағасы, ₸',sale:'Акциялық баға, ₸ (қаласаңыз)',promo:'Акция атауы (қаласаңыз)',stock:'Қоймадағы саны',description:'Сипаттама',photo:'Фото',status:'Статус',published:'Жарияланған',hidden:'Жасырын',newSection:'Бөлім жүктелуде...',foodEmpty:'Бұл дәмханада тағамдар әзірге қосылған жоқ.',foodSubTitle:'Дәмхана мен ресторандар',all:'Барлығы',burger:'Бургер',sushi:'Суши',pizza:'Пицца',doner:'Донер',salad:'Салат',dessert:'Десерт',drinks:'Сусындар',choiceTitle:'Қызметті таңдаңыз',choiceTaxi:'Такси',choiceTaxiSub:'Қала ішінде',choiceDelivery:'Жеткізу',choiceDeliverySub:'Сәлемдеме мен заттар'},
+ ru:{lang:'Ru',home:'Главная',shop:'Магазин',food:'Еда',taxi:'Такси',delivery:'Доставка',cart:'Корзина',services:'Сервисы O Go',count:'4 сервиса',heroTitle:'Всё необходимое — в одном месте.',heroText:'Магазин, такси, еда и доставка — легко с O Go.',heroNote:'Быстро. Просто. Рядом.',shopDesc:'Заказывайте всё необходимое на каждый день',shopSub:'Товары на каждый день',taxiDesc:'Закажите поездку по городу',taxiSub:'Заказ по городу',foodDesc:'Заказывайте блюда из кафе',foodSub:'Кафе и рестораны',deliveryDesc:'Доставляйте посылки и вещи',deliverySub:'Посылки и вещи',cartSub:'Выбранные товары',download:'Скачать приложение',downloadText:'O Go скоро будет доступен в App Store и Google Play.',partner:'Партнёрство',seller:'Панель продавца',order:'Заказать',deliveryHint:'Укажите, откуда забрать и куда доставить.',back:'Назад',name:'Ваше имя',phone:'Телефон',address:'Адрес',payment:'Оплата',send:'Заказать через WhatsApp',products:'Товары',shipping:'Доставка',total:'Итого',search:'Поиск товара в магазине...',searchHint:'Введите полное название товара или несколько букв — поиск идёт по всем разделам.',loginTitle:'Панель продавца',loginHint:'Войдите с email и паролем продавца, зарегистрированными в Supabase.',login:'Войти',addProduct:'Добавить товар',publish:'Опубликовать товар',bulk:'Загрузить много товаров',myProducts:'Мои товары',logout:'Выйти',bulkTitle:'Загрузка нескольких товаров',bulkHint:'Добавьте десятки или сотни товаров одним CSV-файлом.',template:'Скачать готовый шаблон',csv:'CSV файл',upload:'Загрузить товары',edit:'Изменить товар',save:'Сохранить изменения',delete:'Удалить товар',service:'Сервис',section:'Раздел',productName:'Название товара',price:'Цена, ₸',sale:'Акционная цена, ₸ (по желанию)',promo:'Название акции (по желанию)',stock:'Количество на складе',description:'Описание',photo:'Фото',status:'Статус',published:'Опубликован',hidden:'Скрыт',newSection:'Загрузка разделов...',foodEmpty:'В этом ресторане блюда пока не добавлены.',foodSubTitle:'Кафе и рестораны',all:'Все',burger:'Бургеры',sushi:'Суши',pizza:'Пицца',doner:'Донер',salad:'Салаты',dessert:'Десерты',drinks:'Напитки',choiceTitle:'Выберите услугу',choiceTaxi:'Такси',choiceTaxiSub:'По городу',choiceDelivery:'Доставка',choiceDeliverySub:'Посылки и вещи'}
 };
 let OGO_CURRENT_LANG=localStorage.getItem('ogo_lang')||'kz';
+function setText(id,v){const e=document.getElementById(id);if(e)e.textContent=v}
 function setLang(lang){
-  OGO_CURRENT_LANG=lang==='ru'?'ru':'kz'; localStorage.setItem('ogo_lang',OGO_CURRENT_LANG);
-  const L=OGO_LANG[OGO_CURRENT_LANG];
-  const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v};
-  set('langBtn',L.lang);set('servicesTitle',L.services);set('servicesCount',L.count);set('heroTitle',L.heroTitle);set('heroText',L.heroText);const hn=document.getElementById('heroNote');if(hn)hn.innerHTML='<i class="fa-solid fa-bolt"></i> '+L.heroNote;
-  set('downloadTitle',L.download);set('downloadText',L.downloadText);set('menuPartner',L.partner);set('menuSeller',L.seller);set('deliveryOrderBtnText',L.order);set('navFoodText',L.food);set('navDeliveryText',OGO_CURRENT_LANG==='ru'?'Такси/Доставка':'Такси/Жеткізу');set('navCartText',OGO_CURRENT_LANG==='ru'?'Корзина':'Себет');
-  document.querySelectorAll('[data-service-title]').forEach(e=>e.textContent=L[e.dataset.serviceTitle]);
-  document.querySelectorAll('[data-service-desc]').forEach(e=>e.textContent=L[e.dataset.serviceDesc+'Desc']);
-  document.querySelectorAll('[data-page-title]').forEach(e=>e.textContent=L[e.dataset.pageTitle]);
-  document.querySelectorAll('[data-page-subtitle]').forEach(e=>e.textContent=L[e.dataset.pageSubtitle+'Sub']);
-  const ph={shopSearch:OGO_CURRENT_LANG==='ru'?'Поиск товара в магазине...':'Дүкеннен тауар іздеу...',clientName:L.name,clientAddress:OGO_CURRENT_LANG==='ru'?'Город, улица, дом, квартира':'Қала, көше, үй, пәтер',taxiFrom:OGO_CURRENT_LANG==='ru'?'Например: Абая 25':'Мысалы: Абай 25',taxiTo:OGO_CURRENT_LANG==='ru'?'Например: Магазин':'Мысалы: Дүкен',taxiComment:OGO_CURRENT_LANG==='ru'?'Если нужно, напишите':'Қажет болса жазыңыз',deliveryFrom:L.address,deliveryTo:L.address,deliveryComment:OGO_CURRENT_LANG==='ru'?'Например: документы, пакет, продукты':'Мысалы: құжат, пакет, азық-түлік',sellerProductName:OGO_CURRENT_LANG==='ru'?'Например: Молоко 1 л':'Мысалы: Сүт 1 л',sellerProductDescription:OGO_CURRENT_LANG==='ru'?'Краткое описание':'Қысқаша сипаттама'};
-  Object.keys(ph).forEach(id=>{const e=document.getElementById(id);if(e)e.placeholder=ph[id]});
-  const labels=document.querySelectorAll('#cartCheckout .form-group label'); if(labels.length>=4){labels[0].textContent=L.name;labels[1].textContent=L.phone;labels[2].textContent=L.address;labels[3].textContent=L.payment;}
-  const cartRows=document.querySelectorAll('#cartCheckout .total div span:first-child'); if(cartRows.length>=3){cartRows[0].textContent=L.products;cartRows[1].textContent=L.shipping;cartRows[2].textContent=L.total;}
-  const send=document.querySelector('#cartCheckout .submit'); if(send)send.innerHTML='<i class="fa-brands fa-whatsapp"></i> '+L.send;
-  const text=(sel,v)=>{const e=document.querySelector(sel);if(e)e.textContent=v};
-  text('.catalog-search-hint',OGO_CURRENT_LANG==='ru'?'Введите полное название товара или несколько букв — поиск идёт по всем разделам.':'Тауар атауын толық немесе бірнеше әріппен жазыңыз — барлық бөлімнен ізделеді.');
-  const empty=document.getElementById('cartEmpty');if(empty)empty.textContent=OGO_CURRENT_LANG==='ru'?'Корзина пока пуста.':'Себет әзірге бос.';
-  const shopBack=document.querySelector('#shop .back');if(shopBack)shopBack.setAttribute('aria-label',L.back);
-  const labelsTaxi=document.querySelectorAll('#taxi .form-group label');if(labelsTaxi.length>=4){labelsTaxi[0].textContent=OGO_CURRENT_LANG==='ru'?'Откуда?':'Қай жерден?';labelsTaxi[1].textContent=OGO_CURRENT_LANG==='ru'?'Куда?':'Қай жерге?';labelsTaxi[2].textContent=L.phone;labelsTaxi[3].textContent=OGO_CURRENT_LANG==='ru'?'Дополнительная информация':'Қосымша ақпарат';}
-  const taxiBtn=document.querySelector('#taxi .submit');if(taxiBtn)taxiBtn.innerHTML='<i class="fa-brands fa-whatsapp"></i> '+(OGO_CURRENT_LANG==='ru'?'Заказать через WhatsApp':'WhatsApp арқылы тапсырыс');
-  const labelsDel=document.querySelectorAll('#delivery .form-group label');if(labelsDel.length>=4){labelsDel[0].textContent=OGO_CURRENT_LANG==='ru'?'Место забора':'Алып кететін жер';labelsDel[1].textContent=OGO_CURRENT_LANG==='ru'?'Место доставки':'Жеткізетін жер';labelsDel[2].textContent=L.phone;labelsDel[3].textContent=OGO_CURRENT_LANG==='ru'?'Что доставить?':'Не жеткізу керек?';}
-  const delHint=document.querySelector('#delivery .hint');if(delHint)delHint.textContent=L.deliveryHint;
-  const sellerLabels=document.querySelectorAll('#sellerModal .form-group label');
-  const sellerLabelKz=['Қызмет','Бөлім','Тауар атауы','Бағасы, ₸','Акциялық баға, ₸ (қаласаңыз)','Акция атауы (қаласаңыз)','Қоймадағы саны','Сипаттама','Фото'];
-  const sellerLabelRu=['Сервис','Раздел','Название товара','Цена, ₸','Акционная цена, ₸ (по желанию)','Название акции (по желанию)','Количество на складе','Описание','Фото'];
-  sellerLabels.forEach((e,i)=>{if(i<9)e.textContent=(OGO_CURRENT_LANG==='ru'?sellerLabelRu:sellerLabelKz)[i]});
-  const sellerService=document.getElementById('sellerService');if(sellerService){sellerService.options[0].text=OGO_CURRENT_LANG==='ru'?'Магазин':'Дүкен';sellerService.options[1].text=OGO_CURRENT_LANG==='ru'?'Еда':'Тағамдар';}
-  const editService=document.getElementById('editProductService');if(editService){editService.options[0].text=OGO_CURRENT_LANG==='ru'?'Магазин':'Дүкен';editService.options[1].text=OGO_CURRENT_LANG==='ru'?'Еда':'Тағамдар';}
-  set('navDeliveryText',OGO_CURRENT_LANG==='ru'?'Такси/Доставка':'Такси/Жеткізу');
-  const foodPageTitle=document.querySelector('#food [data-page-title="food"]');if(foodPageTitle)foodPageTitle.textContent=L.food;
-  const foodSub=document.querySelector('#food [data-page-subtitle="food"]');if(foodSub)foodSub.textContent=OGO_CURRENT_LANG==='ru'?'Кафе и рестораны':'Дәмхана мен ресторандар';
-  renderFoodRestaurants();
-  if(document.getElementById('restaurantMenu')?.style.display!=='none'){renderFoodCategories();renderRestaurantProducts();}
-  const rb=document.getElementById('restaurantEmpty');if(rb)rb.textContent=OGO_CURRENT_LANG==='ru'?'В этом ресторане блюда пока не добавлены.':'Бұл дәмханада тағамдар әзірге қосылған жоқ.';
-  document.documentElement.lang=OGO_CURRENT_LANG==='ru'?'ru':'kk';
+ OGO_CURRENT_LANG=lang==='ru'?'ru':'kz';localStorage.setItem('ogo_lang',OGO_CURRENT_LANG);const L=OGO_LANG[OGO_CURRENT_LANG];
+ document.documentElement.lang=OGO_CURRENT_LANG==='ru'?'ru':'kk';
+ setText('langBtn',L.lang);setText('navHomeText',L.home);setText('navShopText',L.shop);setText('navFoodText',L.food);setText('navDeliveryText',L.taxi+'/'+L.delivery);setText('navCartText',L.cart);
+ setText('servicesTitle',L.services);setText('servicesCount',L.count);setText('heroTitle',L.heroTitle);setText('heroText',L.heroText);const hn=document.getElementById('heroNote');if(hn)hn.innerHTML='<i class="fa-solid fa-bolt"></i> '+L.heroNote;
+ setText('downloadTitle',L.download);setText('downloadText',L.downloadText);setText('menuPartner',L.partner);setText('menuSeller',L.seller);
+ document.querySelectorAll('[data-service-title]').forEach(e=>e.textContent=L[e.dataset.serviceTitle]);document.querySelectorAll('[data-service-desc]').forEach(e=>e.textContent=L[e.dataset.serviceDesc+'Desc']);
+ document.querySelectorAll('[data-page-title]').forEach(e=>e.textContent=L[e.dataset.pageTitle]);document.querySelectorAll('[data-page-subtitle]').forEach(e=>e.textContent=L[e.dataset.pageSubtitle+'Sub']);
+ const ph={shopSearch:L.search,clientName:L.name,clientAddress:OGO_CURRENT_LANG==='ru'?'Город, улица, дом, квартира':'Қала, көше, үй, пәтер',taxiFrom:OGO_CURRENT_LANG==='ru'?'Например: Абая 25':'Мысалы: Абай 25',taxiTo:OGO_CURRENT_LANG==='ru'?'Например: Магазин':'Мысалы: Дүкен',taxiComment:OGO_CURRENT_LANG==='ru'?'Если нужно, напишите':'Қажет болса жазыңыз',deliveryFrom:L.address,deliveryTo:L.address,deliveryComment:OGO_CURRENT_LANG==='ru'?'Например: документы, пакет, продукты':'Мысалы: құжат, пакет, азық-түлік',sellerProductName:OGO_CURRENT_LANG==='ru'?'Например: Молоко 1 л':'Мысалы: Сүт 1 л',sellerProductDescription:OGO_CURRENT_LANG==='ru'?'Краткое описание':'Қысқаша сипаттама'};Object.keys(ph).forEach(id=>{const e=document.getElementById(id);if(e)e.placeholder=ph[id]});
+ const labels=document.querySelectorAll('#cartCheckout .form-group label');if(labels.length>=4){labels[0].textContent=L.name;labels[1].textContent=L.phone;labels[2].textContent=L.address;labels[3].textContent=L.payment}
+ const rows=document.querySelectorAll('#cartCheckout .total div span:first-child');if(rows.length>=3){rows[0].textContent=L.products;rows[1].textContent=L.shipping;rows[2].textContent=L.total}
+ const send=document.querySelector('#cartCheckout .submit');if(send)send.innerHTML='<i class="fa-brands fa-whatsapp"></i> '+L.send;
+ setText('cartEmpty',OGO_CURRENT_LANG==='ru'?'Корзина пока пуста.':'Себет әзірге бос.');document.querySelectorAll('.catalog-search-hint').forEach(e=>e.textContent=L.searchHint);
+ const labelsTaxi=document.querySelectorAll('#taxi .form-group label');if(labelsTaxi.length>=4){labelsTaxi[0].textContent=OGO_CURRENT_LANG==='ru'?'Откуда?':'Қай жерден?';labelsTaxi[1].textContent=OGO_CURRENT_LANG==='ru'?'Куда?':'Қай жерге?';labelsTaxi[2].textContent=L.phone;labelsTaxi[3].textContent=OGO_CURRENT_LANG==='ru'?'Дополнительная информация':'Қосымша ақпарат'}
+ const taxiBtn=document.querySelector('#taxi .submit');if(taxiBtn)taxiBtn.innerHTML='<i class="fa-brands fa-whatsapp"></i> '+(OGO_CURRENT_LANG==='ru'?'Заказать через WhatsApp':'WhatsApp арқылы тапсырыс');
+ const labelsDel=document.querySelectorAll('#delivery .form-group label');if(labelsDel.length>=4){labelsDel[0].textContent=OGO_CURRENT_LANG==='ru'?'Место забора':'Алып кететін жер';labelsDel[1].textContent=OGO_CURRENT_LANG==='ru'?'Место доставки':'Жеткізетін жер';labelsDel[2].textContent=L.phone;labelsDel[3].textContent=OGO_CURRENT_LANG==='ru'?'Что доставить?':'Не жеткізу керек?'}const delHint=document.querySelector('#delivery .hint');if(delHint)delHint.textContent=L.deliveryHint;
+ setText('loginTitle',L.loginTitle);setText('loginHint',L.loginHint);setText('loginButton',L.login);setText('sellerAddTitle',L.addProduct);setText('sellerPublishBtn',L.publish);setText('bulkOpenText',L.bulk);setText('myProductsTitle',L.myProducts);setText('sellerLogoutText',L.logout);setText('bulkTitle',L.bulkTitle);setText('bulkHint',L.bulkHint);setText('bulkTemplateText',L.template);setText('csvFileLabel',L.csv);setText('bulkUploadText',L.upload);setText('editTitle',L.edit);setText('editSaveText',L.save);setText('editDeleteText',L.delete);
+ const sellerLabels=document.querySelectorAll('#sellerModal .form-group label');const kz=[L.service,L.section,L.productName,L.price,L.sale,L.promo,L.stock,L.description,L.photo];sellerLabels.forEach((e,i)=>{if(i<9)e.textContent=kz[i]});
+ const editLabels=document.querySelectorAll('#editProductModal .form-group label');const editVals=[L.service,L.section,L.productName,L.price,L.sale,L.promo,L.stock,L.status,L.description,''];editLabels.forEach((e,i)=>{if(i===7){e.textContent=L.status}else if(i<9)e.textContent=editVals[i]});
+ const ss=document.getElementById('sellerService');if(ss){ss.options[0].text=L.shop;ss.options[1].text=L.food}const es=document.getElementById('editProductService');if(es){es.options[0].text=L.shop;es.options[1].text=L.food}
+ const foodSub=document.querySelector('#food [data-page-subtitle="food"]');if(foodSub)foodSub.textContent=L.foodSubTitle;
+ setText('restaurantEmpty',L.foodEmpty);setText('serviceChooserTitle',L.choiceTitle);setText('choiceTaxi',L.choiceTaxi);setText('choiceTaxiSub',L.choiceTaxiSub);setText('choiceDelivery',L.choiceDelivery);setText('choiceDeliverySub',L.choiceDeliverySub);
+ const back=document.querySelectorAll('.back');back.forEach(b=>b.setAttribute('aria-label',L.back));
+ renderFoodRestaurants();if(document.getElementById('restaurantMenu')?.style.display!=='none'){renderFoodCategories();renderRestaurantProducts()}
 }
 function toggleLanguage(){setLang(OGO_CURRENT_LANG==='kz'?'ru':'kz')}
 document.addEventListener('DOMContentLoaded',()=>setLang(OGO_CURRENT_LANG));
-
 </script>
 </body>
 </html>
