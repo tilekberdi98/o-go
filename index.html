@@ -1219,7 +1219,7 @@ function closeBulkUpload(){document.getElementById("bulkUploadModal").classList.
 function downloadBulkTemplate(){
     const header="service,section,name,price,sale_price,promo_text,stock,description,image_url\n";
     const example="shop,Сусындар,Piala Ice Tea,650,520,-20%,15,Манго дәмі,\n";
-    const csv="\\uFEFF"+header+example;
+    const csv="\uFEFF"+header+example;
     const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"});
     const url=URL.createObjectURL(blob);
     const a=document.createElement("a");a.href=url;a.download="O_Go_products_template.csv";document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
@@ -1228,20 +1228,31 @@ function downloadBulkTemplate(){
 function parseCSV(text){
     text=String(text||"").replace(/^\uFEFF/,"");
     const rows=[];let row=[],cell="",quoted=false;
+
     for(let i=0;i<text.length;i++){
         const ch=text[i],next=text[i+1];
+
         if(ch==='"'){
             if(quoted&&next==='"'){cell+='"';i++;}
             else quoted=!quoted;
-        }else if(ch===','&&!quoted){row.push(cell);cell="";}
-        else if((ch==='\\n'||ch==='\\r')&&!quoted){
-            if(ch==='\\r'&&next==='\\n')i++;
-            row.push(cell);cell="";
+        }else if(ch===','&&!quoted){
+            row.push(cell);
+            cell="";
+        }else if((ch==='\n'||ch==='\r')&&!quoted){
+            if(ch==='\r'&&next==='\n')i++;
+            row.push(cell);
+            cell="";
             if(row.some(v=>String(v).trim()!==""))rows.push(row);
             row=[];
-        }else cell+=ch;
+        }else{
+            cell+=ch;
+        }
     }
-    if(cell!==""||row.length){row.push(cell);if(row.some(v=>String(v).trim()!==""))rows.push(row);}
+
+    if(cell!==""||row.length){
+        row.push(cell);
+        if(row.some(v=>String(v).trim()!==""))rows.push(row);
+    }
     return rows;
 }
 
