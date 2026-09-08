@@ -409,6 +409,9 @@ main{padding:18px 16px 24px}
     .service h3{font-size:16px}
 }
 </style>
+
+<!-- SUPABASE -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
@@ -621,6 +624,15 @@ main{padding:18px 16px 24px}
 </div>
 
 <script>
+/* SUPABASE */
+const SUPABASE_URL = "https://qiuawcnuhhepawkpiacs.supabase.co";
+const SUPABASE_KEY = "sb_publishable_jl1rT6_ri3k0blRMI67ybw_X9eKrxjh";
+
+const supabaseClient = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+);
+
 const WHATSAPP = "77756108898";
 let cart = [];
 
