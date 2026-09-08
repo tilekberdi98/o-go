@@ -706,30 +706,43 @@ async function loadCatalog(type){
     sectionsEl.innerHTML='';
 
     try{
-        const [{data:sections,error:sectionsError},{data:products,error:productsError}]=await Promise.all([
-            supabaseClient
-                .from('store_sections')
-                .select('id,name,service_type,sort_order')
-                .eq('service_type',type)
-                .order('sort_order',{ascending:true}),
-            supabaseClient
-                .from('products')
-                .select('id,name,price,description,image_url,stock,published,section_id,service_type,category,store_id')
-                .eq('published',true)
-                .or(`category.eq.${type},service_type.eq.${type}`)
-                .order('created_at',{ascending:false})
-        ]);
+        // 1) Бөлімдер бөлек жүктеледі. Бөлімдерде қате болса да,
+        //    тауарлардың шығуына кедергі жасамайды.
+        const sectionsResult=await supabaseClient
+            .from('store_sections')
+            .select('id,name,service_type,sort_order')
+            .eq('service_type',type)
+            .order('sort_order',{ascending:true});
 
-        if(sectionsError)throw sectionsError;
-        if(productsError)throw productsError;
+        if(sectionsResult.error){
+            console.error('O Go sections error:',sectionsResult.error);
+            state.sections=[];
+        }else{
+            state.sections=sectionsResult.data||[];
+        }
 
-        state.sections=sections||[];
-        state.products=(products||[]).filter(p=>p.published!==false);
+        // 2) Барлық жарияланған тауарларды аламыз да,
+        //    shop/food сүзгісін браузерде жасаймыз.
+        //    Бұл PostgREST .or() сүзгісіне тәуелділікті жояды.
+        const productsResult=await supabaseClient
+            .from('products')
+            .select('id,name,price,description,image_url,stock,published,section_id,service_type,category,store_id,created_at')
+            .eq('published',true)
+            .order('created_at',{ascending:false});
+
+        if(productsResult.error)throw productsResult.error;
+
+        state.products=(productsResult.data||[]).filter(p=>
+            p.category===type || p.service_type===type
+        );
         state.loaded=true;
         renderSections(type);
         renderProducts(type);
     }catch(error){
         console.error('O Go Supabase catalog error:',error);
+        state.sections=[];
+        state.products=[];
+        state.loaded=false;
         sectionsEl.innerHTML='';
         productsEl.innerHTML='<div class="empty">Тауарларды жүктеу кезінде қате болды. Supabase байланысын тексеріңіз.</div>';
     }
