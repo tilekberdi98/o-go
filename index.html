@@ -544,6 +544,24 @@ body{background:#f6b35f!important;color:#171717!important}
 .header-btn{color:#161916!important}
 
 .shop-category-accordion{display:flex;flex-direction:column;gap:0}.shop-category-accordion>.category-btn{position:relative}.shop-cat-chevron{margin-left:auto;font-size:18px;opacity:.65}.shop-inline-sections{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:8px 6px 10px;background:rgba(255,255,255,.65);border-radius:0 0 14px 14px}.shop-inline-section{font-size:11px!important;min-height:38px!important;font-weight:700!important;background:#f7f7f7!important;color:#252525!important;border:1px solid rgba(0,0,0,.08)!important}.shop-category-accordion.open>.category-btn{border-radius:14px 14px 4px 4px!important}.shop-category-accordion.open{margin-bottom:4px}
+
+/* V24 SELLER WAREHOUSE */
+.seller-last-added{margin-top:10px;padding:11px 12px;border:1px solid rgba(190,255,0,.35);background:#172015;border-radius:14px;color:#dfff7a;font-size:12px;font-weight:800}
+.seller-last-added small{display:block;color:#aab5a8;font-weight:600;margin-top:3px}
+.seller-warehouse{margin-top:12px}
+.warehouse-toggle{width:100%;border:1px solid #3a423a;border-radius:14px;background:#252b27;color:#fff;padding:12px 13px;display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:900;font-size:14px}
+.warehouse-toggle span:first-child{flex:1;text-align:left}
+.warehouse-count{min-width:28px;padding:3px 8px;border-radius:999px;background:var(--yellow);color:#111;font-size:11px}
+.warehouse-panel{margin-top:8px;padding:10px;border:1px solid #303730;border-radius:16px;background:#101410}
+.warehouse-search-wrap{position:relative;margin-bottom:9px}
+.warehouse-search-wrap i{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#8e988e}
+.warehouse-search-wrap input{width:100%;padding:11px 12px 11px 36px;border-radius:12px;border:1px solid #3b433b;background:#202520;color:#fff;outline:none}
+.warehouse-search-wrap input:focus{border-color:var(--yellow)}
+.warehouse-hint{font-size:11px;color:#9da69d;margin:4px 2px 10px;line-height:1.35}
+.warehouse-panel #sellerProductsList{max-height:48vh;overflow:auto;padding-right:2px}
+.seller-item.is-new{outline:1px solid rgba(190,255,0,.55)}
+.seller-item .seller-item-info{min-width:0}
+@media(max-width:600px){.warehouse-panel #sellerProductsList{max-height:44vh}.seller-item-actions{max-width:145px}.seller-item button{padding:7px 8px;font-size:10px}}
 </style>
 
 <!-- SUPABASE -->
@@ -816,7 +834,15 @@ body{background:#f6b35f!important;color:#171717!important}
         <div class="form-group"><label>Фото</label><input id="sellerProductImage" type="file" accept="image/*"></div>
         <button id="sellerPublishBtn" class="submit green" onclick="createSellerProduct()"><i class="fa-solid fa-plus"></i> Тауарды жариялау</button>
         <button class="submit" style="margin-top:9px;background:#252b27;color:#fff" onclick="openBulkUpload()"><i class="fa-solid fa-file-import"></i> <span id="bulkOpenText">Көп тауарды бірден жүктеу</span></button>
-        <div class="seller-products"><h4 id="myProductsTitle">Менің тауарларым</h4><div id="sellerProductsList"><div class="hint">Жүктелуде...</div></div></div>
+        <div id="sellerLastAdded" class="seller-last-added" style="display:none"></div>
+        <div class="seller-warehouse">
+            <button id="sellerWarehouseToggle" class="warehouse-toggle" type="button" onclick="toggleSellerWarehouse()"><span><i class="fa-solid fa-box-open"></i> Склад</span><span id="sellerWarehouseCount" class="warehouse-count">0</span><i id="sellerWarehouseChevron" class="fa-solid fa-chevron-down"></i></button>
+            <div id="sellerWarehousePanel" class="warehouse-panel" style="display:none">
+                <div class="warehouse-search-wrap"><i class="fa-solid fa-magnifying-glass"></i><input id="sellerWarehouseSearch" type="search" autocomplete="off" placeholder="Тауар іздеу..." oninput="filterSellerWarehouse(this.value)"></div>
+                <div id="sellerWarehouseHint" class="warehouse-hint">Барлық тауар осы жерде. Тауарды өзгерту, жасыру немесе өшіру үшін Складтан таңдаңыз.</div>
+                <div id="sellerProductsList"><div class="hint">Жүктелуде...</div></div>
+            </div>
+        </div>
         <button class="submit" style="margin-top:9px;background:#252b27;color:#fff" onclick="sellerLogout()"><span id="sellerLogoutText">Шығу</span></button>
         <div id="sellerStatus" class="hint" style="margin-top:10px"></div>
     </div>
@@ -1894,6 +1920,7 @@ async function createSellerProduct(){
 
         status.className='hint seller-success';
         status.textContent='✅ Тауар сәтті қосылды!';
+        showSellerLastAdded({id:result.data.id,title:name,unit,price,category_id:autoCategory.category_id,category_name:autoCategory.category_name,section_name:autoCategory.section_name,image_url:null,is_active:true,updated_at:new Date().toISOString()});
 
         // Тек сәтті сақталғаннан кейін ғана форманы тазалаймыз.
         document.getElementById('sellerProductName').value='';
@@ -2053,15 +2080,9 @@ async function processBulkUpload(){
             if(!title)errors.push(`№${line}: тауар атауы бос`);
             else if(!Number.isFinite(price)||price<0)errors.push(`№${line}: баға қате`);
             else {
-                const rawCategory=categoryCol?String(row[categoryCol]??'').trim():'';
-                const rawSection=sectionCol?String(row[sectionCol]??'').trim():'';
-                let auto={category_id:null,category_name:null,section_id:null,section_name:null};
-                if(rawCategory){
-                    const found=OGO_AYBOLIT_CATEGORIES.find(c=>normalizeSearchText(c.name)===normalizeSearchText(rawCategory)||c.id===rawCategory);
-                    if(found)auto.category_id=found.id,auto.category_name=found.name; else auto.category_name=rawCategory;
-                }
-                if(rawSection)auto.section_name=rawSection;
-                if(!auto.category_id){ const guessed=ogoAutoClassifyProduct({name:title,unit,barcode}); if(guessed)auto=guessed; }
+                // UMAG-та категория/раздел болса да, O Go Айболитте оларды атауға қарай өзі анықтайды.
+                // Осылайша бір-бірлеп және жаппай импортта бірдей алгоритм қолданылады.
+                const auto=ogoAutoClassifyProduct({name:title,unit,barcode}) || {category_id:'undefined',category_name:'Незаданные',section_id:null,section_name:null};
                 products.push({
                     seller_id:sellerUser.id, barcode:barcode||('20'+String(Date.now()).slice(-9)+String(Math.floor(Math.random()*1000)).padStart(3,'0')), title, price,
                     unit:unit||null, sku:sku||null, extra_code:null, is_active:true,
@@ -2102,6 +2123,7 @@ async function processBulkUpload(){
         }
         status.className='hint seller-success';
         status.innerHTML=`✅ ${done} тауар UMAG-тан сәтті жүктелді!<br>Штрихкод сәйкес келсе — бұрынғы тауар жаңартылды. Суреттерге қол тиген жоқ.`;
+        showSellerLastAdded(done);
         catalogState.shop.loaded=false; catalogState.food.loaded=false;
         await loadSellerProducts();
         if(document.getElementById('shop').classList.contains('active'))await loadCatalog('shop');
@@ -2112,27 +2134,83 @@ async function processBulkUpload(){
     }
 }
 
+let sellerWarehouseProducts=[];
+let sellerWarehouseOpen=false;
+let sellerLastAddedId='';
+
+function toggleSellerWarehouse(){
+    sellerWarehouseOpen=!sellerWarehouseOpen;
+    const panel=document.getElementById('sellerWarehousePanel');
+    const chev=document.getElementById('sellerWarehouseChevron');
+    if(panel)panel.style.display=sellerWarehouseOpen?'block':'none';
+    if(chev)chev.className=sellerWarehouseOpen?'fa-solid fa-chevron-up':'fa-solid fa-chevron-down';
+    if(sellerWarehouseOpen){
+        const input=document.getElementById('sellerWarehouseSearch');
+        if(input){input.focus();filterSellerWarehouse(input.value||'');}
+    }
+}
+
+function renderSellerWarehouse(items){
+    const el=document.getElementById('sellerProductsList');
+    const count=document.getElementById('sellerWarehouseCount');
+    if(count)count.textContent=String(sellerWarehouseProducts.length);
+    if(!el)return;
+    if(!items.length){el.innerHTML='<div class="hint">Сәйкес тауар табылмады.</div>';return;}
+    el.innerHTML=items.map(p=>{
+        const name=localizedProduct(p).name;
+        const price=formatPrice(Number(p.price||0));
+        const statusBtn=p.is_active
+            ? `<button class="hide-btn" onclick="toggleSellerPublished('\${escapeHtml(p.id)}',false)">🙈 Жасыру</button>`
+            : `<button class="show-btn" onclick="toggleSellerPublished('\${escapeHtml(p.id)}',true)">👁 Жариялау</button>`;
+        const isNew=String(p.id)===String(sellerLastAddedId)?' is-new':'';
+        return `<div class="seller-item${isNew}"><div class="seller-thumb">${p.image_url?`<img src="${escapeHtml(p.image_url)}" alt="${escapeHtml(name)}" loading="lazy">`:autoProductImage(name)}</div><div class="seller-item-info"><div class="seller-item-name">${escapeHtml(name)}</div><div class="seller-item-price">${price} · ${p.unit?escapeHtml(p.unit):''} ${p.barcode?`· ${escapeHtml(p.barcode)}`:''} ${p.is_active?'· жарияланған':'· жасырын'}</div></div><div class="seller-item-actions">${statusBtn}<button onclick="openEditProduct('\${escapeHtml(p.id)}')"><i class="fa-solid fa-pen"></i> Өзгерту</button><button class="hide-btn" onclick="deleteSellerProduct('\${escapeHtml(p.id)}')"><i class="fa-solid fa-trash"></i> Өшіру</button></div></div>`;
+    }).join('');
+}
+
+function filterSellerWarehouse(query=''){
+    const q=normalizeSearchText(query);
+    if(!q){renderSellerWarehouse(sellerWarehouseProducts);return;}
+    const matched=sellerWarehouseProducts
+      .map(p=>({p,score:searchScoreProduct(p,q)}))
+      .filter(x=>x.score>0)
+      .sort((a,b)=>b.score-a.score || new Date(b.p.updated_at||0)-new Date(a.p.updated_at||0))
+      .map(x=>x.p);
+    renderSellerWarehouse(matched);
+}
+
+function showSellerLastAdded(productOrCount){
+    const el=document.getElementById('sellerLastAdded');
+    if(!el)return;
+    if(typeof productOrCount==='number'){
+        el.style.display='block';
+        el.innerHTML=`✅ <b>${productOrCount} тауар</b> базаға енгізілді.<small>Нәтижені көру үшін төмендегі «Склад» бөліміне кіріңіз.</small>`;
+        return;
+    }
+    const name=localizedProduct(productOrCount).name;
+    sellerLastAddedId=productOrCount?.id||'';
+    el.style.display='block';
+    el.innerHTML=`✅ <b>${escapeHtml(name)}</b> сәтті енгізілді.<small>Тауар Складқа сақталды. Барлық тауарды төменнен іздеуге болады.</small>`;
+}
+
 async function loadSellerProducts(){
     const el=document.getElementById('sellerProductsList');
     if(!el||!sellerUser)return;
     el.innerHTML='<div class="hint">Жүктелуде...</div>';
     try{
+        // Айболиттің екі сатушысы бір ортақ складпен жұмыс істейді.
+        // RLS тек осы екі email-ге рұқсат береді, сондықтан seller_id бойынша бөлмейміз.
         const {data,error}=await supabaseClient.from('products')
             .select('id,seller_id,barcode,title,price,unit,sku,extra_code,is_active,updated_at,category_id,category_name,section_name,sale_price,discount_percent,promo_text,image_url')
-            .eq('seller_id',sellerUser.id).order('updated_at',{ascending:false});
+            .order('updated_at',{ascending:false});
         if(error)throw error;
-        if(!data||!data.length){el.innerHTML='<div class="hint">Әзірге тауар жоқ.</div>';return}
-        el.innerHTML=data.map(p=>{
-            const name=localizedProduct(p).name;
-            const price=formatPrice(Number(p.price||0));
-            const statusBtn=p.is_active
-                ? `<button class="hide-btn" onclick="toggleSellerPublished('${escapeHtml(p.id)}',false)">🙈 Жасыру</button>`
-                : `<button class="show-btn" onclick="toggleSellerPublished('${escapeHtml(p.id)}',true)">👁 Жариялау</button>`;
-            return `<div class="seller-item"><div class="seller-thumb">${p.image_url?`<img src="${escapeHtml(p.image_url)}" alt="${escapeHtml(name)}" loading="lazy">`:autoProductImage(name)}</div><div class="seller-item-info"><div class="seller-item-name">${escapeHtml(name)}</div><div class="seller-item-price">${price} · ${p.unit?escapeHtml(p.unit):''} ${p.barcode?`· ${escapeHtml(p.barcode)}`:''} ${p.is_active?'· жарияланған':'· жасырын'}</div></div><div class="seller-item-actions">${statusBtn}<button onclick="openEditProduct('${escapeHtml(p.id)}')"><i class="fa-solid fa-pen"></i> Өзгерту</button><button class="hide-btn" onclick="deleteSellerProduct('${escapeHtml(p.id)}')"><i class="fa-solid fa-trash"></i> Өшіру</button></div></div>`;
-        }).join('');
+        sellerWarehouseProducts=Array.isArray(data)?data:[];
+        const count=document.getElementById('sellerWarehouseCount');
+        if(count)count.textContent=String(sellerWarehouseProducts.length);
+        if(!sellerWarehouseProducts.length){el.innerHTML='<div class="hint">Складта әзірге тауар жоқ.</div>';return;}
+        filterSellerWarehouse(document.getElementById('sellerWarehouseSearch')?.value||'');
     }catch(error){
-        console.error('O Go seller products error:',error);
-        el.innerHTML=`<div class="hint seller-error">${escapeHtml(error.message||'Тауарларды жүктеу қатесі.')}</div>`;
+        console.error('O Go seller warehouse error:',error);
+        el.innerHTML=`<div class="hint seller-error">${escapeHtml(error.message||'Складтағы тауарларды жүктеу қатесі.')}</div>`;
     }
 }
 
@@ -2143,7 +2221,7 @@ async function deleteSellerProduct(id){
     const ok=confirm(OGO_CURRENT_LANG==='ru'?'Удалить этот товар? Это действие нельзя отменить.':'Бұл тауарды өшіру керек пе? Бұл әрекетті қайтару мүмкін емес.');
     if(!ok)return;
     try{
-        const result=await supabaseClient.from('products').delete().eq('id',id).eq('seller_id',sellerUser.id);
+        const result=await supabaseClient.from('products').delete().eq('id',id);
         if(result.error)throw result.error;
         await loadSellerProducts();
         catalogState.shop.loaded=false;
@@ -2155,7 +2233,7 @@ async function deleteSellerProduct(id){
 
 async function toggleSellerPublished(id, published){
     try{
-        const result=await supabaseClient.from('products').update({is_active:published,updated_at:new Date().toISOString()}).eq('id',id).eq('seller_id',sellerUser.id);
+        const result=await supabaseClient.from('products').update({is_active:published,updated_at:new Date().toISOString()}).eq('id',id);
         if(result.error)throw result.error;
         await loadSellerProducts();
         catalogState.shop.loaded=false; catalogState.food.loaded=false;
@@ -2182,7 +2260,7 @@ function loadEditSubsections(){loadEditSections('',document.getElementById('edit
 async function openEditProduct(id){
     const status=document.getElementById('editProductStatus'); status.className='hint'; status.textContent='';
     try{
-        const {data,error}=await supabaseClient.from('products').select('id,barcode,title,price,unit,sku,is_active,category_id,section_name,sale_price,discount_percent,promo_text,image_url').eq('id',id).eq('seller_id',sellerUser.id).maybeSingle();
+        const {data,error}=await supabaseClient.from('products').select('id,barcode,title,price,unit,sku,is_active,category_id,section_name,sale_price,discount_percent,promo_text,image_url').eq('id',id).maybeSingle();
         if(error)throw error; if(!data)throw new Error('Тауар табылмады немесе бұл тауар сізге тиесілі емес.');
         document.getElementById('editProductId').value=data.id;
         document.getElementById('editProductName').value=data.title||'';
@@ -2227,13 +2305,13 @@ async function saveEditedProduct(){
     if(!id||!title){status.textContent='Тауар атауын енгізіңіз.';return}
     if(!Number.isFinite(price)||price<0){status.textContent='Бағаны дұрыс енгізіңіз.';return}
     try{
-        const {error}=await supabaseClient.from('products').update({title,price,unit:unit||null,is_active:isActive,category_id:effectiveCategoryId,category_name:category?category.name:'Незаданные',section_name:sectionName,sale_price:salePrice,discount_percent:discountPercent,promo_text:promoText,updated_at:new Date().toISOString()}).eq('id',id).eq('seller_id',sellerUser.id);
+        const {error}=await supabaseClient.from('products').update({title,price,unit:unit||null,is_active:isActive,category_id:effectiveCategoryId,category_name:category?category.name:'Незаданные',section_name:sectionName,sale_price:salePrice,discount_percent:discountPercent,promo_text:promoText,updated_at:new Date().toISOString()}).eq('id',id);
         if(error)throw error;
         const photoFile=document.getElementById('editProductImage')?.files?.[0];
         if(photoFile){
             status.textContent='Фото жүктелуде...';
             const imageUrl=await ogoUploadProductImage(id,photoFile);
-            const {error:imageDbError}=await supabaseClient.from('products').update({image_url:imageUrl,updated_at:new Date().toISOString()}).eq('id',id).eq('seller_id',sellerUser.id);
+            const {error:imageDbError}=await supabaseClient.from('products').update({image_url:imageUrl,updated_at:new Date().toISOString()}).eq('id',id);
             if(imageDbError)throw imageDbError;
         }
         status.className='hint seller-success'; status.textContent='✅ Өзгерістер сақталды!';
@@ -2248,7 +2326,7 @@ async function deleteEditedProduct(){
     if(!confirm('Осы тауарды өшіруге сенімдісіз бе?'))return;
     const status=document.getElementById('editProductStatus'); status.className='hint'; status.textContent='Өшірілуде...';
     try{
-        const {error}=await supabaseClient.from('products').delete().eq('id',id).eq('seller_id',sellerUser.id);
+        const {error}=await supabaseClient.from('products').delete().eq('id',id);
         if(error)throw error;
         closeEditProduct(); await loadSellerProducts();
         catalogState.shop.loaded=false; catalogState.food.loaded=false;
