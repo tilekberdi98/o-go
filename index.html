@@ -575,7 +575,8 @@ document.addEventListener('keydown',function(e){
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<meta name="ogo-version" content="v33-barcode-camera-stream-fix"><meta name="ogo-auto-category" content="enabled"><meta name="ogo-photo-ranking" content="enabled"><script id="ogoZXingFallback" src="https://unpkg.com/@zxing/browser@0.2.1/umd/index.min.js" defer></script>
+<meta name="ogo-version" content="v35-barcode-wasm-camera-fix"><meta name="ogo-auto-category" content="enabled"><meta name="ogo-photo-ranking" content="enabled"><script id="ogoZXingWasm" src="https://cdn.jsdelivr.net/npm/zxing-wasm@3.1.3/dist/iife/reader/index.js" defer></script>
+<script id="ogoZXingFallback" src="https://unpkg.com/@zxing/browser@0.2.1/umd/index.min.js" defer></script>
 </head>
 
 <body>
@@ -2769,6 +2770,15 @@ function startWarehouseSnapshotSync(){
 }
 function stopWarehouseSnapshotSync(){if(warehouseSnapshotTimer){clearInterval(warehouseSnapshotTimer);warehouseSnapshotTimer=null;}}
 
+async function waitForOgoZXingWasm(timeout=9000){
+    const start=Date.now();
+    while(Date.now()-start<timeout){
+        if(window.ZXingWASM?.readBarcodes)return true;
+        await new Promise(r=>setTimeout(r,100));
+    }
+    return false;
+}
+
 async function startWarehouseBarcodeCamera(){
     stopWarehouseBarcodeCamera();
     const video=document.getElementById('warehouseBarcodeVideo');
@@ -2843,34 +2853,51 @@ async function startWarehouseBarcodeCamera(){
             });
         }
 
-        // iPhone fallback: repeatedly decode a cropped/upscaled center frame.
-        // This helps when the full 16:9 frame makes an EAN-13 barcode too small.
+        // V35: an additional ZXing-C++ WebAssembly decoder.
+        // It works from raw ImageData, so it does not depend on ZXing Browser's
+        // video decoding loop. This is especially useful on iPhone/Safari.
+        const wasmReady=await waitForOgoZXingWasm(9000);
         const canvas=document.createElement('canvas');
         const ctx=canvas.getContext('2d',{willReadFrequently:true});
+        let wasmBusy=false;
         window.ogoBarcodeCanvasTimer=null;
-        const scanCrop=async()=>{
+        const scanWithWasm=async()=>{
             if(!warehouseBarcodeStream||warehouseBarcodeScanBusy||!video.videoWidth){
-                if(warehouseBarcodeStream&&!warehouseBarcodeScanBusy)window.ogoBarcodeCanvasTimer=setTimeout(scanCrop,180);
+                if(warehouseBarcodeStream&&!warehouseBarcodeScanBusy)window.ogoBarcodeCanvasTimer=setTimeout(scanWithWasm,180);
                 return;
             }
+            if(wasmBusy){
+                window.ogoBarcodeCanvasTimer=setTimeout(scanWithWasm,80);
+                return;
+            }
+            wasmBusy=true;
             try{
                 const vw=video.videoWidth,vh=video.videoHeight;
-                // Central ~70% width and ~55% height, then upscale for ZXing.
-                const sw=Math.floor(vw*0.72), sh=Math.floor(vh*0.58);
+                // Crop the yellow guide area and upscale it.
+                const sw=Math.floor(vw*0.76), sh=Math.floor(vh*0.62);
                 const sx=Math.floor((vw-sw)/2), sy=Math.floor((vh-sh)/2);
                 const scale=2;
-                canvas.width=sw*scale;canvas.height=sh*scale;
+                canvas.width=sw*scale; canvas.height=sh*scale;
                 ctx.imageSmoothingEnabled=false;
                 ctx.drawImage(video,sx,sy,sw,sh,0,0,canvas.width,canvas.height);
-                try{
-                    const r=await reader.decodeFromCanvas(canvas);
-                    if(r)await acceptCode(r.getText?r.getText():r.text||'');
-                }catch(e){}
-            }catch(e){console.debug('canvas barcode fallback',e)}
+                if(wasmReady && window.ZXingWASM?.readBarcodes){
+                    const imageData=ctx.getImageData(0,0,canvas.width,canvas.height);
+                    const results=await window.ZXingWASM.readBarcodes(imageData,{
+                        tryHarder:true,
+                        formats:['EAN13','EAN8','UPC_A','UPC_E','CODE128'],
+                        maxNumberOfSymbols:1
+                    });
+                    if(results?.length){
+                        const text=results[0]?.text||'';
+                        if(text)await acceptCode(text);
+                    }
+                }
+            }catch(e){console.debug('ZXing WASM scan',e)}
+            wasmBusy=false;
             if(warehouseBarcodeStream&&!warehouseBarcodeScanBusy)
-                window.ogoBarcodeCanvasTimer=setTimeout(scanCrop,220);
+                window.ogoBarcodeCanvasTimer=setTimeout(scanWithWasm,180);
         };
-        scanCrop();
+        scanWithWasm();
     }catch(error){
         console.warn('O Go barcode camera error:',error);
         stopWarehouseBarcodeCamera();
