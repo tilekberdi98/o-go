@@ -487,6 +487,8 @@ main{padding:18px 16px 24px}
 .catalog-search.has-value .search-clear{display:grid}
 .catalog-search-hint{margin:0 2px 10px;color:#8d938e;font-size:11px;line-height:1.35}
 .catalog-search-empty{padding:18px 12px;border:1px dashed var(--line);border-radius:14px;color:#aeb4af;text-align:center;background:#111511}
+.shop-search-results{margin:8px 0 12px}
+.shop-search-results:empty{display:none!important}
 
 /* RESTAURANTS / FOOD */
 .restaurant-grid{display:grid;gap:12px}
@@ -659,6 +661,7 @@ body{background:#f6b35f!important;color:#171717!important}
                 <button class="search-clear" type="button" onclick="clearCatalogSearch('shop')" aria-label="Іздеуді тазалау"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="catalog-search-hint">Тауар атауын толық немесе бірнеше әріппен жазыңыз — барлық бөлімнен ізделеді.</div>
+            <div id="shopSearchResults" class="products shop-search-results" style="display:none" aria-live="polite"></div>
             <div id="shopCategoryView">
                 <div id="shopFixedCategories" class="category-row shop-fixed-categories" aria-label="Основные категории"></div>
                 <button class="shop-category-title shop-category-toggle" type="button" onclick="toggleShopCategories()" aria-expanded="false"><span class="shop-category-title-main"><span id="shopCategoryTitle">Категории</span><small id="shopCategoryHint">Выберите категорию</small></span><span id="shopCategoryArrow" class="shop-category-arrow" aria-hidden="true">⌄</span></button>
@@ -1206,9 +1209,18 @@ function searchMatchesProduct(product,query){return searchScoreProduct(product,q
 function isPromoProduct(p){const d=Number(p.discount_percent||0);const base=Number(p.price||0),sale=Number(p.sale_price||0);return d>0 || (sale>0&&base>0&&sale<base);}
 function getSalePrice(product){const base=Number(product?.price||0);const d=Math.max(0,Math.min(100,Number(product?.discount_percent||0)));if(d>0&&base>0)return Math.round(base*(1-d/100));const sale=Number(product?.sale_price||0);return sale>0&&sale<base?sale:base;}
 function renderProducts(type){
-    const state=catalogState[type], el=document.getElementById(type+'Products'); if(!el)return;
+    const state=catalogState[type];
+    const normalEl=document.getElementById(type+'Products');
+    if(!normalEl)return;
     const query=state.searchQuery||'';
-    let items=state._renderOverride ? state._renderOverride : ((type==='shop'&&query.trim()) ? state.products.map(p=>({p,score:searchScoreProduct(p,query)})).filter(x=>x.score>0).sort((a,b)=>b.score-a.score).map(x=>x.p) : (state.selectedSection==='__promo__'?state.products.filter(isPromoProduct):(state.selectedSection==='all'?state.products:state.products.filter(p=>p.section_id===state.selectedSection))));
+    const searchMode=type==='shop'&&query.trim();
+    const searchEl=type==='shop'?document.getElementById('shopSearchResults'):null;
+    const el=searchMode&&searchEl?searchEl:normalEl;
+    if(searchEl){
+        searchEl.style.display=searchMode?'block':'none';
+        if(!searchMode)searchEl.innerHTML='';
+    }
+    let items=state._renderOverride ? state._renderOverride : (searchMode ? state.products.map(p=>({p,score:searchScoreProduct(p,query)})).filter(x=>x.score>0).sort((a,b)=>b.score-a.score).map(x=>x.p) : (state.selectedSection==='__promo__'?state.products.filter(isPromoProduct):(state.selectedSection==='all'?state.products:state.products.filter(p=>p.section_id===state.selectedSection))));
     if(type==='shop' && !query.trim() && state.selectedSection==='all') items=[...items].sort((a,b)=>Number(b.popularity_count||0)-Number(a.popularity_count||0));
     if(!items.length){
         el.innerHTML=query.trim()?`<div class="catalog-search-empty"><i class="fa-solid fa-magnifying-glass"></i><br><strong>«${escapeHtml(query)}»</strong> бойынша тауар табылмады.<br><span style="font-size:11px">Басқа атау немесе бірнеше әріп жазып көріңіз.</span></div>`:'<div class="empty">Бұл бөлімде әзірге тауар жоқ.</div>';
@@ -1228,8 +1240,23 @@ function renderProducts(type){
 function searchCatalog(type,value){
     const state=catalogState[type]; if(!state)return;
     state.searchQuery=value||'';
-    const wrap=document.getElementById(type+'SearchWrap'); if(wrap)wrap.classList.toggle('has-value',!!state.searchQuery.trim());
-    if(type==='shop'&&state.searchQuery.trim()){state.selectedSection='all';shopCategoryId='all';shopSubsection='all';const top=document.getElementById('shopCategoryView'),sub=document.getElementById('shopSubcategoryView');if(top)top.style.display='block';if(sub)sub.style.display='none';renderSections(type);}
+    const hasQuery=!!state.searchQuery.trim();
+    const wrap=document.getElementById(type+'SearchWrap'); if(wrap)wrap.classList.toggle('has-value',hasQuery);
+    if(type==='shop'){
+        const categoryView=document.getElementById('shopCategoryView');
+        const subcategoryView=document.getElementById('shopSubcategoryView');
+        const searchResults=document.getElementById('shopSearchResults');
+        if(hasQuery){
+            state.selectedSection='all';shopCategoryId='all';shopSubsection='all';
+            if(categoryView)categoryView.style.display='block';
+            if(subcategoryView)subcategoryView.style.display='none';
+            // Іздеу нәтижесі категориялардың алдында тұрады.
+            if(searchResults)searchResults.style.display='block';
+        }else{
+            if(searchResults){searchResults.style.display='none';searchResults.innerHTML='';}
+        }
+        renderSections(type);
+    }
     renderProducts(type);
 }
 function clearCatalogSearch(type){
