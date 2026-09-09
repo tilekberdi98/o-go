@@ -447,7 +447,7 @@ main{padding:18px 16px 24px}
 .seller-products{margin-top:18px;padding-top:15px;border-top:1px solid var(--line)}
 .seller-products h4{font-size:16px;margin-bottom:10px}
 .seller-item{display:flex;align-items:center;gap:10px;padding:10px;margin-bottom:8px;background:#111511;border:1px solid var(--line);border-radius:14px}
-.seller-item img,.seller-item .seller-thumb{width:48px;height:48px;border-radius:11px;object-fit:cover;background:#252b27;display:grid;place-items:center;color:var(--yellow);flex-shrink:0}
+.seller-item img,.seller-item .seller-thumb{width:48px;height:48px;border-radius:11px;object-fit:cover;background:#252b27;display:grid;place-items:center;color:var(--yellow);flex-shrink:0;overflow:hidden}.seller-item .seller-thumb img{width:100%;height:100%;object-fit:cover}
 .seller-item-info{flex:1;min-width:0}
 .seller-item-name{font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .seller-item-price{font-size:12px;color:var(--yellow);margin-top:3px}
@@ -638,11 +638,6 @@ body{background:#f6b35f!important;color:#171717!important}
 
     <!-- SHOP -->
     <section id="shop" class="page">
-        <div class="page-top">
-            <button class="back" onclick="goHome()"><i class="fa-solid fa-arrow-left"></i></button>
-            <div><h2 class="page-title" data-page-title="shop">Дүкен</h2><div class="page-subtitle" data-page-subtitle="shop">Дүкенді таңдаңыз</div></div>
-        </div>
-
         <div id="shopChooser" class="shop-chooser">
             <div class="chooser-search">
                 <i class="fa-solid fa-magnifying-glass"></i>
@@ -803,6 +798,7 @@ body{background:#f6b35f!important;color:#171717!important}
         <button class="close modal-close" onclick="closeSellerPanel()"><i class="fa-solid fa-xmark"></i></button>
         <h3 id="sellerAddTitle">Тауар қосу</h3>
         <p id="sellerStoreInfo" class="hint">Айболит — сатушының бекітілген дүкені</p>
+        <div class="hint" style="margin-bottom:12px">Тауарларды қосу, өзгерту, жасыру/жариялау және өшіру қолжетімді.</div>
         <input id="sellerService" type="hidden" value="shop">
         <div class="form-group"><label>Категория</label><select id="sellerCategory" onchange="loadSellerSubsections()"><option value="">Категория жүктелуде...</option></select></div>
         <div class="form-group"><label>Раздел</label><select id="sellerSection"><option value="">Алдымен категорияны таңдаңыз</option></select></div>
@@ -1010,78 +1006,58 @@ function getShopSectionItems(categoryId,index){
 }
 function renderSections(type){
     const state=catalogState[type],el=document.getElementById(type+'Sections');if(!el)return;
-    if(type!=='shop'){
-        const promoCount=state.products.filter(isPromoProduct).length;
-        const promoBtn=promoCount?`<button class="category-btn promo-category ${state.selectedSection==='__promo__'?'active':''}" onclick="selectSection('${type}','__promo__')">🔥 ${OGO_CURRENT_LANG==='ru'?'Акции':'Акциялар'} (${promoCount})</button>`:'';
-        el.innerHTML=promoBtn+state.sections.filter(section=>state.products.some(p=>p.section_id===section.id)).map(section=>`<button class="category-btn ${state.selectedSection===section.id?'active':''}" onclick="selectSection('${type}','${section.id}')">${escapeHtml(localizeSectionName(section.name))}</button>`).join('');
-        return;
-    }
+    if(type!=='shop'){const promoCount=state.products.filter(isPromoProduct).length;const promoBtn=promoCount?`<button class="category-btn promo-category ${state.selectedSection==='__promo__'?'active':''}" onclick="selectSection('${type}','__promo__')">🔥 ${OGO_CURRENT_LANG==='ru'?'Акции':'Акциялар'} (${promoCount})</button>`:'';el.innerHTML=promoBtn+state.sections.filter(section=>state.products.some(p=>p.section_id===section.id)).map(section=>`<button class="category-btn ${state.selectedSection===section.id?'active':''}" onclick="selectSection('${type}','${section.id}')">${escapeHtml(localizeSectionName(section.name))}</button>`).join('');return;}
     const cats=OGO_AYBOLIT_CATEGORIES;
+    // «Акция» әрқашан бірінші тұрады. Қалған бос категориялар клиентке жасырын.
     const promo={id:'__promo__',name:OGO_CURRENT_LANG==='ru'?'Акции':'Акциялар',sections:[]};
-    const allCat=cats.find(c=>c.id==='all')||{id:'all',name:OGO_CURRENT_LANG==='ru'?'Все':'Барлығы',sections:[]};
-    const visible=cats.filter(c=>c.id!=='all' && getShopCategoryItems(c.id).length>0);
-    const fixed=document.getElementById('shopFixedCategories');
-    if(fixed){
-        fixed.innerHTML=[promo,allCat].map(c=>`<button class="category-btn ${c.id==='__promo__'?'promo-category ':''}${shopCategoryId===c.id?'active':''}" onclick="selectShopCategory('${c.id}')">${c.id==='__promo__'?'🔥 ':''}${escapeHtml(localizeCategoryName(c.name))}${c.id==='__promo__'&&catalogState.shop.products.filter(isPromoProduct).length?` (${catalogState.shop.products.filter(isPromoProduct).length})`:''}</button>`).join('');
-    }
-    el.innerHTML=visible.map(c=>{
-        const expanded=shopExpandedCategoryId===c.id;
-        const hasSections=Array.isArray(c.sections)&&c.sections.length>0;
-        const arrow=hasSections?(expanded?'⌃':'⌄'):'';
-        const sections=expanded&&hasSections?`<div class="shop-cat-sections">${c.sections.map((name,i)=>{
-            const exists=getShopSectionItems(c.id,i).length>0;
-            return `<button class="shop-cat-section ${shopCategoryId===c.id&&shopSubsection===String(i)?'active':''}" ${exists?`onclick="selectShopSubsection('${c.id}','${i}')"`:'disabled'}>${escapeHtml(localizeCategoryName(name))}</button>`;
-        }).join('')}</div>`:'';
-        return `<div class="shop-cat-item ${expanded?'expanded':''}"><button class="category-btn" type="button" onclick="toggleShopCategory('${c.id}')"><span class="shop-cat-main"><span class="shop-cat-name">${escapeHtml(localizeCategoryName(c.name))}</span>${arrow?`<span class="shop-cat-arrow">${arrow}</span>`:''}</span></button>${sections}</div>`;
-    }).join('');
-    const catWrap=document.getElementById('shopSections');
-    if(catWrap)catWrap.style.display=shopCategoriesExpanded?'grid':'none';
-    const catToggle=document.querySelector('.shop-category-toggle'),catArrow=document.getElementById('shopCategoryArrow');
-    if(catToggle)catToggle.setAttribute('aria-expanded',shopCategoriesExpanded?'true':'false');
-    if(catArrow)catArrow.textContent=shopCategoriesExpanded?'⌃':'⌄';
-}
-function toggleShopCategory(id){
-    const cat=OGO_AYBOLIT_CATEGORIES.find(c=>c.id===id);if(!cat)return;
-    shopExpandedCategoryId=(shopExpandedCategoryId===id?'':id);
-    shopCategoryId=id;
-    shopSubsection=cat.sections.length ? (shopExpandedCategoryId===id?'collapsed':'all') : 'all';
-    catalogState.shop.selectedSection='all';
-    renderSections('shop');
-    renderShopProductsByCategory();
-}
-function toggleShopCategories(){
-    shopCategoriesExpanded=!shopCategoriesExpanded;
-    const el=document.getElementById('shopSections');
-    const toggle=document.querySelector('.shop-category-toggle');
-    const arrow=document.getElementById('shopCategoryArrow');
-    if(el)el.style.display=shopCategoriesExpanded?'grid':'none';
-    if(toggle)toggle.setAttribute('aria-expanded',shopCategoriesExpanded?'true':'false');
-    if(arrow)arrow.textContent=shopCategoriesExpanded?'⌃':'⌄';
+    const visible=cats.filter(c=>getShopCategoryItems(c.id).length>0);
+    const ordered=[promo,...visible];
+    el.innerHTML=ordered.map(c=>`<button class="category-btn ${c.id==='__promo__'?'promo-category ':''}${shopCategoryId===c.id?'active':''}" onclick="selectShopCategory('${c.id}')">${c.id==='__promo__'?'🔥 ':''}${escapeHtml(localizeCategoryName(c.name))}${c.id==='__promo__'&&catalogState.shop.products.filter(isPromoProduct).length?` (${catalogState.shop.products.filter(isPromoProduct).length})`:''}</button>`).join('');
 }
 function selectShopCategory(id){
     if(id==='__promo__'){
-        shopExpandedCategoryId='';
-        shopCategoryId=id;shopSubsection='all';catalogState.shop.selectedSection='__promo__';
-        renderSections('shop');renderShopProductsByCategory();return;
+        shopCategoryId=id;shopSubsection='all';
+        const sub=document.getElementById('shopSubcategoryView'),top=document.getElementById('shopCategoryView'),products=document.getElementById('shopProducts'),title=document.getElementById('shopSelectedCategory'),hint=document.querySelector('.shop-selected-hint');
+        if(top)top.style.display='none'; if(sub)sub.style.display='block';
+        if(title)title.textContent=OGO_CURRENT_LANG==='ru'?'Акции':'Акциялар';
+        if(hint)hint.textContent=OGO_CURRENT_LANG==='ru'?'Товары со скидкой':'Жеңілдіктегі тауарлар';
+        const el=document.getElementById('shopSubsections'); if(el)el.innerHTML='';
+        if(products)renderShopProductsByCategory();
+        return;
     }
-    if(id==='all'){
-        shopExpandedCategoryId='';
-        shopCategoryId='all';shopSubsection='all';catalogState.shop.selectedSection='all';
-        renderSections('shop');renderShopProductsByCategory();return;
+    const cat=OGO_AYBOLIT_CATEGORIES.find(c=>c.id===id);if(!cat)return;
+    shopCategoryId=id;shopSubsection='all';
+    const sub=document.getElementById('shopSubcategoryView'),top=document.getElementById('shopCategoryView'),products=document.getElementById('shopProducts'),title=document.getElementById('shopSelectedCategory'),hint=document.querySelector('.shop-selected-hint');
+    // Кез келген категорияға кіргенде әрқашан артқа батырмасы бар ішкі экран ашылады.
+    if(top)top.style.display='none';
+    if(sub)sub.style.display='block';
+    if(title)title.textContent=localizeCategoryName(cat.name);
+    const el=document.getElementById('shopSubsections');
+    if(el){
+        // Бос бөлімдер жасырын болады. Көрінетін бөлімдерде кемінде 1 тауар бар.
+        const visibleSections=cat.sections.map((name,i)=>({name,i})).filter(x=>getShopSectionItems(id,x.i).length>0);
+        el.innerHTML=visibleSections.length
+          ? visibleSections.map(x=>`<button class="category-btn ${shopSubsection===String(x.i)?'active':''}" onclick="selectShopSubsection('${x.i}')">${escapeHtml(localizeCategoryName(x.name))}</button>`).join('')
+          : '';
     }
-    toggleShopCategory(id);
+    if(hint)hint.textContent=cat.sections.length ? (OGO_CURRENT_LANG==='ru'?'Выберите раздел':'Разделді таңдаңыз') : (OGO_CURRENT_LANG==='ru'?'Товары категории':'Категория тауарлары');
+    if(products){
+        if(cat.sections.length) products.innerHTML='<div class="empty">Разделді таңдаңыз.</div>';
+        else renderShopProductsByCategory();
+    }
 }
-function selectShopSubsection(categoryId,index){
-    const cat=OGO_AYBOLIT_CATEGORIES.find(c=>c.id===categoryId);
-    if(!cat || !getShopSectionItems(categoryId,index).length)return;
-    shopExpandedCategoryId=categoryId;
-    shopCategoryId=categoryId;
+function selectShopSubsection(index){
+    const cat=OGO_AYBOLIT_CATEGORIES.find(c=>c.id===shopCategoryId);
+    if(!cat || !getShopSectionItems(shopCategoryId,index).length)return;
     shopSubsection=String(index);
-    catalogState.shop.selectedSection='all';
-    renderSections('shop');
+    const el=document.getElementById('shopSubsections');
+    if(el){
+        const visibleSections=cat.sections.map((name,i)=>({name,i})).filter(x=>getShopSectionItems(shopCategoryId,x.i).length>0);
+        el.innerHTML=visibleSections.map(x=>`<button class="category-btn ${shopSubsection===String(x.i)?'active':''}" onclick="selectShopSubsection('${x.i}')">${escapeHtml(localizeCategoryName(x.name))}</button>`).join('');
+    }
     renderShopProductsByCategory();
 }
-function backToShopCategories(){shopCategoryId='all';shopSubsection='all';shopExpandedCategoryId='';shopCategoriesExpanded=false;const top=document.getElementById('shopCategoryView'),sub=document.getElementById('shopSubcategoryView');if(top)top.style.display='block';if(sub)sub.style.display='none';renderSections('shop');renderProducts('shop');}
+function backToShopCategories(){shopCategoryId='all';shopSubsection='all';const top=document.getElementById('shopCategoryView'),sub=document.getElementById('shopSubcategoryView');if(top)top.style.display='block';if(sub)sub.style.display='none';renderSections('shop');renderProducts('shop');}
 /* O GO — AYBOLIT AUTO CATEGORY ENGINE
    Категорияны UMAG-тан келген атауға қарай анықтайды. Нақты категория табылмаса,
    тауар "Незаданные" ішінде қалады. Бар болған category/section мәндерін ешқашан
@@ -1997,7 +1973,7 @@ async function loadSellerProducts(){
             const statusBtn=p.is_active
                 ? `<button class="hide-btn" onclick="toggleSellerPublished('${escapeHtml(p.id)}',false)">🙈 Жасыру</button>`
                 : `<button class="show-btn" onclick="toggleSellerPublished('${escapeHtml(p.id)}',true)">👁 Жариялау</button>`;
-            return `<div class="seller-item"><div class="seller-thumb"><i class="fa-solid fa-box"></i></div><div class="seller-item-info"><div class="seller-item-name">${escapeHtml(name)}</div><div class="seller-item-price">${price} · ${p.unit?escapeHtml(p.unit):''} ${p.barcode?`· ${escapeHtml(p.barcode)}`:''} ${p.is_active?'· жарияланған':'· жасырын'}</div></div><div class="seller-item-actions">${statusBtn}<button onclick="openEditProduct('${escapeHtml(p.id)}')"><i class="fa-solid fa-pen"></i> Өзгерту</button></div></div>`;
+            return `<div class="seller-item"><div class="seller-thumb">${autoProductImage(name)}</div><div class="seller-item-info"><div class="seller-item-name">${escapeHtml(name)}</div><div class="seller-item-price">${price} · ${p.unit?escapeHtml(p.unit):''} ${p.barcode?`· ${escapeHtml(p.barcode)}`:''} ${p.is_active?'· жарияланған':'· жасырын'}</div></div><div class="seller-item-actions">${statusBtn}<button onclick="openEditProduct('${escapeHtml(p.id)}')"><i class="fa-solid fa-pen"></i> Өзгерту</button><button class="hide-btn" onclick="deleteSellerProduct('${escapeHtml(p.id)}')"><i class="fa-solid fa-trash"></i> Өшіру</button></div></div>`;
         }).join('');
     }catch(error){
         console.error('O Go seller products error:',error);
@@ -2006,6 +1982,21 @@ async function loadSellerProducts(){
 }
 
 async function changeSellerStock(id, delta){ alert('Бұл база нұсқасында қойма саны сақталмайды.'); }
+
+async function deleteSellerProduct(id){
+    if(!sellerUser)return;
+    const ok=confirm(OGO_CURRENT_LANG==='ru'?'Удалить этот товар? Это действие нельзя отменить.':'Бұл тауарды өшіру керек пе? Бұл әрекетті қайтару мүмкін емес.');
+    if(!ok)return;
+    try{
+        const result=await supabaseClient.from('products').delete().eq('id',id).eq('seller_id',sellerUser.id);
+        if(result.error)throw result.error;
+        await loadSellerProducts();
+        catalogState.shop.loaded=false;
+        if(document.getElementById('shop').classList.contains('active'))await loadCatalog('shop');
+    }catch(error){
+        alert(error.message|| (OGO_CURRENT_LANG==='ru'?'Ошибка удаления товара.':'Тауарды өшіру кезінде қате болды.'));
+    }
+}
 
 async function toggleSellerPublished(id, published){
     try{
