@@ -553,7 +553,7 @@ body{background:#f6b35f!important;color:#171717!important}
 .warehouse-toggle span:first-child{flex:1;text-align:left}
 .warehouse-count{min-width:28px;padding:3px 8px;border-radius:999px;background:var(--yellow);color:#111;font-size:11px}
 .warehouse-panel{margin-top:8px;padding:10px;border:1px solid #303730;border-radius:16px;background:#101410}
-.warehouse-search-wrap{position:relative;margin-bottom:9px}
+.warehouse-barcode-row{display:flex;gap:8px;margin:0 0 9px}.warehouse-barcode-btn{flex:1;border:1px solid #3a423a;border-radius:12px;background:#252b27;color:#fff;padding:10px 11px;font-size:12px;font-weight:900;cursor:pointer}.warehouse-barcode-btn i{color:var(--yellow);margin-right:5px}.warehouse-barcode-btn:active{transform:scale(.99)}.barcode-result{margin:8px 0 10px}.barcode-card{border:1px solid #3a423a;border-radius:14px;background:#171c18;padding:10px;display:flex;gap:10px;align-items:center}.barcode-card-thumb{width:58px;height:58px;border-radius:11px;overflow:hidden;background:#fff;display:grid;place-items:center;flex:0 0 58px}.barcode-card-thumb img{width:100%;height:100%;object-fit:cover}.barcode-card-info{min-width:0;flex:1}.barcode-card-name{font-weight:900;font-size:13px;line-height:1.25}.barcode-card-meta{font-size:10px;color:#aab2aa;margin-top:4px;line-height:1.4}.barcode-card-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.barcode-card-actions button{border:1px solid #3a423a;background:#252b27;color:#fff;border-radius:9px;padding:7px 9px;font-size:10px;font-weight:800;cursor:pointer}.barcode-card-actions .primary{background:var(--yellow);color:#111;border-color:var(--yellow)}.barcode-not-found{border:1px dashed #5b635b;border-radius:14px;padding:12px;text-align:center;color:#c0c7c0;font-size:12px;line-height:1.45}.barcode-not-found strong{display:block;color:#fff;font-size:13px;margin-bottom:4px}.barcode-scanner-box{background:#0f130f;border:1px solid #303730;border-radius:16px;padding:10px}.barcode-video{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:12px;background:#050705}.barcode-scan-status{font-size:11px;color:#aab2aa;text-align:center;margin-top:8px;line-height:1.4}.barcode-manual-row{display:flex;gap:8px;margin-top:9px}.barcode-manual-row input{flex:1;min-width:0;padding:11px 12px;border-radius:12px;border:1px solid #3b433b;background:#202520;color:#fff;outline:none}.barcode-manual-row button{border:0;border-radius:12px;background:var(--yellow);color:#111;padding:0 13px;font-weight:900;cursor:pointer}.barcode-format-hint{font-size:10px;color:#858e85;margin-top:7px;text-align:center}.warehouse-search-wrap{position:relative;margin-bottom:9px}
 .warehouse-search-wrap i{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#8e988e}
 .warehouse-search-wrap input{width:100%;padding:11px 12px 11px 36px;border-radius:12px;border:1px solid #3b433b;background:#202520;color:#fff;outline:none}
 .warehouse-search-wrap input:focus{border-color:var(--yellow)}
@@ -566,7 +566,12 @@ body{background:#f6b35f!important;color:#171717!important}
 </style>
 
 <!-- SUPABASE -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>
+document.addEventListener('keydown',function(e){
+    if(e.key==='Enter' && document.activeElement?.id==='warehouseBarcodeInput'){e.preventDefault();searchWarehouseBarcodeManual();}
+});
+</script>
+
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <meta name="ogo-version" content="v26-fast-smart-popular-events"><meta name="ogo-auto-category" content="enabled"><meta name="ogo-photo-ranking" content="enabled"></head>
 
@@ -840,6 +845,8 @@ body{background:#f6b35f!important;color:#171717!important}
             <button id="sellerWarehouseToggle" class="warehouse-toggle" type="button" onclick="toggleSellerWarehouse()"><span><i class="fa-solid fa-box-open"></i> Склад</span><span id="sellerWarehouseCount" class="warehouse-count">0</span><i id="sellerWarehouseChevron" class="fa-solid fa-chevron-down"></i></button>
             <div id="sellerWarehousePanel" class="warehouse-panel" style="display:none">
                 <div class="warehouse-search-wrap"><i class="fa-solid fa-magnifying-glass"></i><input id="sellerWarehouseSearch" type="search" autocomplete="off" placeholder="Тауар іздеу..." oninput="filterSellerWarehouse(this.value)"></div>
+                <div class="warehouse-barcode-row"><button class="warehouse-barcode-btn" type="button" onclick="openWarehouseBarcodeSearch()"><i class="fa-solid fa-barcode"></i> Штрих-кодпен іздеу</button></div>
+                <div id="warehouseBarcodeResult" class="barcode-result" aria-live="polite"></div>
                 <div id="sellerWarehouseHint" class="warehouse-hint">Склад 300 000 тауарға дейін жұмыс істеуге дайын. Іздеу серверден орындалады — барлық тауарды телефонға бірден жүктемейді.</div>
                 <div id="sellerProductsList"><div class="hint">Жүктелуде...</div></div>
                 <div class="warehouse-pagination"><button id="warehousePrev" type="button" onclick="changeWarehousePage(-1)">‹ Алдыңғы</button><div id="warehousePageInfo" class="warehouse-page-info">1 / 1</div><button id="warehouseNext" type="button" onclick="changeWarehousePage(1)">Келесі ›</button></div>
@@ -860,6 +867,19 @@ body{background:#f6b35f!important;color:#171717!important}
         <div class="form-group"><label id="csvFileLabel">UMAG Excel / CSV файл</label><input id="bulkUploadFile" type="file" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"></div>
         <button class="submit green" onclick="processBulkUpload()"><i class="fa-solid fa-cloud-arrow-up"></i> <span id="bulkUploadText">Тауарларды жүктеу</span></button>
         <div id="bulkUploadStatus" class="hint" style="margin-top:10px"></div>
+    </div>
+</div>
+
+<div id="warehouseBarcodeModal" class="modal">
+    <div class="modal-box" style="max-height:90vh;overflow:auto">
+        <button class="close modal-close" onclick="closeWarehouseBarcodeSearch()"><i class="fa-solid fa-xmark"></i></button>
+        <h3>Штрих-кодпен іздеу</h3>
+        <div class="barcode-scanner-box">
+            <video id="warehouseBarcodeVideo" class="barcode-video" playsinline muted></video>
+            <div id="warehouseBarcodeStatus" class="barcode-scan-status">Камераны қосып, штрих-кодты кадрдың ортасына ұстаңыз.</div>
+            <div class="barcode-manual-row"><input id="warehouseBarcodeInput" type="text" inputmode="numeric" autocomplete="off" placeholder="Штрих-кодты қолмен енгізу"><button type="button" onclick="searchWarehouseBarcodeManual()">Іздеу</button></div>
+            <div class="barcode-format-hint">EAN-13 · EAN-8 · UPC · Code 128 · штрих-код мәтін ретінде сақталады, 0 басындағы таңбалар жоғалмайды.</div>
+        </div>
     </div>
 </div>
 
@@ -2090,7 +2110,8 @@ async function createSellerProduct(){
     // products кестесінде barcode NOT NULL. Бір-бірлеп қосылған тауарда barcode енгізілмесе,
     // физикалық штрихкод енгізілмесе, O Go үшін ішкі бірегей код жасаймыз.
     // Нақты UMAG штрихкоды бар импортталған тауарлар бұрынғы кодын сақтайды.
-    const internalBarcode=(()=>{
+    const pendingBarcode=normalizeBarcodeValue(window.ogoPendingSellerBarcode||'');
+    const internalBarcode=pendingBarcode||(()=>{
         const base=String(Date.now()).slice(-9);
         const rnd=String(Math.floor(Math.random()*1000)).padStart(3,'0');
         return '20'+base+rnd;
@@ -2145,6 +2166,7 @@ async function createSellerProduct(){
         showSellerLastAdded({id:result.data.id,title:name,unit,price,category_id:autoCategory.category_id,category_name:autoCategory.category_name,section_name:autoCategory.section_name,image_url:null,is_active:true,updated_at:new Date().toISOString()});
 
         // Тек сәтті сақталғаннан кейін ғана форманы тазалаймыз.
+        window.ogoPendingSellerBarcode='';
         document.getElementById('sellerProductName').value='';
         document.getElementById('sellerProductPrice').value='';
         const discountEl=document.getElementById('sellerProductDiscount'); if(discountEl)discountEl.value='';
@@ -2363,6 +2385,9 @@ const WAREHOUSE_PAGE_SIZE=100;
 let warehousePage=0;
 let warehouseTotal=0;
 let warehouseSearchQuery='';
+let warehouseBarcodeStream=null;
+let warehouseBarcodeDetector=null;
+let warehouseBarcodeScanBusy=false;
 
 function toggleSellerWarehouse(){
     sellerWarehouseOpen=!sellerWarehouseOpen;
@@ -2411,7 +2436,8 @@ async function loadSellerWarehousePage(){
     el.innerHTML='<div class="hint">Склад жүктелуде...</div>';
     try{
         let query=supabaseClient.from('products')
-            .select('id,seller_id,barcode,title,price,unit,sku,extra_code,is_active,updated_at,category_id,category_name,section_name,sale_price,discount_percent,promo_text,image_url',{count:'exact'});
+            .select('id,seller_id,barcode,title,price,unit,sku,extra_code,is_active,updated_at,category_id,category_name,section_name,sale_price,discount_percent,promo_text,image_url',{count:'exact'})
+            .eq('seller_id',sellerUser.id);
         const q=normalizeSearchText(warehouseSearchQuery);
         if(q){
             const safe=q.replace(/,/g,' ');
@@ -2429,6 +2455,149 @@ async function loadSellerWarehousePage(){
         el.innerHTML=`<div class="hint seller-error">${escapeHtml(error.message||'Складтағы тауарларды жүктеу қатесі.')}</div>`;
         renderWarehousePagination();
     }
+}
+
+function normalizeBarcodeValue(value){
+    // Barcode is text: never convert it to Number, so leading zeros remain intact.
+    return String(value??'').trim().replace(/[\s-]+/g,'');
+}
+
+function setWarehouseBarcodeStatus(text,error=false){
+    const el=document.getElementById('warehouseBarcodeStatus');
+    if(el){el.textContent=text;el.style.color=error?'#ff8d8d':'#aab2aa';}
+}
+
+function stopWarehouseBarcodeCamera(){
+    warehouseBarcodeScanBusy=false;
+    if(warehouseBarcodeStream){warehouseBarcodeStream.getTracks().forEach(t=>t.stop());warehouseBarcodeStream=null;}
+    const video=document.getElementById('warehouseBarcodeVideo');
+    if(video){video.pause();video.srcObject=null;}
+}
+
+function closeWarehouseBarcodeSearch(){
+    stopWarehouseBarcodeCamera();
+    const modal=document.getElementById('warehouseBarcodeModal');
+    if(modal)modal.classList.remove('show');
+}
+
+async function searchWarehouseBarcode(barcode){
+    const code=normalizeBarcodeValue(barcode);
+    const resultEl=document.getElementById('warehouseBarcodeResult');
+    if(!code){
+        if(resultEl)resultEl.innerHTML='<div class="barcode-not-found">Штрих-кодты енгізіңіз немесе камерамен сканерлеңіз.</div>';
+        return;
+    }
+    const input=document.getElementById('warehouseBarcodeInput'); if(input)input.value=code;
+    if(resultEl)resultEl.innerHTML='<div class="hint">Штрих-код ізделуде...</div>';
+    try{
+        if(!sellerUser)throw new Error('Сатушы сессиясы табылмады. Қайта кіріңіз.');
+        const {data,error}=await supabaseClient.from('products')
+            .select('id,seller_id,barcode,title,price,unit,sku,extra_code,is_active,updated_at,category_id,category_name,section_name,sale_price,discount_percent,promo_text,image_url')
+            .eq('seller_id',sellerUser.id)
+            .eq('barcode',code)
+            .limit(1)
+            .maybeSingle();
+        if(error)throw error;
+        if(!data){
+            if(resultEl)resultEl.innerHTML=`<div class="barcode-not-found"><strong>Тауар табылмады</strong>«${escapeHtml(code)}» штрих-коды сіздің Складыңыздан табылған жоқ.<div class="barcode-card-actions" style="justify-content:center"><button class="primary" onclick="prepareNewProductFromBarcode('${escapeHtml(code)}')"><i class="fa-solid fa-plus"></i> Осы штрих-кодпен жаңа тауар қосу</button></div></div>`;
+            return;
+        }
+        renderWarehouseBarcodeResult(data);
+    }catch(error){
+        console.error('O Go barcode warehouse search error:',error);
+        if(resultEl)resultEl.innerHTML=`<div class="barcode-not-found"><strong>Іздеу қатесі</strong>${escapeHtml(error.message||'Штрих-код бойынша іздеу кезінде қате болды.')}</div>`;
+    }
+}
+
+function renderWarehouseBarcodeResult(p){
+    const el=document.getElementById('warehouseBarcodeResult'); if(!el)return;
+    const name=localizedProduct(p).name;
+    const price=formatPrice(Number(p.price||0));
+    const sale=p.sale_price&&Number(p.sale_price)>0?` · Акция ${formatPrice(Number(p.sale_price))}`:'';
+    const status=p.is_active?'Жарияланған':'Жасырын';
+    const img=p.image_url?`<img src="${escapeHtml(p.image_url)}" alt="${escapeHtml(name)}" loading="lazy">`:autoProductImage(name);
+    el.innerHTML=`<div class="barcode-card"><div class="barcode-card-thumb">${img}</div><div class="barcode-card-info"><div class="barcode-card-name">${escapeHtml(name)}</div><div class="barcode-card-meta">Штрих-код: <b>${escapeHtml(String(p.barcode||''))}</b><br>${price} · ${escapeHtml(p.unit||'шт')} ${sale}<br>${escapeHtml(p.category_name||'')} ${p.section_name?'· '+escapeHtml(p.section_name):''} · ${status}</div><div class="barcode-card-actions"><button class="primary" onclick="openEditProduct('${escapeHtml(p.id)}')"><i class="fa-solid fa-pen"></i> Өзгерту</button>${p.is_active?`<button onclick="toggleSellerPublished('${escapeHtml(p.id)}',false)">🙈 Жасыру</button>`:`<button onclick="toggleSellerPublished('${escapeHtml(p.id)}',true)">👁 Жариялау</button>`}</div></div></div>`;
+}
+
+async function openWarehouseBarcodeSearch(){
+    if(!sellerUser){openLogin();return;}
+    const modal=document.getElementById('warehouseBarcodeModal');
+    if(modal)modal.classList.add('show');
+    const input=document.getElementById('warehouseBarcodeInput');
+    const result=document.getElementById('warehouseBarcodeResult');
+    if(input){input.value='';setTimeout(()=>input.focus(),80);}
+    if(result)result.innerHTML='';
+    await startWarehouseBarcodeCamera();
+}
+
+async function startWarehouseBarcodeCamera(){
+    stopWarehouseBarcodeCamera();
+    const video=document.getElementById('warehouseBarcodeVideo');
+    if(!video)return;
+    if(!('mediaDevices' in navigator) || !navigator.mediaDevices.getUserMedia){
+        setWarehouseBarcodeStatus('Бұл браузер камераға тікелей кіруді қолдамайды. Штрих-кодты төмендегі жолға қолмен енгізіңіз.',true);return;
+    }
+    try{
+        warehouseBarcodeStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});
+        video.srcObject=warehouseBarcodeStream;
+        await video.play();
+        if('BarcodeDetector' in window){
+            try{
+                const formats=['ean_13','ean_8','upc_a','upc_e','code_128'];
+                warehouseBarcodeDetector=new BarcodeDetector({formats});
+                warehouseBarcodeScanBusy=false;
+                setWarehouseBarcodeStatus('Камера дайын. Штрих-кодты кадрдың ортасына ұстаңыз.');
+                scanWarehouseBarcodeFrame();
+            }catch(detectorError){
+                console.warn('BarcodeDetector init error:',detectorError);
+                setWarehouseBarcodeStatus('Камера қосылды, бірақ бұл браузердің сканері қолжетімсіз. Кодты қолмен енгізіңіз.',true);
+            }
+        }else{
+            setWarehouseBarcodeStatus('Камера қосылды. Бұл браузерде автоматты штрих-код тану жоқ, сондықтан кодты қолмен енгізіңіз.',true);
+        }
+    }catch(error){
+        console.warn('O Go barcode camera error:',error);
+        setWarehouseBarcodeStatus('Камераға рұқсат берілмеді немесе камера қолжетімсіз. Штрих-кодты қолмен енгізіңіз.',true);
+    }
+}
+
+async function scanWarehouseBarcodeFrame(){
+    const video=document.getElementById('warehouseBarcodeVideo');
+    if(!video||!warehouseBarcodeDetector||warehouseBarcodeScanBusy||!warehouseBarcodeStream)return;
+    if(video.readyState<2){requestAnimationFrame(scanWarehouseBarcodeFrame);return;}
+    try{
+        const codes=await warehouseBarcodeDetector.detect(video);
+        if(codes&&codes.length){
+            const raw=codes[0].rawValue||'';
+            const code=normalizeBarcodeValue(raw);
+            if(code){
+                warehouseBarcodeScanBusy=true;
+                const input=document.getElementById('warehouseBarcodeInput');if(input)input.value=code;
+                setWarehouseBarcodeStatus(`Табылды: ${code}. Іздеу орындалуда...`);
+                await searchWarehouseBarcode(code);
+                stopWarehouseBarcodeCamera();
+                return;
+            }
+        }
+    }catch(error){console.debug('Barcode scan frame:',error);}
+    requestAnimationFrame(scanWarehouseBarcodeFrame);
+}
+
+function searchWarehouseBarcodeManual(){
+    const code=document.getElementById('warehouseBarcodeInput')?.value||'';
+    searchWarehouseBarcode(code);
+}
+
+function prepareNewProductFromBarcode(code){
+    const normalized=normalizeBarcodeValue(code);
+    closeWarehouseBarcodeSearch();
+    const nameInput=document.getElementById('sellerProductName');
+    const status=document.getElementById('sellerStatus');
+    if(nameInput){nameInput.focus();nameInput.scrollIntoView({behavior:'smooth',block:'center'});}
+    if(status){status.className='hint';status.textContent=`Штрих-код ${normalized} сақталды. Жаңа тауар формасына атау мен бағаны енгізіп жариялаңыз.`;}
+    // The current one-by-one form creates an internal barcode automatically,
+    // so this flag makes the next publish use the scanned physical barcode.
+    window.ogoPendingSellerBarcode=normalized;
 }
 
 function filterSellerWarehouse(query=''){
