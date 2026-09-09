@@ -575,7 +575,7 @@ document.addEventListener('keydown',function(e){
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<meta name="ogo-version" content="v31-barcode-scanner-result-and-fallback"><meta name="ogo-auto-category" content="enabled"><meta name="ogo-photo-ranking" content="enabled"><script id="ogoZXingFallback" src="https://unpkg.com/@zxing/browser@0.2.1/umd/index.min.js" defer></script><script id="ogoZXingFallback2" src="https://cdn.jsdelivr.net/npm/@zxing/browser@0.2.1/umd/index.min.js" defer></script>
+<meta name="ogo-version" content="v33-barcode-camera-stream-fix"><meta name="ogo-auto-category" content="enabled"><meta name="ogo-photo-ranking" content="enabled"><script id="ogoZXingFallback" src="https://unpkg.com/@zxing/browser@0.2.1/umd/index.min.js" defer></script>
 </head>
 
 <body>
@@ -2507,6 +2507,7 @@ function setWarehouseBarcodeStatus(text,error=false){
 
 function stopWarehouseBarcodeCamera(){
     warehouseBarcodeScanBusy=false;
+    if(window.ogoBarcodeRaf){clearTimeout(window.ogoBarcodeRaf);window.ogoBarcodeRaf=null;}
     if(window.ogoZXingControls){try{window.ogoZXingControls.stop();}catch(e){}window.ogoZXingControls=null;}
     if(window.ogoZXingReader){try{window.ogoZXingReader.reset();}catch(e){}window.ogoZXingReader=null;}
     if(warehouseBarcodeStream){warehouseBarcodeStream.getTracks().forEach(t=>t.stop());warehouseBarcodeStream=null;}
@@ -2776,9 +2777,21 @@ async function startWarehouseBarcodeCamera(){
         setWarehouseBarcodeStatus('Бұл браузер камераға тікелей кіруді қолдамайды. Штрих-кодты төмендегі жолға қолмен енгізіңіз.',true);return;
     }
     try{
-        warehouseBarcodeStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});
+        warehouseBarcodeStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{exact:'environment'},width:{min:960,ideal:1920,max:2560},height:{min:540,ideal:1080,max:1440},frameRate:{ideal:30,max:60}},audio:false});
         video.srcObject=warehouseBarcodeStream;
         await video.play();
+        // Best-effort continuous autofocus / modest zoom on devices that expose these controls.
+        try{
+            const track=warehouseBarcodeStream.getVideoTracks?.()[0];
+            const caps=track?.getCapabilities?.()||{};
+            const advanced=[];
+            if(caps.focusMode && caps.focusMode.includes('continuous'))advanced.push({focusMode:'continuous'});
+            if(caps.zoom){
+                const z=Math.min(caps.max,Math.max(caps.min||1,Math.min(2.0,caps.max)));
+                advanced.push({zoom:z});
+            }
+            if(advanced.length)await track.applyConstraints({advanced});
+        }catch(e){console.debug('Camera focus/zoom control unavailable:',e);}
 
         // 1) Native BarcodeDetector — fastest when the browser supports it.
         if('BarcodeDetector' in window){
@@ -2817,27 +2830,52 @@ async function startWarehouseBarcodeCamera(){
                     window.ZXingBrowser.BarcodeFormat.CODE_128
                 ]);
             }
-            const ReaderClass=window.ZXingBrowser.BrowserMultiFormatOneDReader||window.ZXingBrowser.BrowserMultiFormatReader;
-            const reader=new ReaderClass(hints,{delayBetweenScanAttempts:180,delayBetweenScanSuccess:1000});
+            const ReaderClass=window.ZXingBrowser.BrowserMultiFormatReader||window.ZXingBrowser.BrowserMultiFormatOneDReader;
+            if(!ReaderClass)throw new Error('ZXing reader табылмады.');
+            const reader=new ReaderClass(hints,{delayBetweenScanAttempts:120,delayBetweenScanSuccess:900});
             window.ogoZXingReader=reader;
             warehouseBarcodeScanBusy=false;
-            window.ogoZXingControls=await reader.decodeFromVideoDevice(undefined,video,(result,error,controls)=>{
-                if(result&&!warehouseBarcodeScanBusy){
-                    const raw=result.getText?result.getText():result.text||'';
-                    const code=normalizeBarcodeValue(raw);
-                    if(code){
-                        warehouseBarcodeScanBusy=true;
-                        const input=document.getElementById('warehouseBarcodeInput');if(input)input.value=code;
-                        setWarehouseBarcodeStatus(`Табылды: ${code}. Іздеу орындалуда...`);
-                        searchWarehouseBarcode(code).then(()=>{
-                            try{controls?.stop();}catch(e){}
-                            window.ogoZXingControls=null;
-                            stopWarehouseBarcodeCamera();
-                        });
+            setWarehouseBarcodeStatus('🟢 Камера OK · сканер іске қосылды. Штрих-кодты сары жолға туралаңыз...');
+            // Use the SAME MediaStream already attached to the video. This avoids opening a second camera stream on iPhone/Safari.
+            if(typeof reader.decodeFromStream==='function'){
+                window.ogoZXingControls=await reader.decodeFromStream(warehouseBarcodeStream,video,(result,error)=>{
+                    if(result&&!warehouseBarcodeScanBusy){
+                        const raw=result.getText?result.getText():result.text||'';
+                        const code=normalizeBarcodeValue(raw);
+                        if(code){
+                            warehouseBarcodeScanBusy=true;
+                            const input=document.getElementById('warehouseBarcodeInput');if(input)input.value=code;
+                            if(navigator.vibrate)navigator.vibrate(70);
+                            setWarehouseBarcodeStatus(`Табылды: ${code}. Іздеу орындалуда...`);
+                            searchWarehouseBarcode(code).finally(()=>stopWarehouseBarcodeCamera());
+                        }
                     }
-                }
-                if(error && !(error.name==='NotFoundException'))console.debug('ZXing scan:',error);
-            });
+                    if(error && !['NotFoundException','ChecksumException','FormatException'].includes(error.name))console.debug('ZXing scan:',error);
+                });
+            }else{
+                const canvas=document.createElement('canvas');
+                const ctx=canvas.getContext('2d',{willReadFrequently:true});
+                const loop=async()=>{
+                    if(!warehouseBarcodeStream||warehouseBarcodeScanBusy)return;
+                    if(video.readyState>=2&&video.videoWidth){
+                        canvas.width=video.videoWidth; canvas.height=video.videoHeight;
+                        ctx.drawImage(video,0,0,canvas.width,canvas.height);
+                        try{
+                            const result=await reader.decodeFromCanvas(canvas);
+                            const code=normalizeBarcodeValue(result?.getText?result.getText():result?.text||'');
+                            if(code&&!warehouseBarcodeScanBusy){
+                                warehouseBarcodeScanBusy=true;
+                                const input=document.getElementById('warehouseBarcodeInput');if(input)input.value=code;
+                                setWarehouseBarcodeStatus(`Табылды: ${code}. Іздеу орындалуда...`);
+                                searchWarehouseBarcode(code).finally(()=>stopWarehouseBarcodeCamera());
+                                return;
+                            }
+                        }catch(e){}
+                    }
+                    window.ogoBarcodeRaf=setTimeout(loop,120);
+                };
+                loop();
+            }
         }catch(zxingError){
             console.warn('ZXing fallback error:',zxingError);
             setWarehouseBarcodeStatus('Автоматты сканер іске қосылмады. Штрих-кодты қолмен енгізіңіз.',true);
