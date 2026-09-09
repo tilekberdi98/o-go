@@ -575,7 +575,7 @@ document.addEventListener('keydown',function(e){
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<meta name="ogo-version" content="v30-common-warehouse-snapshot-sync-scanner"><meta name="ogo-auto-category" content="enabled"><meta name="ogo-photo-ranking" content="enabled"><script id="ogoZXingFallback" src="https://unpkg.com/@zxing/browser@0.2.1/umd/index.min.js" defer></script>
+<meta name="ogo-version" content="v30.1-common-warehouse-sync-scanner"><meta name="ogo-auto-category" content="enabled"><meta name="ogo-photo-ranking" content="enabled"><script id="ogoZXingFallback" src="https://unpkg.com/@zxing/browser@0.2.1/umd/index.min.js" defer></script>
 </head>
 
 <body>
@@ -2449,18 +2449,22 @@ async function loadSellerWarehousePage(){
     const el=document.getElementById('sellerProductsList');
     if(!el||!sellerUser)return;
     el.innerHTML='<div class="hint">Склад жүктелуде...</div>';
+    // Show the last common snapshot immediately. The large products table is loaded afterwards.
+    // This keeps the seller from waiting for the full warehouse count.
+    await fetchWarehouseSnapshot();
     try{
-        // Total count is fetched separately so pagination/count never depends on the
-        // current page payload. Existing rows are never deleted by warehouse loading.
+        // Live count is used only to refresh pagination and verify the snapshot.
         const countQuery=supabaseClient.from('products')
             .select('id',{count:'exact',head:true});
         const countResult=await countQuery;
         if(countResult.error)throw countResult.error;
         warehouseTotal=Number(countResult.count||0);
-        // The live count is still used for pagination; the snapshot is the fast shared count shown to sellers.
-        if(!warehouseSnapshotState.total)warehouseSnapshotState.total=warehouseTotal;
-        renderWarehouseSnapshot();
-        fetchWarehouseSnapshot();
+        // The snapshot is the fast common count shown to sellers. Live count is only for pagination.
+        if(!warehouseSnapshotState.updated_at){
+            warehouseSnapshotState.total=warehouseTotal;
+            warehouseSnapshotState.updated_at=new Date().toISOString();
+            renderWarehouseSnapshot();
+        }
 
         let query=supabaseClient.from('products')
             .select('id,seller_id,barcode,title,price,unit,sku,extra_code,is_active,updated_at,category_id,category_name,section_name,sale_price,discount_percent,promo_text,image_url');
