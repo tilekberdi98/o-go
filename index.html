@@ -563,17 +563,20 @@ body{background:#f6b35f!important;color:#171717!important}
 .seller-item .seller-item-info{min-width:0}
 @media(max-width:600px){.warehouse-panel #sellerProductsList{max-height:44vh}.seller-item-actions{max-width:145px}.seller-item button{padding:7px 8px;font-size:10px}}
 .warehouse-pagination{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px}.warehouse-pagination button{border:1px solid #3a423a;background:#252b27;color:#fff;border-radius:10px;padding:8px 11px;font-size:11px;font-weight:800}.warehouse-pagination button:disabled{opacity:.35;cursor:not-allowed}.warehouse-page-info{font-size:10px;color:#9da69d;text-align:center;flex:1}
+.warehouse-sync-card{margin:9px 0 10px;padding:10px 11px;border:1px solid #303830;border-radius:13px;background:#171c18}.warehouse-sync-top{display:flex;align-items:center;justify-content:space-between;gap:8px}.warehouse-sync-count{font-size:14px;font-weight:950;color:#fff}.warehouse-sync-status{font-size:10px;font-weight:800;padding:4px 7px;border-radius:999px;background:#263126;color:#a8e63d;white-space:nowrap}.warehouse-sync-status.warn{color:#ffd400;background:#3a3216}.warehouse-sync-meta{font-size:10px;color:#929b92;margin-top:5px;line-height:1.45}.warehouse-sync-refresh{border:1px solid #3a423a;background:#252b27;color:#fff;border-radius:9px;padding:6px 8px;font-size:10px;font-weight:800}.barcode-modal-head{display:flex;align-items:center;gap:8px;padding-right:44px}.barcode-modal-head h3{flex:1}.barcode-back-btn{border:1px solid #3a423a;background:#252b27;color:#fff;border-radius:10px;padding:8px 10px;font-weight:900;font-size:11px}.barcode-back-btn i{color:var(--yellow);margin-right:4px}.barcode-close-note{font-size:10px;color:#8f988f;text-align:center;margin-top:8px}
 </style>
 
 <!-- SUPABASE -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>
 document.addEventListener('keydown',function(e){
     if(e.key==='Enter' && document.activeElement?.id==='warehouseBarcodeInput'){e.preventDefault();searchWarehouseBarcodeManual();}
+    if(e.key==='Escape' && document.getElementById('warehouseBarcodeModal')?.classList.contains('show'))closeWarehouseBarcodeSearch();
 });
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<meta name="ogo-version" content="v26-fast-smart-popular-events"><meta name="ogo-auto-category" content="enabled"><meta name="ogo-photo-ranking" content="enabled"></head>
+<meta name="ogo-version" content="v30-common-warehouse-snapshot-sync-scanner"><meta name="ogo-auto-category" content="enabled"><meta name="ogo-photo-ranking" content="enabled"><script id="ogoZXingFallback" src="https://unpkg.com/@zxing/browser@0.2.1/umd/index.min.js" defer></script>
+</head>
 
 <body>
 <div class="app">
@@ -845,11 +848,15 @@ document.addEventListener('keydown',function(e){
             <button id="sellerWarehouseToggle" class="warehouse-toggle" type="button" onclick="toggleSellerWarehouse()"><span><i class="fa-solid fa-box-open"></i> Склад</span><span id="sellerWarehouseCount" class="warehouse-count">0</span><i id="sellerWarehouseChevron" class="fa-solid fa-chevron-down"></i></button>
             <div id="sellerWarehousePanel" class="warehouse-panel" style="display:none">
                 <div class="warehouse-search-wrap"><i class="fa-solid fa-magnifying-glass"></i><input id="sellerWarehouseSearch" type="search" autocomplete="off" placeholder="Тауар іздеу..." oninput="filterSellerWarehouse(this.value)"></div>
-                <div class="warehouse-barcode-row"><button class="warehouse-barcode-btn" type="button" onclick="openWarehouseBarcodeSearch()"><i class="fa-solid fa-barcode"></i> Штрих-кодпен іздеу</button></div>
+                <div class="warehouse-barcode-row"><button class="warehouse-barcode-btn" type="button" onclick="openWarehouseBarcodeSearch()"><i class="fa-solid fa-barcode"></i> Штрих-кодпен іздеу</button><button class="warehouse-barcode-btn" type="button" style="flex:0 0 auto;width:48px;padding:10px 0" title="Складты жаңарту" onclick="refreshSellerWarehouse()"><i class="fa-solid fa-rotate"></i></button></div>
                 <div id="warehouseBarcodeResult" class="barcode-result" aria-live="polite"></div>
-                <div id="sellerWarehouseHint" class="warehouse-hint">Склад 300 000 тауарға дейін жұмыс істеуге дайын. Іздеу серверден орындалады — барлық тауарды телефонға бірден жүктемейді.</div>
+                <div id="warehouseSyncCard" class="warehouse-sync-card">
+                    <div class="warehouse-sync-top"><div class="warehouse-sync-count">📦 Склад: <span id="warehouseSyncCount">—</span></div><span id="warehouseSyncStatus" class="warehouse-sync-status">Синхрондалуда...</span><button type="button" class="warehouse-sync-refresh" onclick="refreshWarehouseSnapshot(true)"><i class="fa-solid fa-rotate"></i></button></div>
+                    <div id="warehouseSyncMeta" class="warehouse-sync-meta">Соңғы ортақ дерек тек сатушыға көрсетіледі.</div>
+                </div>
+                <div id="sellerWarehouseHint" class="warehouse-hint">Ортақ склад 300 000 тауарға дейін жұмыс істеуге дайын. Іздеу серверден орындалады — барлық тауарды телефонға бірден жүктемейді.</div>
                 <div id="sellerProductsList"><div class="hint">Жүктелуде...</div></div>
-                <div class="warehouse-pagination"><button id="warehousePrev" type="button" onclick="changeWarehousePage(-1)">‹ Алдыңғы</button><div id="warehousePageInfo" class="warehouse-page-info">1 / 1</div><button id="warehouseNext" type="button" onclick="changeWarehousePage(1)">Келесі ›</button></div>
+                <div class="warehouse-pagination"><button id="warehousePrev" type="button" onclick="changeWarehousePage(-1)">‹ Алдыңғы</button><div id="warehousePageInfo" class="warehouse-page-info">1 / 1</div><button id="warehouseNext" type="button" onclick="changeWarehousePage(1)">Келесі ›</button></div><div id="warehouseTotalHint" class="warehouse-hint" style="text-align:center;margin-top:7px">Барлық тауар саны серверден есептеледі.</div>
             </div>
         </div>
         <button class="submit" style="margin-top:9px;background:#252b27;color:#fff" onclick="sellerLogout()"><span id="sellerLogoutText">Шығу</span></button>
@@ -872,12 +879,12 @@ document.addEventListener('keydown',function(e){
 
 <div id="warehouseBarcodeModal" class="modal">
     <div class="modal-box" style="max-height:90vh;overflow:auto">
-        <button class="close modal-close" onclick="closeWarehouseBarcodeSearch()"><i class="fa-solid fa-xmark"></i></button>
-        <h3>Штрих-кодпен іздеу</h3>
+        <button class="close modal-close" aria-label="Жабу" onclick="closeWarehouseBarcodeSearch()"><i class="fa-solid fa-xmark"></i></button>
+        <div class="barcode-modal-head"><button type="button" class="barcode-back-btn" onclick="closeWarehouseBarcodeSearch()"><i class="fa-solid fa-arrow-left"></i> Складқа қайту</button><h3>Штрих-кодпен іздеу</h3></div>
         <div class="barcode-scanner-box">
             <video id="warehouseBarcodeVideo" class="barcode-video" playsinline muted></video>
-            <div id="warehouseBarcodeStatus" class="barcode-scan-status">Камераны қосып, штрих-кодты кадрдың ортасына ұстаңыз.</div>
-            <div class="barcode-manual-row"><input id="warehouseBarcodeInput" type="text" inputmode="numeric" autocomplete="off" placeholder="Штрих-кодты қолмен енгізу"><button type="button" onclick="searchWarehouseBarcodeManual()">Іздеу</button></div>
+            <div id="warehouseBarcodeStatus" class="barcode-scan-status">Камераны қосып, штрих-кодты кадрдың ортасына ұстаңыз.</div><div style="display:flex;gap:8px;margin-top:8px"><button type="button" class="warehouse-barcode-btn" onclick="toggleWarehouseBarcodeTorch()" style="flex:1"><i class="fa-solid fa-bolt"></i> Фонарик</button></div>
+            <div class="barcode-manual-row"><input id="warehouseBarcodeInput" type="text" inputmode="text" autocomplete="off" placeholder="Штрих-кодты қолмен енгізу"><button type="button" onclick="searchWarehouseBarcodeManual()">Іздеу</button></div>
             <div class="barcode-format-hint">EAN-13 · EAN-8 · UPC · Code 128 · штрих-код мәтін ретінде сақталады, 0 басындағы таңбалар жоғалмайды.</div>
         </div>
     </div>
@@ -1961,9 +1968,11 @@ async function openSellerPanel(){
     document.getElementById("sellerStatus").textContent="";
     document.getElementById("sellerStoreInfo").textContent=OGO_CURRENT_LANG==='ru'?'Айболит — закреплённый магазин продавца':'Айболит — сатушының бекітілген дүкені';
     await loadSellerSections();
+    await touchWarehouseLogin();
     await loadSellerProducts();
+    startWarehouseSnapshotSync();
 }
-function closeSellerPanel(){document.getElementById("sellerModal").classList.remove("show")}
+function closeSellerPanel(){stopWarehouseSnapshotSync();document.getElementById("sellerModal").classList.remove("show")}
 
 async function loadSellerSections(){
     // Бұл аккаунт Айболит дүкеніне бекітілген. Сатушыға сервис таңдауы көрсетілмейді.
@@ -2178,6 +2187,7 @@ async function createSellerProduct(){
         catalogState.shop.loaded=false;
         catalogState.food.loaded=false;
         await loadSellerProducts();
+        await refreshWarehouseSnapshot();
         if(document.getElementById('shop').classList.contains('active'))await loadCatalog('shop');
 
     }catch(error){
@@ -2370,6 +2380,7 @@ async function processBulkUpload(){
         showSellerLastAdded(done);
         catalogState.shop.loaded=false; catalogState.food.loaded=false;
         await loadSellerProducts();
+        await refreshWarehouseSnapshot();
         if(document.getElementById('shop').classList.contains('active'))await loadCatalog('shop');
         closeBulkUpload();
     }catch(error){
@@ -2388,6 +2399,8 @@ let warehouseSearchQuery='';
 let warehouseBarcodeStream=null;
 let warehouseBarcodeDetector=null;
 let warehouseBarcodeScanBusy=false;
+let warehouseSnapshotTimer=null;
+let warehouseSnapshotState={total:0,last_activity_at:null,last_actor_user_id:null,last_login_at:null,last_login_user_id:null,updated_at:null};
 
 function toggleSellerWarehouse(){
     sellerWarehouseOpen=!sellerWarehouseOpen;
@@ -2416,6 +2429,8 @@ function renderSellerWarehouse(items){
     const el=document.getElementById('sellerProductsList');
     const count=document.getElementById('sellerWarehouseCount');
     if(count)count.textContent=Number(warehouseTotal||0).toLocaleString('ru-RU');
+    const totalHint=document.getElementById('warehouseTotalHint');
+    if(totalHint)totalHint.textContent=`Складта барлығы ${Number(warehouseTotal||0).toLocaleString('ru-RU')} тауар. Бір бетте ${WAREHOUSE_PAGE_SIZE} тауар көрсетіледі — қалғандары келесі беттерде.`;
     if(!el)return;
     if(!items.length){el.innerHTML='<div class="hint">Сәйкес тауар табылмады.</div>';renderWarehousePagination();return;}
     el.innerHTML=items.map(p=>{
@@ -2435,9 +2450,20 @@ async function loadSellerWarehousePage(){
     if(!el||!sellerUser)return;
     el.innerHTML='<div class="hint">Склад жүктелуде...</div>';
     try{
+        // Total count is fetched separately so pagination/count never depends on the
+        // current page payload. Existing rows are never deleted by warehouse loading.
+        const countQuery=supabaseClient.from('products')
+            .select('id',{count:'exact',head:true});
+        const countResult=await countQuery;
+        if(countResult.error)throw countResult.error;
+        warehouseTotal=Number(countResult.count||0);
+        // The live count is still used for pagination; the snapshot is the fast shared count shown to sellers.
+        if(!warehouseSnapshotState.total)warehouseSnapshotState.total=warehouseTotal;
+        renderWarehouseSnapshot();
+        fetchWarehouseSnapshot();
+
         let query=supabaseClient.from('products')
-            .select('id,seller_id,barcode,title,price,unit,sku,extra_code,is_active,updated_at,category_id,category_name,section_name,sale_price,discount_percent,promo_text,image_url',{count:'exact'})
-            .eq('seller_id',sellerUser.id);
+            .select('id,seller_id,barcode,title,price,unit,sku,extra_code,is_active,updated_at,category_id,category_name,section_name,sale_price,discount_percent,promo_text,image_url');
         const q=normalizeSearchText(warehouseSearchQuery);
         if(q){
             const safe=q.replace(/,/g,' ');
@@ -2445,9 +2471,8 @@ async function loadSellerWarehousePage(){
         }
         const from=warehousePage*WAREHOUSE_PAGE_SIZE;
         const to=from+WAREHOUSE_PAGE_SIZE-1;
-        const {data,error,count}=await query.order('updated_at',{ascending:false}).range(from,to);
+        const {data,error}=await query.order('updated_at',{ascending:false}).range(from,to);
         if(error)throw error;
-        warehouseTotal=Number(count||0);
         sellerWarehouseProducts=Array.isArray(data)?data:[];
         renderSellerWarehouse(sellerWarehouseProducts);
     }catch(error){
@@ -2469,9 +2494,26 @@ function setWarehouseBarcodeStatus(text,error=false){
 
 function stopWarehouseBarcodeCamera(){
     warehouseBarcodeScanBusy=false;
+    if(window.ogoZXingControls){try{window.ogoZXingControls.stop();}catch(e){}window.ogoZXingControls=null;}
+    if(window.ogoZXingReader){try{window.ogoZXingReader.reset();}catch(e){}window.ogoZXingReader=null;}
     if(warehouseBarcodeStream){warehouseBarcodeStream.getTracks().forEach(t=>t.stop());warehouseBarcodeStream=null;}
     const video=document.getElementById('warehouseBarcodeVideo');
     if(video){video.pause();video.srcObject=null;}
+}
+
+async function toggleWarehouseBarcodeTorch(){
+    try{
+        const track=warehouseBarcodeStream?.getVideoTracks?.()[0];
+        if(!track){setWarehouseBarcodeStatus('Фонарик бұл құрылғыда қолжетімсіз.',true);return;}
+        const caps=track.getCapabilities?.()||{};
+        if(!caps.torch){setWarehouseBarcodeStatus('Фонарикті браузер басқаруы қолдамайды.',true);return;}
+        const settings=track.getSettings?.()||{};
+        await track.applyConstraints({advanced:[{torch:!Boolean(settings.torch)}]});
+        setWarehouseBarcodeStatus(settings.torch?'Фонарик өшірілді.':'Фонарик қосылды.');
+    }catch(error){
+        console.warn('O Go torch error:',error);
+        setWarehouseBarcodeStatus('Фонарикті қосу мүмкін болмады.',true);
+    }
 }
 
 function closeWarehouseBarcodeSearch(){
@@ -2493,13 +2535,12 @@ async function searchWarehouseBarcode(barcode){
         if(!sellerUser)throw new Error('Сатушы сессиясы табылмады. Қайта кіріңіз.');
         const {data,error}=await supabaseClient.from('products')
             .select('id,seller_id,barcode,title,price,unit,sku,extra_code,is_active,updated_at,category_id,category_name,section_name,sale_price,discount_percent,promo_text,image_url')
-            .eq('seller_id',sellerUser.id)
             .eq('barcode',code)
             .limit(1)
             .maybeSingle();
         if(error)throw error;
         if(!data){
-            if(resultEl)resultEl.innerHTML=`<div class="barcode-not-found"><strong>Тауар табылмады</strong>«${escapeHtml(code)}» штрих-коды сіздің Складыңыздан табылған жоқ.<div class="barcode-card-actions" style="justify-content:center"><button class="primary" onclick="prepareNewProductFromBarcode('${escapeHtml(code)}')"><i class="fa-solid fa-plus"></i> Осы штрих-кодпен жаңа тауар қосу</button></div></div>`;
+            if(resultEl)resultEl.innerHTML=`<div class="barcode-not-found"><strong>Тауар табылмады</strong>«${escapeHtml(code)}» штрих-коды ортақ Складтан табылған жоқ.<div class="barcode-card-actions" style="justify-content:center"><button class="primary" onclick="prepareNewProductFromBarcode('${escapeHtml(code)}')"><i class="fa-solid fa-plus"></i> Осы штрих-кодпен жаңа тауар қосу</button></div></div>`;
             return;
         }
         renderWarehouseBarcodeResult(data);
@@ -2530,6 +2571,107 @@ async function openWarehouseBarcodeSearch(){
     await startWarehouseBarcodeCamera();
 }
 
+async function waitForOgoZXing(timeoutMs=5000){
+    if(window.ZXingBrowser)return true;
+    const started=Date.now();
+    while(Date.now()-started<timeoutMs){
+        await new Promise(r=>setTimeout(r,150));
+        if(window.ZXingBrowser)return true;
+    }
+    return false;
+}
+
+async function scanWarehouseBarcodeFrame(){
+    if(!warehouseBarcodeDetector||warehouseBarcodeScanBusy)return;
+    const video=document.getElementById('warehouseBarcodeVideo');
+    if(!video||video.readyState<2)return requestAnimationFrame(scanWarehouseBarcodeFrame);
+    try{
+        const codes=await warehouseBarcodeDetector.detect(video);
+        if(codes&&codes.length&&!warehouseBarcodeScanBusy){
+            const raw=codes[0]?.rawValue||'';
+            const code=normalizeBarcodeValue(raw);
+            if(code){
+                warehouseBarcodeScanBusy=true;
+                const input=document.getElementById('warehouseBarcodeInput');if(input)input.value=code;
+                if(navigator.vibrate)navigator.vibrate(70);
+                setWarehouseBarcodeStatus(`Табылды: ${code}. Іздеу орындалуда...`);
+                await searchWarehouseBarcode(code);
+                stopWarehouseBarcodeCamera();
+                return;
+            }
+        }
+    }catch(error){console.debug('Native barcode scan:',error)}
+    requestAnimationFrame(scanWarehouseBarcodeFrame);
+}
+
+function formatWarehouseDate(value){
+    if(!value)return '—';
+    const d=new Date(value); if(Number.isNaN(d.getTime()))return '—';
+    return d.toLocaleString('kk-KZ',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+
+function renderWarehouseSnapshot(){
+    const count=document.getElementById('warehouseSyncCount');
+    const status=document.getElementById('warehouseSyncStatus');
+    const meta=document.getElementById('warehouseSyncMeta');
+    if(count)count.textContent=Number(warehouseSnapshotState.total||0).toLocaleString('ru-RU');
+    const last=warehouseSnapshotState.last_activity_at||warehouseSnapshotState.updated_at;
+    if(status){status.className='warehouse-sync-status';status.textContent=last?'🟢 Синхрондалған':'🟢 Дерек дайын';}
+    if(meta){
+        const login=warehouseSnapshotState.last_login_at?`Жүйеге соңғы кіру: ${formatWarehouseDate(warehouseSnapshotState.last_login_at)}`:'';
+        const activity=last?`Складтың соңғы өзгерісі: ${formatWarehouseDate(last)}`:'';
+        meta.textContent=[activity,login,'Ортақ склад — барлық рұқсат етілген сатушыларға бірдей. Саны бүкіл дүкен бойынша есептеледі.'].filter(Boolean).join(' · ');
+    }
+    const countBadge=document.getElementById('sellerWarehouseCount');
+    if(countBadge)countBadge.textContent=Number(warehouseSnapshotState.total||warehouseTotal||0).toLocaleString('ru-RU');
+}
+
+async function fetchWarehouseSnapshot(){
+    try{
+        const {data,error}=await supabaseClient.from('warehouse_sync_state').select('id,total_products,last_activity_at,last_actor_user_id,last_login_at,last_login_user_id,updated_at').eq('id',1).maybeSingle();
+        if(error)throw error;
+        if(data){
+            warehouseSnapshotState={total:Number(data.total_products||0),last_activity_at:data.last_activity_at||null,last_actor_user_id:data.last_actor_user_id||null,last_login_at:data.last_login_at||null,last_login_user_id:data.last_login_user_id||null,updated_at:data.updated_at||null};
+            renderWarehouseSnapshot();
+            return true;
+        }
+    }catch(error){
+        // Before the SQL migration is installed, fall back to an exact live count.
+        console.debug('Warehouse snapshot unavailable:',error?.message||error);
+    }
+    try{
+        const {count,error}=await supabaseClient.from('products').select('id',{count:'exact',head:true});
+        if(error)throw error;
+        warehouseSnapshotState.total=Number(count||0);
+        warehouseSnapshotState.updated_at=new Date().toISOString();
+        renderWarehouseSnapshot();
+    }catch(error){console.warn('Warehouse fallback count error:',error)}
+    return false;
+}
+
+async function refreshWarehouseSnapshot(force=false){
+    const status=document.getElementById('warehouseSyncStatus');
+    if(status){status.className='warehouse-sync-status warn';status.textContent='🔄 Жаңартылуда...';}
+    await fetchWarehouseSnapshot();
+    if(status&&warehouseSnapshotState.updated_at){status.className='warehouse-sync-status';status.textContent='🟢 Жаңартылды';}
+}
+
+async function touchWarehouseLogin(){
+    if(!sellerUser)return;
+    try{
+        await supabaseClient.rpc('touch_warehouse_login',{p_user_id:sellerUser.id});
+    }catch(error){console.debug('Warehouse login snapshot RPC unavailable:',error?.message||error)}
+    await fetchWarehouseSnapshot();
+}
+
+function startWarehouseSnapshotSync(){
+    if(warehouseSnapshotTimer)clearInterval(warehouseSnapshotTimer);
+    warehouseSnapshotTimer=setInterval(()=>{
+        if(sellerUser&&document.visibilityState==='visible')fetchWarehouseSnapshot();
+    },10000);
+}
+function stopWarehouseSnapshotSync(){if(warehouseSnapshotTimer){clearInterval(warehouseSnapshotTimer);warehouseSnapshotTimer=null;}}
+
 async function startWarehouseBarcodeCamera(){
     stopWarehouseBarcodeCamera();
     const video=document.getElementById('warehouseBarcodeVideo');
@@ -2538,49 +2680,75 @@ async function startWarehouseBarcodeCamera(){
         setWarehouseBarcodeStatus('Бұл браузер камераға тікелей кіруді қолдамайды. Штрих-кодты төмендегі жолға қолмен енгізіңіз.',true);return;
     }
     try{
-        warehouseBarcodeStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});
+        warehouseBarcodeStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});
         video.srcObject=warehouseBarcodeStream;
         await video.play();
+
+        // 1) Native BarcodeDetector — fastest when the browser supports it.
         if('BarcodeDetector' in window){
             try{
-                const formats=['ean_13','ean_8','upc_a','upc_e','code_128'];
+                const supported=typeof BarcodeDetector.getSupportedFormats==='function'
+                    ? await BarcodeDetector.getSupportedFormats()
+                    : [];
+                const wanted=['ean_13','ean_8','upc_a','upc_e','code_128'];
+                const formats=supported.length?wanted.filter(x=>supported.includes(x)):wanted;
                 warehouseBarcodeDetector=new BarcodeDetector({formats});
                 warehouseBarcodeScanBusy=false;
                 setWarehouseBarcodeStatus('Камера дайын. Штрих-кодты кадрдың ортасына ұстаңыз.');
                 scanWarehouseBarcodeFrame();
+                return;
             }catch(detectorError){
-                console.warn('BarcodeDetector init error:',detectorError);
-                setWarehouseBarcodeStatus('Камера қосылды, бірақ бұл браузердің сканері қолжетімсіз. Кодты қолмен енгізіңіз.',true);
+                console.warn('Native BarcodeDetector init error:',detectorError);
+                warehouseBarcodeDetector=null;
             }
-        }else{
-            setWarehouseBarcodeStatus('Камера қосылды. Бұл браузерде автоматты штрих-код тану жоқ, сондықтан кодты қолмен енгізіңіз.',true);
+        }
+
+        // 2) ZXing fallback — intended for Safari/iPhone where BarcodeDetector is unavailable.
+        setWarehouseBarcodeStatus('Камера қосылды. Штрих-код автоматты түрде ізделуде...');
+        const zxingReady=await waitForOgoZXing(5000);
+        if(!zxingReady){
+            setWarehouseBarcodeStatus('Автоматты сканер осы браузерде жүктелмеді. Штрих-кодты төмендегі жолға қолмен енгізіңіз.',true);return;
+        }
+        try{
+            if(window.ogoZXingControls){try{window.ogoZXingControls.stop();}catch(e){}}
+            const hints=new Map();
+            if(window.ZXingBrowser.DecodeHintType && window.ZXingBrowser.BarcodeFormat){
+                hints.set(window.ZXingBrowser.DecodeHintType.POSSIBLE_FORMATS,[
+                    window.ZXingBrowser.BarcodeFormat.EAN_13,
+                    window.ZXingBrowser.BarcodeFormat.EAN_8,
+                    window.ZXingBrowser.BarcodeFormat.UPC_A,
+                    window.ZXingBrowser.BarcodeFormat.UPC_E,
+                    window.ZXingBrowser.BarcodeFormat.CODE_128
+                ]);
+            }
+            const reader=new window.ZXingBrowser.BrowserMultiFormatReader(hints,250);
+            window.ogoZXingReader=reader;
+            warehouseBarcodeScanBusy=false;
+            window.ogoZXingControls=await reader.decodeFromVideoDevice(undefined,video,(result,error,controls)=>{
+                if(result&&!warehouseBarcodeScanBusy){
+                    const raw=result.getText?result.getText():result.text||'';
+                    const code=normalizeBarcodeValue(raw);
+                    if(code){
+                        warehouseBarcodeScanBusy=true;
+                        const input=document.getElementById('warehouseBarcodeInput');if(input)input.value=code;
+                        setWarehouseBarcodeStatus(`Табылды: ${code}. Іздеу орындалуда...`);
+                        searchWarehouseBarcode(code).then(()=>{
+                            try{controls?.stop();}catch(e){}
+                            window.ogoZXingControls=null;
+                            stopWarehouseBarcodeCamera();
+                        });
+                    }
+                }
+                if(error && !(error.name==='NotFoundException'))console.debug('ZXing scan:',error);
+            });
+        }catch(zxingError){
+            console.warn('ZXing fallback error:',zxingError);
+            setWarehouseBarcodeStatus('Автоматты сканер іске қосылмады. Штрих-кодты қолмен енгізіңіз.',true);
         }
     }catch(error){
         console.warn('O Go barcode camera error:',error);
         setWarehouseBarcodeStatus('Камераға рұқсат берілмеді немесе камера қолжетімсіз. Штрих-кодты қолмен енгізіңіз.',true);
     }
-}
-
-async function scanWarehouseBarcodeFrame(){
-    const video=document.getElementById('warehouseBarcodeVideo');
-    if(!video||!warehouseBarcodeDetector||warehouseBarcodeScanBusy||!warehouseBarcodeStream)return;
-    if(video.readyState<2){requestAnimationFrame(scanWarehouseBarcodeFrame);return;}
-    try{
-        const codes=await warehouseBarcodeDetector.detect(video);
-        if(codes&&codes.length){
-            const raw=codes[0].rawValue||'';
-            const code=normalizeBarcodeValue(raw);
-            if(code){
-                warehouseBarcodeScanBusy=true;
-                const input=document.getElementById('warehouseBarcodeInput');if(input)input.value=code;
-                setWarehouseBarcodeStatus(`Табылды: ${code}. Іздеу орындалуда...`);
-                await searchWarehouseBarcode(code);
-                stopWarehouseBarcodeCamera();
-                return;
-            }
-        }
-    }catch(error){console.debug('Barcode scan frame:',error);}
-    requestAnimationFrame(scanWarehouseBarcodeFrame);
 }
 
 function searchWarehouseBarcodeManual(){
@@ -2598,6 +2766,12 @@ function prepareNewProductFromBarcode(code){
     // The current one-by-one form creates an internal barcode automatically,
     // so this flag makes the next publish use the scanned physical barcode.
     window.ogoPendingSellerBarcode=normalized;
+}
+
+async function refreshSellerWarehouse(){
+    warehousePage=0;
+    warehouseSearchQuery=document.getElementById('sellerWarehouseSearch')?.value||'';
+    await loadSellerWarehousePage();
 }
 
 function filterSellerWarehouse(query=''){
@@ -2642,6 +2816,7 @@ async function deleteSellerProduct(id){
         const result=await supabaseClient.from('products').delete().eq('id',id);
         if(result.error)throw result.error;
         await loadSellerProducts();
+        await refreshWarehouseSnapshot();
         catalogState.shop.loaded=false;
         if(document.getElementById('shop').classList.contains('active'))await loadCatalog('shop');
     }catch(error){
@@ -2654,6 +2829,7 @@ async function toggleSellerPublished(id, published){
         const result=await supabaseClient.from('products').update({is_active:published,updated_at:new Date().toISOString()}).eq('id',id);
         if(result.error)throw result.error;
         await loadSellerProducts();
+        await refreshWarehouseSnapshot();
         catalogState.shop.loaded=false; catalogState.food.loaded=false;
         if(document.getElementById('shop').classList.contains('active'))await loadCatalog('shop');
     }catch(error){alert(error.message||'Статусты өзгерту кезінде қате болды.');}
@@ -2735,6 +2911,7 @@ async function saveEditedProduct(){
         status.className='hint seller-success'; status.textContent='✅ Өзгерістер сақталды!';
         catalogState.shop.loaded=false; catalogState.food.loaded=false;
         await loadSellerProducts();
+        await refreshWarehouseSnapshot();
         if(document.getElementById('shop').classList.contains('active'))await loadCatalog('shop');
     }catch(error){status.className='hint seller-error';status.textContent=error.message||'Сақтау кезінде қате болды.';}
 }
@@ -2753,6 +2930,7 @@ async function deleteEditedProduct(){
 }
 
 async function sellerLogout(){
+    stopWarehouseSnapshotSync();
     await supabaseClient.auth.signOut();
     sellerUser=null;
     sellerStoreId=null;
