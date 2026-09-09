@@ -1755,43 +1755,111 @@ function localizeCategoryName(name){
 }
 
 async function createSellerProduct(){
-    const status=document.getElementById('sellerStatus'); status.className='hint';
-    const name=document.getElementById('sellerProductName').value.trim();
-    const price=Number(document.getElementById('sellerProductPrice').value);
-    const sku='';
-    if(!sellerUser){status.className='hint seller-error';status.textContent='Сатушы сессиясы табылмады.';return}
-    if(!name){status.textContent='Тауар атауын енгізіңіз.';return}
-    if(!Number.isFinite(price)||price<0){status.textContent='Бағаны дұрыс енгізіңіз.';return}
-    status.textContent=OGO_CURRENT_LANG==='ru'?'Товар публикуется...':'Тауар жариялануда...';
+    const status=document.getElementById('sellerStatus');
+    const publishBtn=document.getElementById('sellerPublishBtn');
+    if(status){status.className='hint';status.textContent='';}
+
+    if(!sellerUser){
+        if(status){status.className='hint seller-error';status.textContent='Сатушы сессиясы табылмады. Қайта кіріңіз.';}
+        return;
+    }
+
+    const name=(document.getElementById('sellerProductName')?.value||'').trim();
+    const price=Number(document.getElementById('sellerProductPrice')?.value);
+    const unit=String(document.getElementById('sellerProductUnit')?.value||'шт').trim();
+    const discountPercent=Math.max(0,Math.min(100,Number(document.getElementById('sellerProductDiscount')?.value||0)));
+    const manualSalePrice=Number(document.getElementById('sellerProductSalePrice')?.value||0);
+    const salePrice=discountPercent>0
+        ? Math.round(price*(1-discountPercent/100))
+        : (manualSalePrice>0 && manualSalePrice<price ? manualSalePrice : null);
+    const promoText=(document.getElementById('sellerProductPromo')?.value||'').trim()||null;
+
+    const categoryId=document.getElementById('sellerCategory')?.value||'';
+    const sectionValue=document.getElementById('sellerSection')?.value||'';
+    const category=OGO_AYBOLIT_CATEGORIES.find(c=>c.id===categoryId);
+    const sectionName=category && sectionValue!=='' ? (category.sections[Number(sectionValue)]||null) : null;
+
+    if(!name){
+        status.textContent='Тауар атауын енгізіңіз.';
+        document.getElementById('sellerProductName')?.focus();
+        return;
+    }
+    if(!Number.isFinite(price) || price<0){
+        status.textContent='Бағаны дұрыс енгізіңіз.';
+        document.getElementById('sellerProductPrice')?.focus();
+        return;
+    }
+    if(!categoryId || !category){
+        status.textContent='Категорияны таңдаңыз.';
+        return;
+    }
+    if(category.sections.length && !sectionName){
+        status.textContent='Разделді таңдаңыз.';
+        return;
+    }
+
+    // products кестесінің осы нұсқасында бар нақты бағандар ғана жіберіледі.
+    const payload={
+        seller_id:sellerUser.id,
+        barcode:null,
+        title:name,
+        price:price,
+        unit:unit||null,
+        sku:null,
+        extra_code:null,
+        is_active:true,
+        updated_at:new Date().toISOString(),
+        category_id:categoryId,
+        category_name:category.name,
+        section_name:sectionName,
+        sale_price:salePrice,
+        discount_percent:discountPercent,
+        promo_text:promoText
+    };
+
     try{
-        const service='shop';
-        const unit=String(document.getElementById('sellerProductUnit')?.value||'шт');
-        const discountPercent=Math.max(0,Math.min(100,Number(document.getElementById('sellerProductDiscount')?.value||0)));
-        const manualSalePrice=Number(document.getElementById('sellerProductSalePrice')?.value||0);
-        const salePrice=discountPercent>0?Math.round(price*(1-discountPercent/100)):(manualSalePrice>0&&manualSalePrice<price?manualSalePrice:null);
-        const promoText=document.getElementById('sellerProductPromo')?.value.trim()||null;
-        const categoryId=document.getElementById('sellerCategory')?.value||'';
-        const sectionValue=document.getElementById('sellerSection')?.value||'';
-        const category=service==='shop'?OGO_AYBOLIT_CATEGORIES.find(c=>c.id===categoryId):null;
-        const sectionName=category&&sectionValue!==''?category.sections[Number(sectionValue)]||null:null;
-        if(service==='shop'&&!categoryId){status.textContent='Категорияны таңдаңыз.';return}
-        if(service==='shop'&&category&&category.sections.length&&!sectionName){status.textContent='Разделді таңдаңыз.';return}
-        const payload={seller_id:sellerUser.id,barcode:null,title:name,price,unit:unit||null,sku:sku||null,extra_code:null,is_active:true,updated_at:new Date().toISOString(),category_id:service==='shop'?categoryId:null,category_name:service==='shop'?category.name:null,section_name:service==='shop'?sectionName:null,sale_price:salePrice,discount_percent:discountPercent,promo_text:promoText};
-        const {error}=await supabaseClient.from('products').insert(payload);
-        if(error)throw error;
-        status.className='hint seller-success'; status.textContent='✅ Тауар сәтті жарияланды!';
+        if(publishBtn){
+            publishBtn.disabled=true;
+            publishBtn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Жариялануда...';
+        }
+        status.textContent=OGO_CURRENT_LANG==='ru'?'Товар сохраняется...':'Тауар сақталуда...';
+
+        const result=await supabaseClient
+            .from('products')
+            .insert(payload)
+            .select('id')
+            .single();
+
+        if(result.error)throw result.error;
+        if(!result.data?.id)throw new Error('Тауар базаға қосылды деген жауап алынбады.');
+
+        status.className='hint seller-success';
+        status.textContent='✅ Тауар сәтті қосылды!';
+
+        // Тек сәтті сақталғаннан кейін ғана форманы тазалаймыз.
         document.getElementById('sellerProductName').value='';
         document.getElementById('sellerProductPrice').value='';
         const discountEl=document.getElementById('sellerProductDiscount'); if(discountEl)discountEl.value='';
         const saleEl=document.getElementById('sellerProductSalePrice'); if(saleEl)saleEl.value='';
         const promoEl=document.getElementById('sellerProductPromo'); if(promoEl)promoEl.value='';
         const unitEl=document.getElementById('sellerProductUnit'); if(unitEl)unitEl.value='шт';
-        catalogState.shop.loaded=false; catalogState.food.loaded=false;
+
+        catalogState.shop.loaded=false;
+        catalogState.food.loaded=false;
         await loadSellerProducts();
         if(document.getElementById('shop').classList.contains('active'))await loadCatalog('shop');
+
     }catch(error){
         console.error('O Go create product error:',error);
-        status.className='hint seller-error'; status.textContent=error.message||'Тауарды жариялау кезінде қате болды.';
+        const msg=error?.message||'Тауарды жариялау кезінде қате болды.';
+        const details=[msg,error?.code,error?.details,error?.hint].filter(Boolean).join(' | ');
+        status.className='hint seller-error';
+        status.textContent='❌ '+details;
+    }finally{
+        if(publishBtn){
+            publishBtn.disabled=false;
+            publishBtn.innerHTML='<i class="fa-solid fa-plus"></i> Тауарды жариялау';
+        }
     }
 }
 
