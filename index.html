@@ -568,7 +568,7 @@ body{background:#f6b35f!important;color:#171717!important}
 <!-- SUPABASE -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<meta name="ogo-version" content="v23-aybolit-sellers-auto-category-photo-ranking"><meta name="ogo-auto-category" content="enabled"><meta name="ogo-photo-ranking" content="enabled"></head>
+<meta name="ogo-version" content="v26-fast-smart-popular-events"><meta name="ogo-auto-category" content="enabled"><meta name="ogo-photo-ranking" content="enabled"></head>
 
 <body>
 <div class="app">
@@ -1270,8 +1270,9 @@ function renderProducts(type){
         const promo=isPromoProduct(p)?`<span class="promo">${escapeHtml(p.promo_text||('-'+(discount||Math.round((1-effectivePrice/price)*100))+'%'))}</span>`:'';
         const priceHtml=effectivePrice<price?`<span class="old-price">${formatPrice(price)}</span>${formatPrice(effectivePrice)} ${promo}`:`${formatPrice(price)} ${promo}`;
         const stock=Number.isFinite(Number(p.stock))?Number(p.stock):999999, disabled='', stockText=desc||'Тауар';
-        return `<article class="product"><div class="product-img">${image}</div><div class="product-info"><div class="product-name">${name}</div><div class="product-desc">${stockText}</div><div class="price">${priceHtml}</div></div><button class="add" ${disabled} onclick="addProductToCart('${encodeURIComponent(String(p.id))}')">+</button></article>`;
+        return `<article class="product" data-product-id="${escapeHtml(String(p.id))}"><div class="product-img">${image}</div><div class="product-info"><div class="product-name">${name}</div><div class="product-desc">${stockText}</div><div class="price">${priceHtml}</div></div><button class="add" ${disabled} onclick="addProductToCart('${encodeURIComponent(String(p.id))}')">+</button></article>`;
     }).join('');
+    observeProductViews(el);
 }
 function searchCatalog(type,value){
     const state=catalogState[type]; if(!state)return;
@@ -1327,7 +1328,7 @@ async function loadCatalog(type){
         state.sections=sectionsResult.error?[]:(sectionsResult.data||[]);
 
         const productsResult=await supabaseClient.from('products')
-            .select('id,seller_id,barcode,title,price,unit,sku,extra_code,is_active,updated_at,category_id,category_name,section_name,sale_price,discount_percent,promo_text,popularity_count,image_url,section_id')
+            .select('id,seller_id,barcode,title,price,unit,sku,extra_code,is_active,updated_at,category_id,category_name,section_name,sale_price,discount_percent,promo_text,popularity_count,image_url')
             .eq('is_active',true)
             // Танымал тауарлар бірінші. popularity_count — себетке қосу/тапсырыс сигналы.
             .order('popularity_count',{ascending:false,nullsFirst:false})
@@ -1349,7 +1350,6 @@ async function loadCatalog(type){
             image_url:p.image_url||null,
             category:'shop',
             service_type:type,
-            section_id:p.section_id||null,
             category_id:p.category_id||null,
             category_name:p.category_name||null,
             section_name:p.section_name||null
@@ -1382,18 +1382,16 @@ async function loadSectionProducts(type,sectionId){
 
     try{
         let q=supabaseClient.from('products')
-            .select('id,seller_id,barcode,title,price,unit,sku,extra_code,is_active,updated_at,category_id,category_name,section_name,sale_price,discount_percent,promo_text,popularity_count,image_url,section_id')
+            .select('id,seller_id,barcode,title,price,unit,sku,extra_code,is_active,updated_at,category_id,category_name,section_name,sale_price,discount_percent,promo_text,popularity_count,image_url')
             .eq('is_active',true)
             .order('popularity_count',{ascending:false,nullsFirst:false})
             .order('updated_at',{ascending:false})
             .limit(80);
 
-        // section_id дұрыс толтырылған болса — сонымен сүземіз.
-        // Ескі импорттағы section_id бос болуы мүмкін, сондықтан section_name-ге де fallback бар.
-        if(sectionId && sectionName){
-            q=q.or(`section_id.eq.${sectionId},section_name.ilike.${sectionName.replace(/[%_]/g,'\\$&')}`);
-        }else if(sectionId){
-            q=q.eq('section_id',sectionId);
+        // Бұл база нұсқасында products ішінде section_id жоқ.
+        // Сондықтан бөлімді section_name арқылы іздейміз.
+        if(sectionName){
+            q=q.eq('section_name',sectionName);
         }
 
         const {data,error}=await q;
@@ -1408,7 +1406,6 @@ async function loadSectionProducts(type,sectionId){
             description:p.unit||'',
             image_url:p.image_url||null,
             category:'shop',service_type:type,
-            section_id:p.section_id||null,
             category_id:p.category_id||null,
             category_name:p.category_name||null,
             section_name:p.section_name||null
@@ -1446,7 +1443,7 @@ async function searchCatalogServer(type,value){
         try{
             const pattern=`%${safe}%`;
             const {data,error}=await supabaseClient.from('products')
-                .select('id,seller_id,barcode,title,price,unit,sku,extra_code,is_active,updated_at,category_id,category_name,section_name,sale_price,discount_percent,promo_text,popularity_count,image_url,section_id')
+                .select('id,seller_id,barcode,title,price,unit,sku,extra_code,is_active,updated_at,category_id,category_name,section_name,sale_price,discount_percent,promo_text,popularity_count,image_url')
                 .eq('is_active',true)
                 .or(`title.ilike.${pattern},barcode.ilike.${pattern},sku.ilike.${pattern},category_name.ilike.${pattern},section_name.ilike.${pattern}`)
                 .order('popularity_count',{ascending:false,nullsFirst:false})
@@ -1464,8 +1461,7 @@ async function searchCatalogServer(type,value){
                 description:p.unit||'',
                 image_url:p.image_url||null,
                 category:'shop',service_type:'shop',
-                section_id:p.section_id||null,
-                category_id:p.category_id||null,
+                    category_id:p.category_id||null,
                 category_name:p.category_name||null,
                 section_name:p.section_name||null
             }));
@@ -1511,6 +1507,61 @@ function showCartAddedToast(name){
         toast.style.opacity='0';
         toast.style.transform='translate(-50%,12px)';
     },1300);
+}
+
+// ============================================================
+// V26 — SMART POPULAR EVENTS
+// ============================================================
+let OGO_VIEW_OBSERVER=null;
+
+function ogoSessionId(){
+    try{
+        let id=localStorage.getItem('ogo_session_id');
+        if(!id){
+            id=(crypto?.randomUUID?.()||('ogo_'+Date.now()+'_'+Math.random().toString(36).slice(2)));
+            localStorage.setItem('ogo_session_id',id);
+        }
+        return id;
+    }catch(e){
+        return 'ogo_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+    }
+}
+
+async function recordProductEvent(productId,eventType){
+    if(!productId)return;
+    try{
+        await supabaseClient.rpc('record_product_event',{
+            p_product_id:String(productId),
+            p_event_type:eventType,
+            p_session_id:ogoSessionId()
+        });
+    }catch(e){
+        console.warn('O Go event skipped:',eventType,e);
+    }
+}
+
+function observeProductViews(root){
+    if(OGO_VIEW_OBSERVER){
+        try{OGO_VIEW_OBSERVER.disconnect();}catch(e){}
+    }
+    if(!root || !('IntersectionObserver' in window))return;
+
+    OGO_VIEW_OBSERVER=new IntersectionObserver(entries=>{
+        entries.forEach(entry=>{
+            if(!entry.isIntersecting || entry.intersectionRatio<0.65)return;
+            const card=entry.target;
+            const id=card.getAttribute('data-product-id');
+            if(!id)return;
+            if(card.dataset.ogoViewed==='1')return;
+            card.dataset.ogoViewed='1';
+            setTimeout(()=>{
+                if(card.isConnected)recordProductEvent(id,'view');
+            },700);
+            try{OGO_VIEW_OBSERVER.unobserve(card);}catch(e){}
+        });
+    },{threshold:[0.65]});
+
+    root.querySelectorAll('[data-product-id]').forEach(card=>OGO_VIEW_OBSERVER.observe(card));
 }
 
 async function addProductToCart(id){
@@ -1802,6 +1853,8 @@ async function sendCart(){
     cart.forEach((x,i)=>{const sum=x.price*x.qty;subtotal+=sum;text+=`${i+1}. ${x.name} × ${x.qty} = ${sum} ₸\n`;});
     const grandTotal=subtotal+ORDER_ASSEMBLY_FEE+DELIVERY_FEE;
     text+=`\n🧾 Тауарлар: ${subtotal} ₸\n📦 Сбор заказа: ${ORDER_ASSEMBLY_FEE} ₸\n🚚 Доставка: ${DELIVERY_FEE} ₸\n💰 Барлығы: ${grandTotal} ₸\n👤 Аты: ${customerName}\n📞 Телефон: ${phone}\n📍 Мекенжай: ${address}\n💳 Төлем: ${payment}`;
+    // WhatsApp-қа жіберілген тапсырысты popularity-ге күшті сигнал ретінде жазамыз.
+    await Promise.allSettled(cart.map(x=>recordProductEvent(x.productId,'order')));
     window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(text)}`,"_blank");
     cart=[]; saveCart(); updateCart();
 }
