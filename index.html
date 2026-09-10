@@ -2042,7 +2042,7 @@ async function ogoUploadProductImage(productId,file){
     if(!file.type.startsWith('image/'))throw new Error('Фото файлы сурет болуы керек.');
     if(file.size>8*1024*1024)throw new Error('Фото 8 МБ-тан үлкен болмауы керек.');
 
-    // V36: Storage path әрқашан Supabase-тың нақты авторизацияланған user.id арқылы жасалады.
+    // V37: Storage path енді Supabase-тың нақты авторизацияланған user.id арқылы жасалады.
     // Бұл sellerUser ескі/кешіккен session мәні болған кезде RLS қатесін болдырмайды.
     const {data:userData,error:userError}=await supabaseClient.auth.getUser();
     if(userError)throw new Error('Сатушы сессиясын тексеру мүмкін болмады: '+userError.message);
@@ -2050,7 +2050,11 @@ async function ogoUploadProductImage(productId,file){
     if(!authUser?.id)throw new Error('Сатушы аккаунтының сессиясы жоқ. Қайта кіріңіз.');
     sellerUser=authUser;
 
-    const path=`${authUser.id}/${productId}.jpg`;
+    // V37: Фото жолы нақты uploader user.id-ге байланбайды.
+    // Бір дүкеннің басқа рұқсатты логині де сол тауардың фотосын ауыстыра алады.
+    // Бір productId үшін әр жүктеу жаңа файл болады — Storage-тағы бұрынғы
+    // файлды overwrite етуге тәуелді емес.
+    const path=`${authUser.id}/${productId}-${Date.now()}.jpg`;
     let blob=file;
     try{
         const bitmap=await createImageBitmap(file);
@@ -2067,7 +2071,7 @@ async function ogoUploadProductImage(productId,file){
         .from('product-images')
         .upload(path,blob,{upsert:true,contentType:'image/jpeg',cacheControl:'3600'});
     if(upErr){
-        console.error('O Go V36 image upload error:',upErr,{path,userId:authUser.id,productId});
+        console.error('O Go V37 image upload error:',upErr,{path,userId:authUser.id,productId});
         throw new Error(`Фото жүктелмеді: ${upErr.message||'Storage қатесі'}${upErr.code?' ('+upErr.code+')':''}`);
     }
     const {data}=supabaseClient.storage.from('product-images').getPublicUrl(path);
