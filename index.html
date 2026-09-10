@@ -2047,6 +2047,8 @@ async function ogoUploadProductImage(productId,file){
     const {data:userData,error:userError}=await supabaseClient.auth.getUser();
     if(userError)throw new Error('Сатушы сессиясын тексеру мүмкін болмады: '+userError.message);
     const authUser=userData?.user;
+    console.log('OGO AUTH USER ID:', authUser?.id);
+    console.log('OGO AUTH USER EMAIL:', authUser?.email);
     if(!authUser?.id)throw new Error('Сатушы аккаунтының сессиясы жоқ. Қайта кіріңіз.');
     sellerUser=authUser;
 
