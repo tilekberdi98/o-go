@@ -1364,17 +1364,38 @@ async function loadCatalog(type){
 
         state.sections=sectionsResult.error?[]:(sectionsResult.data||[]);
 
-        const productsResult=await supabaseClient.from('products')
-            .select('id,seller_id,barcode,title,price,unit,sku,extra_code,is_active,updated_at,category_id,category_name,section_name,sale_price,discount_percent,promo_text,popularity_count,image_url')
-            .eq('is_active',true)
-            // Танымал тауарлар бірінші. popularity_count — себетке қосу/тапсырыс сигналы.
-            .order('popularity_count',{ascending:false,nullsFirst:false})
-            .order('updated_at',{ascending:false})
-            .limit(type==='shop'?60:40);
+        const fields='id,seller_id,barcode,title,price,unit,sku,extra_code,is_active,updated_at,category_id,category_name,section_name,sale_price,discount_percent,promo_text,popularity_count,image_url';
+        let rows=[];
+        if(type==='shop'){
+            // Бірден 300 000 тауарды жүктемейміз. Бастапқы бетке акциялы + фотосы бар + танымал тауарларды параллель аламыз.
+            const [promoResult,photoResult,popularResult]=await Promise.all([
+                supabaseClient.from('products').select(fields).eq('is_active',true)
+                    .or('discount_percent.gt.0,and(sale_price.gt.0,price.gt.sale_price)')
+                    .order('updated_at',{ascending:false}).limit(30),
+                supabaseClient.from('products').select(fields).eq('is_active',true)
+                    .not('image_url','is',null)
+                    .order('updated_at',{ascending:false}).limit(30),
+                supabaseClient.from('products').select(fields).eq('is_active',true)
+                    .order('popularity_count',{ascending:false,nullsFirst:false})
+                    .order('updated_at',{ascending:false}).limit(60)
+            ]);
+            const bad=[promoResult,photoResult,popularResult].find(r=>r.error);
+            if(bad)throw bad.error;
+            const seen=new Set();
+            [...(promoResult.data||[]),...(photoResult.data||[]),...(popularResult.data||[])].forEach(row=>{
+                const key=String(row.id);
+                if(!seen.has(key)){seen.add(key);rows.push(row);}
+            });
+            rows=ogoSortProducts(rows).slice(0,100);
+        }else{
+            const productsResult=await supabaseClient.from('products').select(fields).eq('is_active',true)
+                .order('popularity_count',{ascending:false,nullsFirst:false})
+                .order('updated_at',{ascending:false}).limit(40);
+            if(productsResult.error)throw productsResult.error;
+            rows=productsResult.data||[];
+        }
 
-        if(productsResult.error)throw productsResult.error;
-
-        state.products=(productsResult.data||[]).map(p=>({
+        state.products=rows.map(p=>({
             ...p,
             name:p.title,
             published:p.is_active,
@@ -1434,7 +1455,7 @@ async function loadSectionProducts(type,sectionId){
         const {data,error}=await q;
         if(error)throw error;
 
-        state._renderOverride=(data||[]).map(p=>({
+        const mapped=(data||[]).map(p=>({
             ...p,name:p.title,published:p.is_active,stock:999999,
             sale_price:p.sale_price||null,
             discount_percent:p.discount_percent||0,
@@ -1447,6 +1468,11 @@ async function loadSectionProducts(type,sectionId){
             category_name:p.category_name||null,
             section_name:p.section_name||null
         }));
+        // Бөлімнен ашылған тауарларды да ортақ кэшке қосамыз — сонда + басқанда себетке міндетті түрде түседі.
+        const byId=new Map(state.products.map(p=>[String(p.id),p]));
+        mapped.forEach(p=>byId.set(String(p.id),p));
+        state.products=Array.from(byId.values());
+        state._renderOverride=ogoSortProducts(mapped);
 
         renderProducts(type);
     }catch(error){
@@ -1489,7 +1515,7 @@ async function searchCatalogServer(type,value){
 
             if(error)throw error;
 
-            state._renderOverride=(data||[]).map(p=>({
+            const mapped=(data||[]).map(p=>({
                 ...p,name:p.title,published:p.is_active,stock:999999,
                 sale_price:p.sale_price||null,
                 discount_percent:p.discount_percent||0,
@@ -1498,10 +1524,14 @@ async function searchCatalogServer(type,value){
                 description:p.unit||'',
                 image_url:p.image_url||null,
                 category:'shop',service_type:'shop',
-                    category_id:p.category_id||null,
+                category_id:p.category_id||null,
                 category_name:p.category_name||null,
                 section_name:p.section_name||null
             }));
+            const byId=new Map(state.products.map(p=>[String(p.id),p]));
+            mapped.forEach(p=>byId.set(String(p.id),p));
+            state.products=Array.from(byId.values());
+            state._renderOverride=ogoSortProducts(mapped);
 
             renderProducts(type);
         }catch(error){
@@ -1604,7 +1634,20 @@ function observeProductViews(root){
 async function addProductToCart(id){
     const productId=decodeURIComponent(String(id||''));
     const all=[...catalogState.shop.products,...catalogState.food.products];
-    const product=all.find(p=>String(p.id)===productId);
+    let product=all.find(p=>String(p.id)===productId);
+    // Бөлім/іздеу нәтижесі браузер кэшінде болмауы мүмкін — онда тауарды серверден бір жолмен аламыз.
+    if(!product){
+        try{
+            const {data,error}=await supabaseClient.from('products')
+                .select('id,seller_id,barcode,title,price,unit,sku,extra_code,is_active,updated_at,category_id,category_name,section_name,sale_price,discount_percent,promo_text,popularity_count,image_url')
+                .eq('id',productId).eq('is_active',true).maybeSingle();
+            if(error)throw error;
+            if(data){
+                product={...data,name:data.title,published:data.is_active,stock:999999,description:data.unit||'',service_type:'shop',category:'shop'};
+                catalogState.shop.products.push(product);
+            }
+        }catch(e){console.warn('O Go: product fetch for cart failed',e);}
+    }
     if(!product){console.warn('O Go: product not found for cart',productId);return;}
     const basePrice=Number(product.price||0);
     const price=getSalePrice(product);
