@@ -439,6 +439,30 @@ main{padding:18px 16px 24px}
 .modal-box h3{font-size:20px;margin-bottom:15px}
 .modal-close{position:absolute;right:15px;top:15px}
 
+/* SELLER DASHBOARD V40 */
+.seller-dashboard-modal{padding:0;background:#050605;align-items:stretch;justify-content:center}
+.seller-dashboard{width:100%;max-width:480px;height:100%;min-height:100vh;background:#111411;display:flex;flex-direction:column;position:relative;border-left:1px solid #252b27;border-right:1px solid #252b27}
+.seller-dashboard-head{padding:14px 14px 10px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #252b27;position:sticky;top:0;z-index:4;background:#111411}
+.seller-dashboard-head .brand{font-size:22px;font-weight:950;flex:1}.seller-dashboard-head small{display:block;color:#9da69d;font-size:10px;font-weight:700;margin-top:2px}
+.seller-dashboard-close{width:40px;height:40px;border-radius:12px;background:var(--green);border:0;color:#111;font-size:18px;font-weight:950}
+.seller-dashboard-body{flex:1;overflow:auto;padding:14px 14px 88px}
+.seller-tab-panel{display:none}.seller-tab-panel.active{display:block}
+.seller-tab-title{font-size:20px;font-weight:950;margin:2px 0 12px}.seller-tab-sub{font-size:11px;color:#9da69d;margin:-5px 0 13px;line-height:1.4}
+.seller-bottom-nav{position:absolute;left:0;right:0;bottom:0;z-index:5;display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:8px;background:#0b0d0c;border-top:1px solid #303730}
+.seller-bottom-nav button{border:1px solid transparent;border-radius:13px;background:#171b18;color:#aeb6ae;padding:9px 4px 8px;font-size:10px;font-weight:900;display:flex;flex-direction:column;align-items:center;gap:5px}
+.seller-bottom-nav button i{font-size:17px}.seller-bottom-nav button.active{background:#252b27;color:#fff;border-color:#4a544a}.seller-bottom-nav button.active i{color:var(--green)}
+.seller-status-filter{display:flex;gap:6px;overflow:auto;margin:8px 0 10px;padding-bottom:2px}.seller-status-filter button{white-space:nowrap;border:1px solid #343b34;background:#1a1f1b;color:#cbd1cb;border-radius:999px;padding:7px 10px;font-size:10px;font-weight:900}.seller-status-filter button.active{background:var(--green);color:#111;border-color:var(--green)}
+.seller-simple-list{display:grid;gap:8px}.seller-simple-item{display:flex;align-items:center;gap:10px;padding:10px;border:1px solid #303730;background:#171c18;border-radius:14px;cursor:pointer}.seller-simple-item .thumb{width:52px;height:52px;border-radius:11px;overflow:hidden;background:#252b27;display:grid;place-items:center;flex:0 0 52px}.seller-simple-item .thumb img{width:100%;height:100%;object-fit:cover}.seller-simple-item .info{min-width:0;flex:1}.seller-simple-item .name{font-size:13px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.seller-simple-item .meta{font-size:10px;color:#a4ada4;margin-top:4px;line-height:1.4}.seller-simple-item .arrow{color:var(--green);font-size:15px}.seller-promo-badge{display:inline-block;margin-left:5px;padding:2px 5px;border-radius:6px;background:var(--yellow);color:#111;font-size:9px;font-weight:950}
+.seller-umag-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.seller-readonly{background:#202520!important;color:#cbd1cb!important}.seller-card-note{padding:10px 11px;border:1px dashed #3d463d;border-radius:12px;color:#aab2aa;font-size:10px;line-height:1.45;margin-bottom:10px}
+.seller-card-actions{display:flex;gap:8px;margin-top:10px}.seller-card-actions .submit{margin:0;flex:1}
+.seller-publish-main{background:var(--green)!important;color:#111!important}
+.seller-close-green{background:var(--green)!important;color:#111!important;border:0!important}
+.seller-no-list{padding:25px 12px;text-align:center;color:#8f988f;font-size:12px;border:1px dashed #343b34;border-radius:14px}
+.barcode-fullscreen{padding:0!important;background:#000!important;align-items:stretch!important}
+.barcode-fullscreen .modal-box{max-width:none;width:100%;height:100%;border:0;border-radius:0;padding:0;background:#000;display:flex;flex-direction:column}
+.barcode-fullscreen .barcode-modal-head{position:absolute;top:14px;left:14px;right:14px;z-index:10}.barcode-fullscreen .barcode-modal-head h3{display:none}.barcode-fullscreen .barcode-close-btn{margin-left:auto;width:44px;height:44px;border-radius:14px;background:var(--green);color:#111;border:0;font-size:20px;font-weight:950}
+.barcode-fullscreen .barcode-scanner-box{border:0;border-radius:0;padding:0;flex:1;display:flex;flex-direction:column;background:#000}.barcode-fullscreen .barcode-scanner-stage{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden}.barcode-fullscreen .barcode-video{width:100%;height:100%;aspect-ratio:auto;object-fit:cover;border-radius:0}.barcode-fullscreen .barcode-scan-guide{left:9%;right:9%;height:100px}.barcode-fullscreen .barcode-scan-status{position:absolute;left:20px;right:20px;bottom:70px;z-index:7;background:rgba(0,0,0,.62);padding:9px;border-radius:10px}.barcode-fullscreen .barcode-tools{position:absolute;left:14px;right:14px;bottom:14px;z-index:8;display:flex;gap:8px}.barcode-fullscreen .barcode-tools button{background:#171c18;border-color:#4a544a}.barcode-fullscreen .barcode-manual-row{position:absolute;left:14px;right:14px;bottom:62px;z-index:8}
+@media(max-width:480px){.seller-dashboard{max-width:none}.seller-umag-grid{grid-template-columns:1fr}}
 /* SELLER */
 #sellerProductImage{padding:10px}
 #sellerProductImage::file-selector-button{border:0;border-radius:9px;background:var(--yellow);color:#111;padding:8px 10px;font-weight:800;margin-right:8px}
@@ -575,7 +599,7 @@ document.addEventListener('keydown',function(e){
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<meta name="ogo-version" content="v39-barcode-safari-fix"><meta name="ogo-auto-category" content="enabled"><meta name="ogo-photo-ranking" content="enabled"><script id="ogoZXingWasm" src="https://cdn.jsdelivr.net/npm/zxing-wasm@3.1.3/dist/iife/reader/index.js" defer></script>
+<meta name="ogo-version" content="v40-seller-dashboard"><meta name="ogo-auto-category" content="enabled"><meta name="ogo-photo-ranking" content="enabled"><script id="ogoZXingWasm" src="https://cdn.jsdelivr.net/npm/zxing-wasm@3.1.3/dist/iife/reader/index.js" defer></script>
 <script id="ogoZXingFallback" src="https://unpkg.com/@zxing/browser@0.2.1/umd/index.min.js" defer></script>
 </head>
 
@@ -824,45 +848,71 @@ document.addEventListener('keydown',function(e){
     </div>
 </div>
 
-<div id="sellerModal" class="modal">
-    <div class="modal-box" style="max-height:90vh;overflow:auto">
-        <button class="close modal-close" onclick="closeSellerPanel()"><i class="fa-solid fa-xmark"></i></button>
-        <h3 id="sellerAddTitle">Тауар қосу</h3>
-        <p id="sellerStoreInfo" class="hint">Айболит — сатушының бекітілген дүкені</p>
-        <div class="hint" style="margin-bottom:12px">Екі Айболит сатушысы бірдей толық доступпен жұмыс істейді. Категорияны таңдаудың қажеті жоқ — O Go атауына қарай автоматты бөледі.</div>
-        <input id="sellerService" type="hidden" value="shop">
-        <div class="form-group"><label>Категория <span class="hint">(міндетті емес — автоматты анықталады)</span></label><select id="sellerCategory" onchange="loadSellerSubsections()"><option value="">Автоматты анықтау</option></select></div>
-        <div class="form-group"><label>Раздел <span class="hint">(міндетті емес)</span></label><select id="sellerSection"><option value="">Автоматты анықтау</option></select></div>
-        <div class="form-group"><label>Тауар атауы</label><input id="sellerProductName" placeholder="Мысалы: Сүт 1 л"></div>
-        <div class="form-group"><label id="sellerUnitLabel">Өлшем бірлігі</label><select id="sellerProductUnit"><option value="шт">шт</option><option value="кг">кг</option><option value="г">г</option><option value="л">л</option><option value="мл">мл</option><option value="упаковка">упаковка</option><option value="пачка">пачка</option><option value="бутылка">бутылка</option><option value="банка">банка</option><option value="коробка">коробка</option><option value="метр">метр</option></select></div>
-        <div class="form-group"><label>Бағасы, ₸</label><input id="sellerProductPrice" type="number" min="0" step="1" placeholder="1000"></div>
-        <div class="form-group"><label>Скидка / Жеңілдік, %</label><input id="sellerProductDiscount" type="number" min="0" max="100" step="1" placeholder="Мысалы: 15"></div>
-        <div class="form-group"><label>Акциялық баға, ₸ <span class="hint">(қаласаңыз)</span></label><input id="sellerProductSalePrice" type="number" min="0" step="1" placeholder="Мысалы: 850"></div>
-        <div class="form-group"><label>Акция атауы <span class="hint">(қаласаңыз)</span></label><input id="sellerProductPromo" maxlength="60" placeholder="Мысалы: -15% акция"></div>
-        <div class="form-group"><label>Қоймадағы саны</label><input id="sellerProductStock" type="number" min="0" step="1" value="10"></div>
-        <div class="form-group"><label>Сипаттама</label><textarea id="sellerProductDescription" rows="3" placeholder="Қысқаша сипаттама"></textarea></div>
-        <div class="form-group"><label>Фото</label><input id="sellerProductImage" type="file" accept="image/*"></div>
-        <button id="sellerPublishBtn" class="submit green" onclick="createSellerProduct()"><i class="fa-solid fa-plus"></i> Тауарды жариялау</button>
-        <button class="submit" style="margin-top:9px;background:#252b27;color:#fff" onclick="openBulkUpload()"><i class="fa-solid fa-file-import"></i> <span id="bulkOpenText">Көп тауарды бірден жүктеу</span></button>
-        <div id="sellerLastAdded" class="seller-last-added" style="display:none"></div>
-        <div class="seller-warehouse">
-            <button id="sellerWarehouseToggle" class="warehouse-toggle" type="button" onclick="toggleSellerWarehouse()"><span><i class="fa-solid fa-box-open"></i> Склад</span><span id="sellerWarehouseCount" class="warehouse-count">0</span><i id="sellerWarehouseChevron" class="fa-solid fa-chevron-down"></i></button>
-            <div id="sellerWarehousePanel" class="warehouse-panel" style="display:none">
-                <div class="warehouse-search-wrap"><i class="fa-solid fa-magnifying-glass"></i><input id="sellerWarehouseSearch" type="search" autocomplete="off" placeholder="Тауар іздеу..." oninput="filterSellerWarehouse(this.value)"></div>
-                <div class="warehouse-barcode-row"><button class="warehouse-barcode-btn" type="button" onclick="openWarehouseBarcodeSearch()"><i class="fa-solid fa-barcode"></i> Штрих-кодпен іздеу</button><button class="warehouse-barcode-btn" type="button" style="flex:0 0 auto;width:48px;padding:10px 0" title="Складты жаңарту" onclick="refreshSellerWarehouse()"><i class="fa-solid fa-rotate"></i></button></div>
-                <div id="warehouseBarcodeResult" class="barcode-result" aria-live="polite"></div>
-                <div id="warehouseSyncCard" class="warehouse-sync-card">
-                    <div class="warehouse-sync-top"><div class="warehouse-sync-count">📦 Склад: <span id="warehouseSyncCount">—</span></div><span id="warehouseSyncStatus" class="warehouse-sync-status">Синхрондалуда...</span><button type="button" class="warehouse-sync-refresh" onclick="refreshWarehouseSnapshot(true)"><i class="fa-solid fa-rotate"></i></button></div>
-                    <div id="warehouseSyncMeta" class="warehouse-sync-meta">Соңғы ортақ дерек тек сатушыға көрсетіледі.</div>
-                </div>
-                <div id="sellerWarehouseHint" class="warehouse-hint">Ортақ склад 300 000 тауарға дейін жұмыс істеуге дайын. Іздеу серверден орындалады — барлық тауарды телефонға бірден жүктемейді.</div>
-                <div id="sellerProductsList"><div class="hint">Жүктелуде...</div></div>
-                <div class="warehouse-pagination"><button id="warehousePrev" type="button" onclick="changeWarehousePage(-1)">‹ Алдыңғы</button><div id="warehousePageInfo" class="warehouse-page-info">1 / 1</div><button id="warehouseNext" type="button" onclick="changeWarehousePage(1)">Келесі ›</button></div><div id="warehouseTotalHint" class="warehouse-hint" style="text-align:center;margin-top:7px">Барлық тауар саны серверден есептеледі.</div>
-            </div>
-        </div>
-        <button class="submit" style="margin-top:9px;background:#252b27;color:#fff" onclick="sellerLogout()"><span id="sellerLogoutText">Шығу</span></button>
-        <div id="sellerStatus" class="hint" style="margin-top:10px"></div>
+<div id="sellerModal" class="modal seller-dashboard-modal">
+  <div class="seller-dashboard">
+    <div class="seller-dashboard-head">
+      <div class="brand">O <span style="color:var(--yellow)">GO</span><small id="sellerDashboardStore">Айболит · Сатушы панелі</small></div>
+      <button class="seller-dashboard-close" onclick="closeSellerPanel()" aria-label="Шығу"><i class="fa-solid fa-xmark"></i></button>
     </div>
+    <div class="seller-dashboard-body">
+      <section id="sellerTabShop" class="seller-tab-panel active">
+        <div class="seller-tab-title">Магазин</div>
+        <div class="seller-tab-sub">Магазинде қазір жарияланған тауарлар.</div>
+        <div id="sellerStoreProductsList" class="seller-simple-list"><div class="hint">Жүктелуде...</div></div>
+      </section>
+      <section id="sellerTabWarehouse" class="seller-tab-panel">
+        <div class="seller-tab-title">Склад <span id="sellerWarehouseCount" class="warehouse-count">0</span></div>
+        <div class="seller-tab-sub">UMAG-тан және қолмен енгізілген барлық тауар осында сақталады.</div>
+        <div class="warehouse-search-wrap"><i class="fa-solid fa-magnifying-glass"></i><input id="sellerWarehouseSearch" type="search" autocomplete="off" placeholder="Атауы, штрихкод, доп. код, артикул" oninput="filterSellerWarehouse(this.value)"></div>
+        <div class="warehouse-barcode-row"><button class="warehouse-barcode-btn" type="button" onclick="openWarehouseBarcodeSearch()"><i class="fa-solid fa-barcode"></i> Штрихкод сканерлеу</button><button class="warehouse-barcode-btn" type="button" style="flex:0 0 auto;width:48px;padding:10px 0" title="Складты жаңарту" onclick="refreshSellerWarehouse()"><i class="fa-solid fa-rotate"></i></button></div>
+        <div id="warehouseBarcodeResult" class="barcode-result" aria-live="polite"></div>
+        <div class="seller-status-filter" id="sellerStatusFilter">
+          <button class="active" data-status="all" onclick="setSellerWarehouseStatusFilter('all',this)">Барлығы</button>
+          <button data-status="warehouse" onclick="setSellerWarehouseStatusFilter('warehouse',this)">🟡 Складта</button>
+          <button data-status="published" onclick="setSellerWarehouseStatusFilter('published',this)">🟢 Жарияланған</button>
+          <button data-status="hidden" onclick="setSellerWarehouseStatusFilter('hidden',this)">🔴 Жасырылған</button>
+        </div>
+        <div id="warehouseSyncCard" class="warehouse-sync-card"><div class="warehouse-sync-top"><div class="warehouse-sync-count">📦 Склад: <span id="warehouseSyncCount">—</span></div><span id="warehouseSyncStatus" class="warehouse-sync-status">Синхрондалуда...</span><button type="button" class="warehouse-sync-refresh" onclick="refreshWarehouseSnapshot(true)"><i class="fa-solid fa-rotate"></i></button></div><div id="warehouseSyncMeta" class="warehouse-sync-meta">Соңғы ортақ дерек тек сатушыға көрсетіледі.</div></div>
+        <div id="sellerWarehouseHint" class="warehouse-hint">300 000 тауарға дейін. Барлығы телефонға бірден жүктелмейді.</div>
+        <div id="sellerProductsList"><div class="hint">Жүктелуде...</div></div>
+        <div class="warehouse-pagination"><button id="warehousePrev" type="button" onclick="changeWarehousePage(-1)">‹ Алдыңғы</button><div id="warehousePageInfo" class="warehouse-page-info">1 / 1</div><button id="warehouseNext" type="button" onclick="changeWarehousePage(1)">Келесі ›</button></div>
+      </section>
+      <section id="sellerTabPromo" class="seller-tab-panel">
+        <div class="seller-tab-title">Акция</div>
+        <div class="seller-tab-sub">Акцияға шығарылған тауарларды басқару.</div>
+        <div id="sellerPromoProductsList" class="seller-simple-list"><div class="hint">Жүктелуде...</div></div>
+      </section>
+      <section id="sellerTabUpload" class="seller-tab-panel">
+        <div class="seller-tab-title">Загрузить товар</div>
+        <div class="seller-tab-sub">Жаңа тауар алдымен Складқа түседі. Жариялау кейін жасалады.</div>
+        <div class="seller-card-note">UMAG-тан келген тауар да бірден Магазинге шықпайды. Сатушы Складта тексеріп, фото/сипаттама/акцияны толтырып, содан кейін ғана «Жариялау» басады.</div>
+        <input id="sellerService" type="hidden" value="shop">
+        <div class="form-group"><label>Тауар атауы</label><input id="sellerProductName" placeholder="Мысалы: Сүт 1 л"></div>
+        <div class="form-group"><label>Штрихкод</label><input id="sellerProductBarcode" inputmode="numeric" placeholder="Штрихкод"></div>
+        <div class="seller-umag-grid">
+          <div class="form-group"><label>Доп. код</label><input id="sellerProductExtraCode" placeholder="Қосымша код"></div>
+          <div class="form-group"><label>Артикул</label><input id="sellerProductSku" placeholder="Артикул"></div>
+        </div>
+        <div class="form-group"><label>Өлшем бірлігі</label><select id="sellerProductUnit"><option value="шт">шт</option><option value="кг">кг</option><option value="г">г</option><option value="л">л</option><option value="мл">мл</option><option value="упаковка">упаковка</option><option value="пачка">пачка</option><option value="бутылка">бутылка</option><option value="банка">банка</option><option value="коробка">коробка</option><option value="метр">метр</option></select></div>
+        <div class="form-group"><label>Бағасы, ₸</label><input id="sellerProductPrice" type="number" min="0" step="1" placeholder="1000"></div>
+        <div class="form-group"><label>Қалдық</label><input id="sellerProductStock" type="number" min="0" step="0.01" value="0"></div>
+        <div class="form-group"><label>Фото</label><input id="sellerProductImage" type="file" accept="image/*"></div>
+        <div class="form-group"><label>Сипаттама</label><textarea id="sellerProductDescription" rows="3" placeholder="Қысқаша сипаттама"></textarea></div>
+        <div class="form-group"><label>Акция</label><select id="sellerProductPromoYes"><option value="false">Нет</option><option value="true">Да</option></select></div>
+        <div id="sellerPromoFields" style="display:none"><div class="form-group"><label>Скидка, %</label><input id="sellerProductDiscount" type="number" min="0" max="100" step="1" placeholder="Мысалы: 15"></div><div class="form-group"><label>Акциялық баға, ₸</label><input id="sellerProductSalePrice" type="number" min="0" step="1" placeholder="Мысалы: 850"></div><div class="form-group"><label>Название акции</label><input id="sellerProductPromo" maxlength="60" placeholder="Мысалы: -15% акция"></div></div>
+        <button id="sellerPublishBtn" class="submit seller-publish-main" onclick="createSellerProduct()"><i class="fa-solid fa-plus"></i> Складқа енгізу</button>
+        <button class="submit" style="margin-top:9px;background:#252b27;color:#fff" onclick="openBulkUpload()"><i class="fa-solid fa-file-import"></i> Загрузить много товаров</button>
+        <div id="sellerLastAdded" class="seller-last-added" style="display:none"></div>
+        <div id="sellerStatus" class="hint" style="margin-top:10px"></div>
+      </section>
+    </div>
+    <div class="seller-bottom-nav">
+      <button class="active" data-seller-tab="shop" onclick="switchSellerTab('shop')"><i class="fa-solid fa-store"></i><span>Магазин</span></button>
+      <button data-seller-tab="warehouse" onclick="switchSellerTab('warehouse')"><i class="fa-solid fa-box-open"></i><span>Склад</span></button>
+      <button data-seller-tab="promo" onclick="switchSellerTab('promo')"><i class="fa-solid fa-fire"></i><span>Акция</span></button>
+      <button data-seller-tab="upload" onclick="switchSellerTab('upload')"><i class="fa-solid fa-cloud-arrow-up"></i><span>Загрузить товар</span></button>
+    </div>
+  </div>
 </div>
 
 <div id="bulkUploadModal" class="modal">
@@ -878,9 +928,9 @@ document.addEventListener('keydown',function(e){
     </div>
 </div>
 
-<div id="warehouseBarcodeModal" class="modal">
+<div id="warehouseBarcodeModal" class="modal barcode-fullscreen">
     <div class="modal-box" style="max-height:90vh;overflow:auto">
-        <button class="close modal-close" aria-label="Жабу" onclick="closeWarehouseBarcodeSearch()"><i class="fa-solid fa-xmark"></i></button>
+        <button class="barcode-close-btn" aria-label="Жабу" onclick="closeWarehouseBarcodeSearch()"><i class="fa-solid fa-xmark"></i></button>
         <div class="barcode-modal-head"><button type="button" class="barcode-back-btn" onclick="closeWarehouseBarcodeSearch()"><i class="fa-solid fa-arrow-left"></i> Складқа қайту</button><h3>Штрих-кодпен іздеу</h3></div>
         <div class="barcode-scanner-box">
             <div class="barcode-scanner-stage">
@@ -889,7 +939,7 @@ document.addEventListener('keydown',function(e){
                 <div id="warehouseBarcodeFloatingResult" class="barcode-floating-result" aria-live="polite"></div>
             </div>
             <div id="warehouseBarcodeStatus" class="barcode-scan-status">Камераны қосып, штрих-кодты сары жақтаудың ортасына ұстаңыз.</div>
-            <div style="display:flex;gap:8px;margin-top:8px">
+            <div class="barcode-tools" style="display:flex;gap:8px;margin-top:8px">
                 <button type="button" class="warehouse-barcode-btn" onclick="toggleWarehouseBarcodeTorch()" style="flex:1"><i class="fa-solid fa-bolt"></i> Фонарик</button>
                 <button type="button" class="barcode-photo-btn" onclick="openBarcodePhotoPicker()"><i class="fa-solid fa-image"></i> Фото</button>
             </div>
@@ -901,27 +951,32 @@ document.addEventListener('keydown',function(e){
 </div>
 
 <div id="editProductModal" class="modal">
-    <div class="modal-box" style="max-height:90vh;overflow:auto">
-        <button class="close modal-close" onclick="closeEditProduct()"><i class="fa-solid fa-xmark"></i></button>
-        <h3 id="editTitle">Тауарды өзгерту</h3>
-        <input id="editProductId" type="hidden">
-        <input id="editProductService" type="hidden" value="shop">
-        <div class="form-group"><label id="editCategoryLabel">Категория</label><select id="editProductCategory" onchange="loadEditSubsections()"><option value="">Категория жүктелуде...</option></select></div>
-        <div class="form-group"><label id="editSectionLabel">Раздел</label><select id="editProductSection"><option value="">Раздел жүктелуде...</option></select></div>
-        <div class="form-group"><label>Тауар атауы</label><input id="editProductName"></div>
-        <div class="form-group"><label id="editUnitLabel">Өлшем бірлігі</label><select id="editProductUnit"><option value="шт">шт</option><option value="кг">кг</option><option value="г">г</option><option value="л">л</option><option value="мл">мл</option><option value="упаковка">упаковка</option><option value="пачка">пачка</option><option value="бутылка">бутылка</option><option value="банка">банка</option><option value="коробка">коробка</option><option value="метр">метр</option></select></div>
-        <div class="form-group"><label>Бағасы, ₸</label><input id="editProductPrice" type="number" min="0" step="1"></div>
-        <div class="form-group"><label>Скидка / Жеңілдік, %</label><input id="editProductDiscount" type="number" min="0" max="100" step="1" placeholder="Мысалы: 15"></div>
-        <div class="form-group"><label>Акциялық баға, ₸ <span class="hint">(қаласаңыз)</span></label><input id="editProductSalePrice" type="number" min="0" step="1"></div>
-        <div class="form-group"><label>Акция атауы</label><input id="editProductPromo" maxlength="60" placeholder="Мысалы: -15% акция"></div>
-        <div class="form-group"><label>Қоймадағы саны</label><input id="editProductStock" type="number" min="0" step="1"></div>
-        <div class="form-group"><label>Статус</label><select id="editProductPublished"><option value="true">Жарияланған</option><option value="false">Жасырын</option></select></div>
-        <div class="form-group"><label>Сипаттама</label><textarea id="editProductDescription" rows="3"></textarea></div>
-        <div class="form-group"><label>Жаңа фото <span class="hint">(қаласаңыз)</span></label><input id="editProductImage" type="file" accept="image/*"></div>
-        <button class="submit green" onclick="saveEditedProduct()"><i class="fa-solid fa-floppy-disk"></i> <span id="editSaveText">Өзгерісті сақтау</span></button>
-        <button class="submit" style="margin-top:9px;background:#8f2222;color:#fff" onclick="deleteEditedProduct()"><i class="fa-solid fa-trash"></i> <span id="editDeleteText">Тауарды өшіру</span></button>
-        <div id="editProductStatus" class="hint" style="margin-top:10px"></div>
+  <div class="modal-box" style="max-height:94vh;overflow:auto">
+    <button class="close modal-close seller-close-green" onclick="closeEditProduct()"><i class="fa-solid fa-xmark"></i></button>
+    <h3 id="editTitle">Тауар карточкасы</h3>
+    <div id="editProductStatusBadge" class="seller-card-note" style="margin-bottom:12px">Статус</div>
+    <input id="editProductId" type="hidden"><input id="editProductService" type="hidden" value="shop">
+    <div class="form-group"><label>Тауар атауы</label><input id="editProductName"></div>
+    <div class="seller-umag-grid">
+      <div class="form-group"><label>Штрихкод</label><input id="editProductBarcode" class="seller-readonly" readonly></div>
+      <div class="form-group"><label>Доп. код</label><input id="editProductExtraCode" class="seller-readonly" readonly></div>
+      <div class="form-group"><label>Артикул</label><input id="editProductSku" class="seller-readonly" readonly></div>
+      <div class="form-group"><label>Поставщик</label><input id="editProductSupplier" class="seller-readonly" readonly></div>
+      <div class="form-group"><label>Маржа %</label><input id="editProductMargin" class="seller-readonly" readonly></div>
+      <div class="form-group"><label>Код НКТ (NTIN)</label><input id="editProductNtin" class="seller-readonly" readonly></div>
+      <div class="form-group"><label>Номер на весах</label><input id="editProductScaleNumber" class="seller-readonly" readonly></div>
+      <div class="form-group"><label>Дата изм.</label><input id="editProductUmagDate" class="seller-readonly" readonly></div>
     </div>
+    <div class="form-group"><label>Өлшем бірлігі</label><select id="editProductUnit"><option value="шт">шт</option><option value="кг">кг</option><option value="г">г</option><option value="л">л</option><option value="мл">мл</option><option value="упаковка">упаковка</option><option value="пачка">пачка</option><option value="бутылка">бутылка</option><option value="банка">банка</option><option value="коробка">коробка</option><option value="метр">метр</option></select></div>
+    <div class="form-group"><label>Бағасы, ₸</label><input id="editProductPrice" type="number" min="0" step="1"></div>
+    <div class="form-group"><label>Қалдық</label><input id="editProductStock" type="number" min="0" step="0.01"></div>
+    <div class="form-group"><label>Фото</label><input id="editProductImage" type="file" accept="image/*"></div>
+    <div class="form-group"><label>Описание</label><textarea id="editProductDescription" rows="3" placeholder="Қысқаша сипаттама"></textarea></div>
+    <div class="form-group"><label>Акция</label><select id="editProductPromoYes"><option value="false">Нет</option><option value="true">Да</option></select></div>
+    <div id="editPromoFields"><div class="form-group"><label>Скидка, %</label><input id="editProductDiscount" type="number" min="0" max="100" step="1"></div><div class="form-group"><label>Акциялық баға, ₸</label><input id="editProductSalePrice" type="number" min="0" step="1"></div><div class="form-group"><label>Название акции</label><input id="editProductPromo" maxlength="60" placeholder="Мысалы: -15% акция"></div></div>
+    <div class="seller-card-actions"><button id="editPublishToggle" class="submit seller-publish-main" onclick="toggleEditProductPublish()">Жариялау</button></div>
+    <div id="editProductStatus" class="hint" style="margin-top:10px"></div>
+  </div>
 </div>
 
 <script>
@@ -1932,6 +1987,42 @@ function closeMenu(){
 let sellerUser=null;
 let sellerStoreId=null;
 
+let sellerWarehouseStatusFilter='all';
+function switchSellerTab(tab){
+  document.querySelectorAll('.seller-tab-panel').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.seller-bottom-nav button').forEach(x=>x.classList.remove('active'));
+  const panel=document.getElementById('sellerTab'+({shop:'Shop',warehouse:'Warehouse',promo:'Promo',upload:'Upload'}[tab]||'Shop'));
+  const btn=document.querySelector(`.seller-bottom-nav button[data-seller-tab="${tab}"]`);
+  if(panel)panel.classList.add('active'); if(btn)btn.classList.add('active');
+  if(tab==='shop')loadSellerStoreProducts();
+  if(tab==='warehouse')loadSellerProducts();
+  if(tab==='promo')loadSellerPromoProducts();
+}
+function setSellerWarehouseStatusFilter(filter,btn){
+  sellerWarehouseStatusFilter=filter;
+  document.querySelectorAll('#sellerStatusFilter button').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  warehousePage=0; loadSellerWarehousePage();
+}
+function sellerStatusLabel(p){if(p.is_active)return '🟢 Жарияланған'; if(p.published_once)return '🔴 Жасырылған'; return '🟡 Складта';}
+function sellerProductHasPromo(p){return Number(p.discount_percent||0)>0 || Number(p.sale_price||0)>0 || !!String(p.promo_text||'').trim();}
+function renderSellerSimpleList(items,emptyText){
+ const el=this; if(!items.length){el.innerHTML=`<div class="seller-no-list">${emptyText}</div>`;return;}
+ el.innerHTML=items.map(p=>{const name=localizedProduct(p).name; const promo=sellerProductHasPromo(p)?'<span class="seller-promo-badge">🔥 Акция</span>':''; const img=p.image_url?`<img src="${escapeHtml(p.image_url)}" alt="${escapeHtml(name)}" loading="lazy">`:autoProductImage(name); return `<div class="seller-simple-item" onclick="openEditProduct('${escapeHtml(p.id)}')"><div class="thumb">${img}</div><div class="info"><div class="name">${escapeHtml(name)}${promo}</div><div class="meta">${formatPrice(Number(p.price||0))} · ${escapeHtml(p.unit||'шт')} · ${sellerStatusLabel(p)}${p.barcode?' · '+escapeHtml(p.barcode):''}</div></div><div class="arrow"><i class="fa-solid fa-chevron-right"></i></div></div>`}).join('');
+}
+async function loadSellerStoreProducts(){
+ const el=document.getElementById('sellerStoreProductsList'); if(!el||!sellerUser)return; el.innerHTML='<div class="hint">Жүктелуде...</div>';
+ try{const {data,error}=await supabaseClient.from('products').select('id,seller_id,barcode,title,price,unit,is_active,category_name,section_name,sale_price,discount_percent,promo_text,image_url,updated_at').eq('seller_id',String(sellerUser.id)).eq('is_active',true).order('updated_at',{ascending:false}).range(0,99); if(error)throw error; renderSellerSimpleList.call(el,Array.isArray(data)?data:[],'Қазір Магазинде жарияланған тауар жоқ.');}catch(e){el.innerHTML=`<div class="hint seller-error">${escapeHtml(e.message||'Магазинді жүктеу қатесі.')}</div>`;}
+}
+async function loadSellerPromoProducts(){
+ const el=document.getElementById('sellerPromoProductsList'); if(!el||!sellerUser)return; el.innerHTML='<div class="hint">Жүктелуде...</div>';
+ try{const {data,error}=await supabaseClient.from('products').select('id,seller_id,barcode,title,price,unit,is_active,category_name,section_name,sale_price,discount_percent,promo_text,image_url,updated_at').eq('seller_id',String(sellerUser.id)).or('discount_percent.gt.0,sale_price.gt.0,promo_text.neq.null').order('updated_at',{ascending:false}).range(0,99); if(error)throw error; renderSellerSimpleList.call(el,Array.isArray(data)?data:[],'Акцияға шығарылған тауар жоқ.');}catch(e){el.innerHTML=`<div class="hint seller-error">${escapeHtml(e.message||'Акцияны жүктеу қатесі.')}</div>`;}
+}
+function syncPromoVisibility(id,yes){
+ const box=document.getElementById(id); if(box)box.style.display=yes?'block':'none';
+}
+document.addEventListener('change',e=>{if(e.target?.id==='sellerProductPromoYes')syncPromoVisibility('sellerPromoFields',e.target.value==='true'); if(e.target?.id==='editProductPromoYes')syncPromoVisibility('editPromoFields',e.target.value==='true');});
+
 function openLogin(){
     document.getElementById("loginStatus").textContent="";
     document.getElementById("loginModal").classList.add("show");
@@ -1975,11 +2066,14 @@ async function loginSeller(){
 async function openSellerPanel(){
     if(!sellerUser){openLogin();return}
     document.getElementById("sellerModal").classList.add("show");
+    switchSellerTab("shop");
     document.getElementById("sellerStatus").textContent="";
     document.getElementById("sellerStoreInfo").textContent=OGO_CURRENT_LANG==='ru'?'Айболит — закреплённый магазин продавца':'Айболит — сатушының бекітілген дүкені';
     await loadSellerSections();
     await touchWarehouseLogin();
     await loadSellerProducts();
+    await loadSellerStoreProducts();
+    await loadSellerPromoProducts();
     startWarehouseSnapshotSync();
 }
 function closeSellerPanel(){stopWarehouseSnapshotSync();document.getElementById("sellerModal").classList.remove("show")}
@@ -2115,6 +2209,11 @@ async function createSellerProduct(){
     }
 
     const name=(document.getElementById('sellerProductName')?.value||'').trim();
+    const manualBarcode=normalizeBarcodeValue(document.getElementById('sellerProductBarcode')?.value||'');
+    const manualExtraCode=(document.getElementById('sellerProductExtraCode')?.value||'').trim();
+    const manualSku=(document.getElementById('sellerProductSku')?.value||'').trim();
+    const description=(document.getElementById('sellerProductDescription')?.value||'').trim();
+    const stock=Math.max(0,Number(document.getElementById('sellerProductStock')?.value||0));
     const price=Number(document.getElementById('sellerProductPrice')?.value);
     const unit=String(document.getElementById('sellerProductUnit')?.value||'шт').trim();
     const discountPercent=Math.max(0,Math.min(100,Number(document.getElementById('sellerProductDiscount')?.value||0)));
@@ -2148,7 +2247,7 @@ async function createSellerProduct(){
     // products кестесінде barcode NOT NULL. Бір-бірлеп қосылған тауарда barcode енгізілмесе,
     // физикалық штрихкод енгізілмесе, O Go үшін ішкі бірегей код жасаймыз.
     // Нақты UMAG штрихкоды бар импортталған тауарлар бұрынғы кодын сақтайды.
-    const pendingBarcode=normalizeBarcodeValue(window.ogoPendingSellerBarcode||'');
+    const pendingBarcode=normalizeBarcodeValue(window.ogoPendingSellerBarcode||manualBarcode);
     const internalBarcode=pendingBarcode||(()=>{
         const base=String(Date.now()).slice(-9);
         const rnd=String(Math.floor(Math.random()*1000)).padStart(3,'0');
@@ -2162,9 +2261,12 @@ async function createSellerProduct(){
         title:name,
         price:price,
         unit:unit||null,
-        sku:null,
-        extra_code:null,
-        is_active:true,
+        sku:manualSku||null,
+        extra_code:manualExtraCode||null,
+        is_active:false,
+        published_once:false,
+        stock,
+        description:description||null,
         updated_at:new Date().toISOString(),
         category_id:autoCategory.category_id,
         category_name:autoCategory.category_name,
@@ -2201,11 +2303,16 @@ async function createSellerProduct(){
 
         status.className='hint seller-success';
         status.textContent='✅ Тауар сәтті қосылды!';
-        showSellerLastAdded({id:result.data.id,title:name,unit,price,category_id:autoCategory.category_id,category_name:autoCategory.category_name,section_name:autoCategory.section_name,image_url:null,is_active:true,updated_at:new Date().toISOString()});
+        showSellerLastAdded({id:result.data.id,title:name,unit,price,category_id:autoCategory.category_id,category_name:autoCategory.category_name,section_name:autoCategory.section_name,image_url:null,is_active:false,updated_at:new Date().toISOString()});
 
         // Тек сәтті сақталғаннан кейін ғана форманы тазалаймыз.
         window.ogoPendingSellerBarcode='';
         document.getElementById('sellerProductName').value='';
+        if(document.getElementById('sellerProductBarcode'))document.getElementById('sellerProductBarcode').value='';
+        if(document.getElementById('sellerProductExtraCode'))document.getElementById('sellerProductExtraCode').value='';
+        if(document.getElementById('sellerProductSku'))document.getElementById('sellerProductSku').value='';
+        if(document.getElementById('sellerProductDescription'))document.getElementById('sellerProductDescription').value='';
+        if(document.getElementById('sellerProductStock'))document.getElementById('sellerProductStock').value='0';
         document.getElementById('sellerProductPrice').value='';
         const discountEl=document.getElementById('sellerProductDiscount'); if(discountEl)discountEl.value='';
         const saleEl=document.getElementById('sellerProductSalePrice'); if(saleEl)saleEl.value='';
@@ -2307,6 +2414,7 @@ function ogoNumber(value){
     const n=Number(s);
     return Number.isFinite(n)?n:0;
 }
+function ogoDateText(value){return String(value??'').trim();}
 function ogoBarcode(value){
     if(value===null||value===undefined)return "";
     const s=String(value).trim();
@@ -2350,6 +2458,11 @@ async function processBulkUpload(){
         const skuCol=ogoFindColumn(headers,['Артикул','Article','SKU']);
         const categoryCol=ogoFindColumn(headers,['Категория','Category','Категория товара','Группа']);
         const sectionCol=ogoFindColumn(headers,['Раздел','Подкатегория','Section','Подраздел']);
+        const extraCodeCol=ogoFindColumn(headers,['Доп. код','Доп код','Дополнительный код']);
+        const supplierCol=ogoFindColumn(headers,['Поставщик','Supplier']);
+        const marginCol=ogoFindColumn(headers,['Маржа %','Маржа']);
+        const ntinCol=ogoFindColumn(headers,['Код НКТ (NTIN)','Код НКТ','NTIN']);
+        const scaleNoCol=ogoFindColumn(headers,['Номер на весах','Номер весов']);
         if(!nameCol||!priceCol)throw new Error('UMAG файлынан «Название товара» және «Прод. цена» бағандары табылмады.');
 
         const products=[],errors=[];
@@ -2360,6 +2473,12 @@ async function processBulkUpload(){
             const price=ogoNumber(row[priceCol]);
             const unit=unitCol?String(row[unitCol]??'').trim():'';
             const sku=skuCol?String(row[skuCol]??'').trim():'';
+            const extraCode=extraCodeCol?String(row[extraCodeCol]??'').trim():'';
+            const supplier=supplierCol?String(row[supplierCol]??'').trim():'';
+            const margin=marginCol?ogoNumber(row[marginCol]):null;
+            const ntin=ntinCol?String(row[ntinCol]??'').trim():'';
+            const scaleNo=scaleNoCol?String(row[scaleNoCol]??'').trim():'';
+            const umagDate=ogoDateText(row[ogoFindColumn(headers,['Дата изм.','Дата изменения','Дата'])]??'');
             if(!title)errors.push(`№${line}: тауар атауы бос`);
             else if(!Number.isFinite(price)||price<0)errors.push(`№${line}: баға қате`);
             else {
@@ -2368,7 +2487,7 @@ async function processBulkUpload(){
                 const auto=ogoAutoClassifyProduct({name:title,unit,barcode}) || {category_id:'undefined',category_name:'Незаданные',section_id:null,section_name:null};
                 products.push({
                     seller_id:sellerUser.id, barcode:barcode||('20'+String(Date.now()).slice(-9)+String(Math.floor(Math.random()*1000)).padStart(3,'0')), title, price,
-                    unit:unit||null, sku:sku||null, extra_code:null, is_active:true,
+                    unit:unit||null, sku:sku||null, extra_code:extraCode||null, is_active:false, published_once:false, stock:0, description:null, umag_supplier:supplier||null, umag_margin_percent:Number.isFinite(margin)?margin:null, umag_ntin:ntin||null, umag_scale_number:scaleNo||null, umag_updated_at:umagDate||null,
                     category_id:auto.category_id||'undefined', category_name:auto.category_name||'Незаданные', section_name:auto.section_name||null,
                     image_url:null, updated_at:new Date().toISOString()
                 });
@@ -2405,7 +2524,7 @@ async function processBulkUpload(){
             status.textContent=`Жүктелуде: ${done}/${safeProducts.length}...`;
         }
         status.className='hint seller-success';
-        status.innerHTML=`✅ ${done} тауар UMAG-тан сәтті жүктелді!<br>Штрихкод сәйкес келсе — бұрынғы тауар жаңартылды. Суреттерге қол тиген жоқ.`;
+        status.innerHTML=`✅ ${done} тауар UMAG-тан Складқа сәтті жүктелді!<br>🟡 Барлығы әзірше Магазинде көрінбейді. Сатушы Складтан тексеріп, кейін «Жариялау» басады.`;
         showSellerLastAdded(done);
         catalogState.shop.loaded=false; catalogState.food.loaded=false;
         await loadSellerProducts();
@@ -2455,23 +2574,10 @@ function renderWarehousePagination(){
 }
 
 function renderSellerWarehouse(items){
-    const el=document.getElementById('sellerProductsList');
-    const count=document.getElementById('sellerWarehouseCount');
-    if(count)count.textContent=Number(warehouseTotal||0).toLocaleString('ru-RU');
-    const totalHint=document.getElementById('warehouseTotalHint');
-    if(totalHint)totalHint.textContent=`Складта барлығы ${Number(warehouseTotal||0).toLocaleString('ru-RU')} тауар. Бір бетте ${WAREHOUSE_PAGE_SIZE} тауар көрсетіледі — қалғандары келесі беттерде.`;
-    if(!el)return;
-    if(!items.length){el.innerHTML='<div class="hint">Сәйкес тауар табылмады.</div>';renderWarehousePagination();return;}
-    el.innerHTML=items.map(p=>{
-        const name=localizedProduct(p).name;
-        const price=formatPrice(Number(p.price||0));
-        const statusBtn=p.is_active
-            ? `<button class="hide-btn" onclick="toggleSellerPublished('${escapeHtml(p.id)}',false)">🙈 Жасыру</button>`
-            : `<button class="show-btn" onclick="toggleSellerPublished('${escapeHtml(p.id)}',true)">👁 Жариялау</button>`;
-        const isNew=String(p.id)===String(sellerLastAddedId)?' is-new':'';
-        return `<div class="seller-item${isNew}"><div class="seller-thumb">${p.image_url?`<img src="${escapeHtml(p.image_url)}" alt="${escapeHtml(name)}" loading="lazy">`:autoProductImage(name)}</div><div class="seller-item-info"><div class="seller-item-name">${escapeHtml(name)}</div><div class="seller-item-price">${price} · ${p.unit?escapeHtml(p.unit):''} ${p.barcode?`· ${escapeHtml(p.barcode)}`:''} ${p.is_active?'· жарияланған':'· жасырын'}</div></div><div class="seller-item-actions">${statusBtn}<button onclick="openEditProduct('${escapeHtml(p.id)}')"><i class="fa-solid fa-pen"></i> Өзгерту</button><button class="hide-btn" onclick="deleteSellerProduct('${escapeHtml(p.id)}')"><i class="fa-solid fa-trash"></i> Өшіру</button></div></div>`;
-    }).join('');
-    renderWarehousePagination();
+ const el=document.getElementById('sellerProductsList'); const count=document.getElementById('sellerWarehouseCount'); if(count)count.textContent=Number(warehouseTotal||0).toLocaleString('ru-RU'); if(!el)return;
+ let shown=Array.isArray(items)?items:[]; if(sellerWarehouseStatusFilter==='published')shown=shown.filter(p=>p.is_active); if(sellerWarehouseStatusFilter==='warehouse')shown=shown.filter(p=>!p.is_active&&!p.published_once); if(sellerWarehouseStatusFilter==='hidden')shown=shown.filter(p=>!p.is_active&&p.published_once);
+ if(!shown.length){el.innerHTML='<div class="seller-no-list">Сәйкес тауар табылмады.</div>';renderWarehousePagination();return;}
+ el.innerHTML=shown.map(p=>{const name=localizedProduct(p).name;const img=p.image_url?`<img src="${escapeHtml(p.image_url)}" alt="${escapeHtml(name)}" loading="lazy">`:autoProductImage(name);const promo=sellerProductHasPromo(p)?'<span class="seller-promo-badge">🔥</span>':'';const status=sellerStatusLabel(p);return `<div class="seller-simple-item" onclick="openEditProduct('${escapeHtml(p.id)}')"><div class="thumb">${img}</div><div class="info"><div class="name">${escapeHtml(name)}${promo}</div><div class="meta">${formatPrice(Number(p.price||0))} · ${escapeHtml(p.unit||'шт')} · ${status}${p.barcode?' · '+escapeHtml(p.barcode):''}</div></div><div class="arrow"><i class="fa-solid fa-chevron-right"></i></div></div>`}).join(''); renderWarehousePagination();
 }
 
 async function loadSellerWarehousePage(){
@@ -2497,7 +2603,7 @@ async function loadSellerWarehousePage(){
         }
 
         let query=supabaseClient.from('products')
-            .select('id,seller_id,barcode,title,price,unit,sku,extra_code,is_active,updated_at,category_id,category_name,section_name,sale_price,discount_percent,promo_text,image_url')
+            .select('id,seller_id,barcode,title,price,unit,sku,extra_code,is_active,published_once,updated_at,category_id,category_name,section_name,sale_price,discount_percent,promo_text,image_url,description,stock,umag_supplier,umag_margin_percent,umag_ntin,umag_scale_number,umag_updated_at')
             .eq('seller_id',String(sellerUser.id));
         const q=normalizeSearchText(warehouseSearchQuery);
         if(q){
@@ -2590,7 +2696,7 @@ async function searchWarehouseBarcode(barcode){
         let data=null, lastError=null;
         for(const candidate of [...new Set(variants)]){
             const q=await supabaseClient.from('products')
-                .select('id,seller_id,barcode,title,price,unit,sku,extra_code,is_active,updated_at,category_id,category_name,section_name,sale_price,discount_percent,promo_text,image_url')
+                .select('id,seller_id,barcode,title,price,unit,sku,extra_code,is_active,published_once,updated_at,category_id,category_name,section_name,sale_price,discount_percent,promo_text,image_url,description,stock,umag_supplier,umag_margin_percent,umag_ntin,umag_scale_number,umag_updated_at')
                 .eq('barcode',candidate)
                 .limit(1)
                 .maybeSingle();
@@ -2599,14 +2705,15 @@ async function searchWarehouseBarcode(barcode){
         }
         if(lastError && !data)throw lastError;
         if(!data){
-            const html=`<div class="barcode-not-found"><strong>⚠️ Тауар табылмады</strong>«${escapeHtml(code)}» ортақ Складтан табылған жоқ.<div class="barcode-card-actions" style="justify-content:center;margin-top:9px"><button class="primary" onclick="prepareNewProductFromBarcode('${escapeHtml(code)}')"><i class="fa-solid fa-plus"></i> Осы штрих-кодпен жаңа тауар қосу</button></div></div>`;
+            const html=`<div class="barcode-not-found"><strong>⚠️ Тауар табылмады</strong>«${escapeHtml(code)}» ортақ Складтан табылған жоқ.<div class="barcode-card-actions" style="justify-content:center;margin-top:9px"><button onclick="resumeWarehouseBarcodeScan()">↩ Артқа</button><button class="primary" onclick="prepareNewProductFromBarcode('${escapeHtml(code)}')"><i class="fa-solid fa-plus"></i> Осы штрих-кодпен жаңа тауар қосу</button></div></div>`;
             if(resultEl)resultEl.innerHTML=html;
             if(floating){floating.innerHTML=html;floating.classList.add('show');}
             setWarehouseBarcodeStatus(`Тауар табылмады: ${code}. Жаңа тауар қосуға болады.` ,true);
             return;
         }
-        renderWarehouseBarcodeResult(data);
-        if(floating){floating.innerHTML=resultEl?.innerHTML||'';floating.classList.add('show');}
+        stopWarehouseBarcodeCamera();
+        closeWarehouseBarcodeSearch();
+        await openEditProduct(data.id);
         setWarehouseBarcodeStatus(`✅ Тауар табылды: ${code}`);
     }catch(error){
         console.error('O Go barcode warehouse search error:',error);
@@ -2942,16 +3049,16 @@ function searchWarehouseBarcodeManual(){
     searchWarehouseBarcode(code);
 }
 
+async function resumeWarehouseBarcodeScan(){ const f=document.getElementById('warehouseBarcodeFloatingResult'); if(f){f.classList.remove('show');f.innerHTML='';} const r=document.getElementById('warehouseBarcodeResult'); if(r)r.innerHTML=''; await startWarehouseBarcodeCamera(); }
+
 function prepareNewProductFromBarcode(code){
     const normalized=normalizeBarcodeValue(code);
     closeWarehouseBarcodeSearch();
-    const nameInput=document.getElementById('sellerProductName');
-    const status=document.getElementById('sellerStatus');
-    if(nameInput){nameInput.focus();nameInput.scrollIntoView({behavior:'smooth',block:'center'});}
-    if(status){status.className='hint';status.textContent=`Штрих-код ${normalized} сақталды. Жаңа тауар формасына атау мен бағаны енгізіп жариялаңыз.`;}
-    // The current one-by-one form creates an internal barcode automatically,
-    // so this flag makes the next publish use the scanned physical barcode.
+    switchSellerTab('upload');
+    const barcodeInput=document.getElementById('sellerProductBarcode'); if(barcodeInput)barcodeInput.value=normalized;
     window.ogoPendingSellerBarcode=normalized;
+    const status=document.getElementById('sellerStatus'); if(status){status.className='hint';status.textContent=`Штрих-код ${normalized} дайын. Жаңа тауарды енгізіп, Складқа сақтаңыз.`;}
+    const nameInput=document.getElementById('sellerProductName'); if(nameInput)nameInput.focus();
 }
 
 async function refreshSellerWarehouse(){
@@ -3012,7 +3119,7 @@ async function deleteSellerProduct(id){
 
 async function toggleSellerPublished(id, published){
     try{
-        const result=await supabaseClient.from('products').update({is_active:published,updated_at:new Date().toISOString()}).eq('id',id);
+        const result=await supabaseClient.from('products').update({is_active:published,published_once:published||undefined,updated_at:new Date().toISOString()}).eq('id',id);
         if(result.error)throw result.error;
         await loadSellerProducts();
         await refreshWarehouseSnapshot();
@@ -3038,71 +3145,24 @@ async function loadEditSections(selectedId="", selectedCategoryId=""){
 function loadEditSubsections(){loadEditSections('',document.getElementById('editProductCategory')?.value||'');}
 
 async function openEditProduct(id){
-    const status=document.getElementById('editProductStatus'); status.className='hint'; status.textContent='';
-    try{
-        const {data,error}=await supabaseClient.from('products').select('id,barcode,title,price,unit,sku,is_active,category_id,section_name,sale_price,discount_percent,promo_text,image_url').eq('id',id).maybeSingle();
-        if(error)throw error; if(!data)throw new Error('Тауар табылмады немесе бұл тауар сізге тиесілі емес.');
-        document.getElementById('editProductId').value=data.id;
-        document.getElementById('editProductName').value=data.title||'';
-        document.getElementById('editProductPrice').value=Number(data.price||0);
-        document.getElementById('editProductSalePrice').value=data.sale_price||'';
-        document.getElementById('editProductDiscount').value=data.discount_percent||'';
-        document.getElementById('editProductPromo').value=data.promo_text||'';
-        document.getElementById('editProductStock').value='';
-        document.getElementById('editProductPublished').value=data.is_active?'true':'false';
-        document.getElementById('editProductDescription').value=data.unit||'';
-        document.getElementById('editProductService').value='shop';
-        document.getElementById('editProductUnit').value=data.unit||'шт';
-        document.getElementById('editProductCategory').value=data.category_id||'';
-        await loadEditSections(data.section_name||'',data.category_id||'');
-        document.getElementById('editProductImage').value='';
-        document.getElementById('editProductModal').classList.add('show');
-    }catch(error){status.className='hint seller-error';status.textContent=error.message||'Тауарды ашу қатесі.';}
+ const status=document.getElementById('editProductStatus'); status.className='hint'; status.textContent='';
+ try{
+  const {data,error}=await supabaseClient.from('products').select('id,barcode,title,price,unit,sku,extra_code,is_active,category_id,category_name,section_name,sale_price,discount_percent,promo_text,image_url').eq('id',id).maybeSingle();
+  if(error)throw error; if(!data)throw new Error('Тауар табылмады немесе бұл тауар сізге тиесілі емес.');
+  document.getElementById('editProductId').value=data.id; document.getElementById('editProductName').value=data.title||''; document.getElementById('editProductBarcode').value=data.barcode||''; document.getElementById('editProductExtraCode').value=data.extra_code||''; document.getElementById('editProductSku').value=data.sku||''; document.getElementById('editProductSupplier').value=data.umag_supplier||''; document.getElementById('editProductMargin').value=data.umag_margin_percent??''; document.getElementById('editProductNtin').value=data.umag_ntin||''; document.getElementById('editProductScaleNumber').value=data.umag_scale_number||''; document.getElementById('editProductUmagDate').value=data.umag_updated_at||''; document.getElementById('editProductPrice').value=Number(data.price||0); document.getElementById('editProductDiscount').value=data.discount_percent||''; document.getElementById('editProductSalePrice').value=data.sale_price||''; document.getElementById('editProductPromo').value=data.promo_text||''; document.getElementById('editProductPromoYes').value=sellerProductHasPromo(data)?'true':'false'; syncPromoVisibility('editPromoFields',sellerProductHasPromo(data)); document.getElementById('editProductDescription').value=data.description||''; document.getElementById('editProductStock').value=Number(data.stock||0); document.getElementById('editProductUnit').value=data.unit||'шт'; document.getElementById('editProductImage').value='';
+  const badge=document.getElementById('editProductStatusBadge'); badge.textContent=sellerStatusLabel(data)+(data.is_active?' — Магазинде көрініп тұр':' — Магазинде жоқ');
+  const btn=document.getElementById('editPublishToggle'); btn.textContent=data.is_active?'Жасыру':'Жариялау'; btn.dataset.published=data.is_active?'true':'false';
+  document.getElementById('editProductModal').classList.add('show');
+ }catch(error){status.className='hint seller-error';status.textContent=error.message||'Тауарды ашу қатесі.';}
 }
-
-function closeEditProduct(){document.getElementById("editProductModal").classList.remove("show")}
-
+function closeEditProduct(){document.getElementById('editProductModal').classList.remove('show')}
 async function saveEditedProduct(){
-    const status=document.getElementById('editProductStatus'); status.className='hint'; status.textContent='Сақталуда...';
-    const id=document.getElementById('editProductId').value;
-    const title=document.getElementById('editProductName').value.trim();
-    const price=Number(document.getElementById('editProductPrice').value);
-    const discountPercent=Math.max(0,Math.min(100,Number(document.getElementById('editProductDiscount')?.value||0)));
-    const salePriceInput=Number(document.getElementById('editProductSalePrice')?.value||0);
-    const salePrice=discountPercent>0?Math.round(price*(1-discountPercent/100)):salePriceInput>0&&salePriceInput<price?salePriceInput:null;
-    const promoText=document.getElementById('editProductPromo')?.value.trim()||null;
-    const unit=document.getElementById('editProductUnit')?.value||'шт';
-    const categoryId=document.getElementById('editProductCategory')?.value||'';
-    let category=OGO_AYBOLIT_CATEGORIES.find(c=>c.id===categoryId);
-    if(!category){
-        const auto=ogoAutoClassifyProduct({name:title,unit,barcode:null})||{category_id:'undefined',category_name:'Незаданные',section_name:null};
-        category=OGO_AYBOLIT_CATEGORIES.find(c=>c.id===auto.category_id);
-    }
-    const effectiveCategoryId=category?.id||'undefined';
-    const sectionValue=document.getElementById('editProductSection')?.value||'';
-    const sectionName=category&&sectionValue!==''?category.sections[Number(sectionValue)]||null:null;
-    const isActive=document.getElementById('editProductPublished').value==='true';
-    if(!id||!title){status.textContent='Тауар атауын енгізіңіз.';return}
-    if(!Number.isFinite(price)||price<0){status.textContent='Бағаны дұрыс енгізіңіз.';return}
-    try{
-        const {error}=await supabaseClient.from('products').update({title,price,unit:unit||null,is_active:isActive,category_id:effectiveCategoryId,category_name:category?category.name:'Незаданные',section_name:sectionName,sale_price:salePrice,discount_percent:discountPercent,promo_text:promoText,updated_at:new Date().toISOString()}).eq('id',id);
-        if(error)throw error;
-        const photoFile=document.getElementById('editProductImage')?.files?.[0];
-        if(photoFile){
-            const {data:sessionData,error:sessionError}=await supabaseClient.auth.getSession();
-            if(sessionError)throw sessionError;
-            if(!sessionData?.session?.user?.id)throw new Error('Сессия аяқталған. Сатушы аккаунтына қайта кіріңіз.');
-            status.textContent='Фото жүктелуде...';
-            const imageUrl=await ogoUploadProductImage(id,photoFile);
-            const {error:imageDbError}=await supabaseClient.from('products').update({image_url:imageUrl,updated_at:new Date().toISOString()}).eq('id',id);
-            if(imageDbError)throw imageDbError;
-        }
-        status.className='hint seller-success'; status.textContent='✅ Өзгерістер сақталды!';
-        catalogState.shop.loaded=false; catalogState.food.loaded=false;
-        await loadSellerProducts();
-        await refreshWarehouseSnapshot();
-        if(document.getElementById('shop').classList.contains('active'))await loadCatalog('shop');
-    }catch(error){status.className='hint seller-error';status.textContent=error.message||'Сақтау кезінде қате болды.';}
+ const status=document.getElementById('editProductStatus'); status.className='hint'; status.textContent='Сақталуда...'; const id=document.getElementById('editProductId').value; const title=document.getElementById('editProductName').value.trim(); const price=Number(document.getElementById('editProductPrice').value); const unit=document.getElementById('editProductUnit').value||'шт'; const stock=Math.max(0,Number(document.getElementById('editProductStock').value||0)); const description=document.getElementById('editProductDescription').value.trim(); const promoYes=document.getElementById('editProductPromoYes').value==='true'; const discountPercent=promoYes?Math.max(0,Math.min(100,Number(document.getElementById('editProductDiscount').value||0))):0; const saleInput=promoYes?Number(document.getElementById('editProductSalePrice').value||0):0; const salePrice=discountPercent>0?Math.round(price*(1-discountPercent/100)):(saleInput>0&&saleInput<price?saleInput:null); const promoText=promoYes?(document.getElementById('editProductPromo').value.trim()||null):null; if(!id||!title){status.textContent='Тауар атауын енгізіңіз.';return} if(!Number.isFinite(price)||price<0){status.textContent='Бағаны дұрыс енгізіңіз.';return}
+ try{const {error}=await supabaseClient.from('products').update({title,price,unit,stock,description:description||null,is_active:document.getElementById('editPublishToggle').dataset.published==='true',published_once:document.getElementById('editPublishToggle').dataset.published==='true' ? true : undefined,sale_price:salePrice,discount_percent:discountPercent,promo_text:promoText,updated_at:new Date().toISOString()}).eq('id',id); if(error)throw error; const photoFile=document.getElementById('editProductImage')?.files?.[0]; if(photoFile){status.textContent='Фото жүктелуде...';const imageUrl=await ogoUploadProductImage(id,photoFile);const {error:imageDbError}=await supabaseClient.from('products').update({image_url:imageUrl,updated_at:new Date().toISOString()}).eq('id',id);if(imageDbError)throw imageDbError;} status.className='hint seller-success'; status.textContent='✅ Өзгерістер сақталды!'; catalogState.shop.loaded=false; await loadSellerProducts(); await loadSellerStoreProducts(); await loadSellerPromoProducts(); }catch(error){status.className='hint seller-error';status.textContent=error.message||'Сақтау кезінде қате болды.';}
+}
+async function toggleEditProductPublish(){
+ const btn=document.getElementById('editPublishToggle'); const id=document.getElementById('editProductId').value; if(!id)return; const published=btn.dataset.published==='true'; btn.disabled=true;
+ try{const {error}=await supabaseClient.from('products').update({is_active:!published,updated_at:new Date().toISOString()}).eq('id',id);if(error)throw error;btn.dataset.published=!published?'true':'false';btn.textContent=!published?'Жасыру':'Жариялау';document.getElementById('editProductStatusBadge').textContent=!published?'🟢 Жарияланған — Магазинде көрініп тұр':'🔴 Жасырылған — Магазинде жоқ';await loadSellerProducts();await loadSellerStoreProducts();await loadSellerPromoProducts();catalogState.shop.loaded=false;}catch(e){alert(e.message||'Статусты өзгерту кезінде қате болды.')}finally{btn.disabled=false;}
 }
 
 async function deleteEditedProduct(){
