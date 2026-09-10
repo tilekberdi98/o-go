@@ -2484,7 +2484,8 @@ async function loadSellerWarehousePage(){
     try{
         // Live count is used only to refresh pagination and verify the snapshot.
         const countQuery=supabaseClient.from('products')
-            .select('id',{count:'exact',head:true});
+            .select('id',{count:'exact',head:true})
+            .eq('seller_id',String(sellerUser.id));
         const countResult=await countQuery;
         if(countResult.error)throw countResult.error;
         warehouseTotal=Number(countResult.count||0);
@@ -2496,7 +2497,8 @@ async function loadSellerWarehousePage(){
         }
 
         let query=supabaseClient.from('products')
-            .select('id,seller_id,barcode,title,price,unit,sku,extra_code,is_active,updated_at,category_id,category_name,section_name,sale_price,discount_percent,promo_text,image_url');
+            .select('id,seller_id,barcode,title,price,unit,sku,extra_code,is_active,updated_at,category_id,category_name,section_name,sale_price,discount_percent,promo_text,image_url')
+            .eq('seller_id',String(sellerUser.id));
         const q=normalizeSearchText(warehouseSearchQuery);
         if(q){
             const safe=q.replace(/,/g,' ');
