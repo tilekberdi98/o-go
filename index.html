@@ -2047,8 +2047,6 @@ async function ogoUploadProductImage(productId,file){
     const {data:userData,error:userError}=await supabaseClient.auth.getUser();
     if(userError)throw new Error('Сатушы сессиясын тексеру мүмкін болмады: '+userError.message);
     const authUser=userData?.user;
-    console.log('OGO AUTH USER ID:', authUser?.id);
-    console.log('OGO AUTH USER EMAIL:', authUser?.email);
     if(!authUser?.id)throw new Error('Сатушы аккаунтының сессиясы жоқ. Қайта кіріңіз.');
     sellerUser=authUser;
 
@@ -2071,7 +2069,7 @@ async function ogoUploadProductImage(productId,file){
 
     const {error:upErr}=await supabaseClient.storage
         .from('product-images')
-        .upload(path,blob,{upsert:true,contentType:'image/jpeg',cacheControl:'3600'});
+        .upload(path,blob,{upsert:false,contentType:'image/jpeg',cacheControl:'3600'});
     if(upErr){
         console.error('O Go V37 image upload error:',upErr,{path,userId:authUser.id,productId});
         throw new Error(`Фото жүктелмеді: ${upErr.message||'Storage қатесі'}${upErr.code?' ('+upErr.code+')':''}`);
