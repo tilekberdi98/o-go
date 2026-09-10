@@ -575,7 +575,7 @@ document.addEventListener('keydown',function(e){
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<meta name="ogo-version" content="v35-barcode-wasm-camera-fix"><meta name="ogo-auto-category" content="enabled"><meta name="ogo-photo-ranking" content="enabled"><script id="ogoZXingWasm" src="https://cdn.jsdelivr.net/npm/zxing-wasm@3.1.3/dist/iife/reader/index.js" defer></script>
+<meta name="ogo-version" content="v39-barcode-safari-fix"><meta name="ogo-auto-category" content="enabled"><meta name="ogo-photo-ranking" content="enabled"><script id="ogoZXingWasm" src="https://cdn.jsdelivr.net/npm/zxing-wasm@3.1.3/dist/iife/reader/index.js" defer></script>
 <script id="ogoZXingFallback" src="https://unpkg.com/@zxing/browser@0.2.1/umd/index.min.js" defer></script>
 </head>
 
@@ -1364,38 +1364,17 @@ async function loadCatalog(type){
 
         state.sections=sectionsResult.error?[]:(sectionsResult.data||[]);
 
-        const fields='id,seller_id,barcode,title,price,unit,sku,extra_code,is_active,updated_at,category_id,category_name,section_name,sale_price,discount_percent,promo_text,popularity_count,image_url';
-        let rows=[];
-        if(type==='shop'){
-            // Бірден 300 000 тауарды жүктемейміз. Бастапқы бетке акциялы + фотосы бар + танымал тауарларды параллель аламыз.
-            const [promoResult,photoResult,popularResult]=await Promise.all([
-                supabaseClient.from('products').select(fields).eq('is_active',true)
-                    .or('discount_percent.gt.0,and(sale_price.gt.0,price.gt.sale_price)')
-                    .order('updated_at',{ascending:false}).limit(30),
-                supabaseClient.from('products').select(fields).eq('is_active',true)
-                    .not('image_url','is',null)
-                    .order('updated_at',{ascending:false}).limit(30),
-                supabaseClient.from('products').select(fields).eq('is_active',true)
-                    .order('popularity_count',{ascending:false,nullsFirst:false})
-                    .order('updated_at',{ascending:false}).limit(60)
-            ]);
-            const bad=[promoResult,photoResult,popularResult].find(r=>r.error);
-            if(bad)throw bad.error;
-            const seen=new Set();
-            [...(promoResult.data||[]),...(photoResult.data||[]),...(popularResult.data||[])].forEach(row=>{
-                const key=String(row.id);
-                if(!seen.has(key)){seen.add(key);rows.push(row);}
-            });
-            rows=ogoSortProducts(rows).slice(0,100);
-        }else{
-            const productsResult=await supabaseClient.from('products').select(fields).eq('is_active',true)
-                .order('popularity_count',{ascending:false,nullsFirst:false})
-                .order('updated_at',{ascending:false}).limit(40);
-            if(productsResult.error)throw productsResult.error;
-            rows=productsResult.data||[];
-        }
+        const productsResult=await supabaseClient.from('products')
+            .select('id,seller_id,barcode,title,price,unit,sku,extra_code,is_active,updated_at,category_id,category_name,section_name,sale_price,discount_percent,promo_text,popularity_count,image_url')
+            .eq('is_active',true)
+            // Танымал тауарлар бірінші. popularity_count — себетке қосу/тапсырыс сигналы.
+            .order('popularity_count',{ascending:false,nullsFirst:false})
+            .order('updated_at',{ascending:false})
+            .limit(type==='shop'?60:40);
 
-        state.products=rows.map(p=>({
+        if(productsResult.error)throw productsResult.error;
+
+        state.products=(productsResult.data||[]).map(p=>({
             ...p,
             name:p.title,
             published:p.is_active,
@@ -1455,7 +1434,7 @@ async function loadSectionProducts(type,sectionId){
         const {data,error}=await q;
         if(error)throw error;
 
-        const mapped=(data||[]).map(p=>({
+        state._renderOverride=(data||[]).map(p=>({
             ...p,name:p.title,published:p.is_active,stock:999999,
             sale_price:p.sale_price||null,
             discount_percent:p.discount_percent||0,
@@ -1468,11 +1447,6 @@ async function loadSectionProducts(type,sectionId){
             category_name:p.category_name||null,
             section_name:p.section_name||null
         }));
-        // Бөлімнен ашылған тауарларды да ортақ кэшке қосамыз — сонда + басқанда себетке міндетті түрде түседі.
-        const byId=new Map(state.products.map(p=>[String(p.id),p]));
-        mapped.forEach(p=>byId.set(String(p.id),p));
-        state.products=Array.from(byId.values());
-        state._renderOverride=ogoSortProducts(mapped);
 
         renderProducts(type);
     }catch(error){
@@ -1515,7 +1489,7 @@ async function searchCatalogServer(type,value){
 
             if(error)throw error;
 
-            const mapped=(data||[]).map(p=>({
+            state._renderOverride=(data||[]).map(p=>({
                 ...p,name:p.title,published:p.is_active,stock:999999,
                 sale_price:p.sale_price||null,
                 discount_percent:p.discount_percent||0,
@@ -1524,14 +1498,10 @@ async function searchCatalogServer(type,value){
                 description:p.unit||'',
                 image_url:p.image_url||null,
                 category:'shop',service_type:'shop',
-                category_id:p.category_id||null,
+                    category_id:p.category_id||null,
                 category_name:p.category_name||null,
                 section_name:p.section_name||null
             }));
-            const byId=new Map(state.products.map(p=>[String(p.id),p]));
-            mapped.forEach(p=>byId.set(String(p.id),p));
-            state.products=Array.from(byId.values());
-            state._renderOverride=ogoSortProducts(mapped);
 
             renderProducts(type);
         }catch(error){
@@ -1634,20 +1604,7 @@ function observeProductViews(root){
 async function addProductToCart(id){
     const productId=decodeURIComponent(String(id||''));
     const all=[...catalogState.shop.products,...catalogState.food.products];
-    let product=all.find(p=>String(p.id)===productId);
-    // Бөлім/іздеу нәтижесі браузер кэшінде болмауы мүмкін — онда тауарды серверден бір жолмен аламыз.
-    if(!product){
-        try{
-            const {data,error}=await supabaseClient.from('products')
-                .select('id,seller_id,barcode,title,price,unit,sku,extra_code,is_active,updated_at,category_id,category_name,section_name,sale_price,discount_percent,promo_text,popularity_count,image_url')
-                .eq('id',productId).eq('is_active',true).maybeSingle();
-            if(error)throw error;
-            if(data){
-                product={...data,name:data.title,published:data.is_active,stock:999999,description:data.unit||'',service_type:'shop',category:'shop'};
-                catalogState.shop.products.push(product);
-            }
-        }catch(e){console.warn('O Go: product fetch for cart failed',e);}
-    }
+    const product=all.find(p=>String(p.id)===productId);
     if(!product){console.warn('O Go: product not found for cart',productId);return;}
     const basePrice=Number(product.price||0);
     const price=getSalePrice(product);
@@ -2112,7 +2069,7 @@ async function ogoUploadProductImage(productId,file){
 
     const {error:upErr}=await supabaseClient.storage
         .from('product-images')
-        .upload(path,blob,{upsert:false,contentType:'image/jpeg',cacheControl:'3600'});
+        .upload(path,blob,{upsert:true,contentType:'image/jpeg',cacheControl:'3600'});
     if(upErr){
         console.error('O Go V37 image upload error:',upErr,{path,userId:authUser.id,productId});
         throw new Error(`Фото жүктелмеді: ${upErr.message||'Storage қатесі'}${upErr.code?' ('+upErr.code+')':''}`);
@@ -2867,9 +2824,8 @@ async function startWarehouseBarcodeCamera(){
         video.muted=true;
         video.srcObject=stream;
         await video.play();
-        await new Promise(r=>setTimeout(r,250));
+        await new Promise(r=>setTimeout(r,300));
 
-        // iPhone/Safari: best-effort continuous focus. Do not force zoom.
         try{
             const track=stream.getVideoTracks()[0];
             const caps=track?.getCapabilities?.()||{};
@@ -2877,23 +2833,6 @@ async function startWarehouseBarcodeCamera(){
                 await track.applyConstraints({advanced:[{focusMode:'continuous'}]});
         }catch(e){console.debug('continuous focus unavailable',e)}
 
-        const ready=await waitForOgoZXing(7000);
-        if(!ready)throw new Error('Штрих-код сканері жүктелмеді.');
-
-        const ZX=window.ZXingBrowser;
-        const hints=new Map();
-        if(ZX.DecodeHintType && ZX.BarcodeFormat){
-            hints.set(ZX.DecodeHintType.POSSIBLE_FORMATS,[
-                ZX.BarcodeFormat.EAN_13,ZX.BarcodeFormat.EAN_8,
-                ZX.BarcodeFormat.UPC_A,ZX.BarcodeFormat.UPC_E,
-                ZX.BarcodeFormat.CODE_128
-            ]);
-            hints.set(ZX.DecodeHintType.ASSUME_GS1,true);
-        }
-        const Reader=ZX.BrowserMultiFormatOneDReader||ZX.BrowserMultiFormatReader;
-        if(!Reader)throw new Error('ZXing reader табылмады.');
-        const reader=new Reader(hints,{delayBetweenScanAttempts:80,delayBetweenScanSuccess:700});
-        window.ogoZXingReader=reader;
         warehouseBarcodeScanBusy=false;
         setWarehouseBarcodeStatus('🟢 Камера OK · штрих-кодты сары жақтаудың ішіне жақындатып ұстаңыз...');
 
@@ -2910,17 +2849,49 @@ async function startWarehouseBarcodeCamera(){
             return true;
         };
 
-        // Primary continuous decoder: ZXing reads the actual MediaStream.
-        if(typeof reader.decodeFromStream==='function'){
-            window.ogoZXingControls=await reader.decodeFromStream(stream,video,(result,error)=>{
-                if(result)acceptCode(result.getText?result.getText():result.text||'');
-            });
+        // V39: ZXing Browser is now only an optional decoder.
+        // Its failure must NOT stop the camera or prevent the WASM decoder below.
+        try{
+            const ready=await waitForOgoZXing(5000);
+            if(ready && window.ZXingBrowser){
+                const ZX=window.ZXingBrowser;
+                const hints=new Map();
+                if(ZX.DecodeHintType && ZX.BarcodeFormat){
+                    hints.set(ZX.DecodeHintType.POSSIBLE_FORMATS,[
+                        ZX.BarcodeFormat.EAN_13,ZX.BarcodeFormat.EAN_8,
+                        ZX.BarcodeFormat.UPC_A,ZX.BarcodeFormat.UPC_E,
+                        ZX.BarcodeFormat.CODE_128
+                    ]);
+                    hints.set(ZX.DecodeHintType.ASSUME_GS1,true);
+                }
+                const Reader=ZX.BrowserMultiFormatOneDReader||ZX.BrowserMultiFormatReader;
+                if(Reader){
+                    const reader=new Reader(hints,{delayBetweenScanAttempts:120,delayBetweenScanSuccess:700});
+                    window.ogoZXingReader=reader;
+                    if(typeof reader.decodeFromVideoDevice==='function'){
+                        try{
+                            window.ogoZXingControls=await reader.decodeFromVideoDevice(undefined,video,(result,error)=>{
+                                if(result)acceptCode(result.getText?result.getText():result.text||'');
+                            });
+                        }catch(e){console.debug('ZXing video decoder unavailable; continuing with WASM',e)}
+                    }else if(typeof reader.decodeFromStream==='function'){
+                        try{
+                            window.ogoZXingControls=await reader.decodeFromStream(stream,video,(result,error)=>{
+                                if(result)acceptCode(result.getText?result.getText():result.text||'');
+                            });
+                        }catch(e){console.debug('ZXing stream decoder unavailable; continuing with WASM',e)}
+                    }
+                }
+            }
+        }catch(e){console.debug('ZXing Browser optional decoder failed:',e)}
+
+        // Main iPhone/Safari fallback: ZXing-C++ WebAssembly reads frames from canvas.
+        const wasmReady=await waitForOgoZXingWasm(9000);
+        if(!wasmReady || !window.ZXingWASM?.readBarcodes){
+            setWarehouseBarcodeStatus('🟡 Камера қосылды. Автоматты оқу модулі жүктелмеді — төменге кодты енгізуге немесе Фото арқылы оқуға болады.',true);
+            return;
         }
 
-        // V35: an additional ZXing-C++ WebAssembly decoder.
-        // It works from raw ImageData, so it does not depend on ZXing Browser's
-        // video decoding loop. This is especially useful on iPhone/Safari.
-        const wasmReady=await waitForOgoZXingWasm(9000);
         const canvas=document.createElement('canvas');
         const ctx=canvas.getContext('2d',{willReadFrequently:true});
         let wasmBusy=false;
@@ -2931,30 +2902,27 @@ async function startWarehouseBarcodeCamera(){
                 return;
             }
             if(wasmBusy){
-                window.ogoBarcodeCanvasTimer=setTimeout(scanWithWasm,80);
+                window.ogoBarcodeCanvasTimer=setTimeout(scanWithWasm,100);
                 return;
             }
             wasmBusy=true;
             try{
                 const vw=video.videoWidth,vh=video.videoHeight;
-                // Crop the yellow guide area and upscale it.
-                const sw=Math.floor(vw*0.76), sh=Math.floor(vh*0.62);
+                const sw=Math.floor(vw*0.82), sh=Math.floor(vh*0.52);
                 const sx=Math.floor((vw-sw)/2), sy=Math.floor((vh-sh)/2);
                 const scale=2;
                 canvas.width=sw*scale; canvas.height=sh*scale;
                 ctx.imageSmoothingEnabled=false;
                 ctx.drawImage(video,sx,sy,sw,sh,0,0,canvas.width,canvas.height);
-                if(wasmReady && window.ZXingWASM?.readBarcodes){
-                    const imageData=ctx.getImageData(0,0,canvas.width,canvas.height);
-                    const results=await window.ZXingWASM.readBarcodes(imageData,{
-                        tryHarder:true,
-                        formats:['EAN13','EAN8','UPC_A','UPC_E','CODE128'],
-                        maxNumberOfSymbols:1
-                    });
-                    if(results?.length){
-                        const text=results[0]?.text||'';
-                        if(text)await acceptCode(text);
-                    }
+                const imageData=ctx.getImageData(0,0,canvas.width,canvas.height);
+                const results=await window.ZXingWASM.readBarcodes(imageData,{
+                    tryHarder:true,
+                    formats:['EAN13','EAN8','UPCA','UPCE','Code128'],
+                    maxNumberOfSymbols:1
+                });
+                if(results?.length){
+                    const text=results[0]?.text||'';
+                    if(text)await acceptCode(text);
                 }
             }catch(e){console.debug('ZXing WASM scan',e)}
             wasmBusy=false;
@@ -2965,7 +2933,7 @@ async function startWarehouseBarcodeCamera(){
     }catch(error){
         console.warn('O Go barcode camera error:',error);
         stopWarehouseBarcodeCamera();
-        setWarehouseBarcodeStatus('Автоматты оқу іске қосылмады. Штрих-кодты жақындатып көріңіз немесе төменге кодты енгізіңіз.',true);
+        setWarehouseBarcodeStatus('Камера іске қосылмады. Қайта ашып көріңіз немесе төменге кодты енгізіңіз.',true);
     }
 }
 
