@@ -2934,15 +2934,33 @@ async function processBulkUpload(){
         const safeProducts=[...byBarcode.values(),...withoutBarcode];
         status.textContent=`${safeProducts.length} тауар дайын. Базаға жүктелуде...`;
         let done=0;
+        // seller_id + barcode бойынша ON CONFLICT қолданбаймыз: Supabase-та бұл жұпқа
+        // UNIQUE/EXCLUSION constraint болмауы мүмкін. Алдымен бар тауарлардың id-сін
+        // табамыз, содан кейін бәрін тек PRIMARY KEY (id) арқылы қауіпсіз upsert жасаймыз.
         for(let i=0;i<safeProducts.length;i+=500){
             const batch=safeProducts.slice(i,i+500);
-            const {error}=await supabaseClient.from('products').upsert(batch,{onConflict:'seller_id,barcode',ignoreDuplicates:false});
+            const barcodes=[...new Set(batch.map(p=>String(p.barcode||'').trim()).filter(Boolean))];
+            let existing=[];
+            if(barcodes.length){
+                const {data,error}=await supabaseClient.from('products')
+                    .select('id,barcode')
+                    .eq('seller_id',sellerUser.id)
+                    .in('barcode',barcodes);
+                if(error)throw error;
+                existing=data||[];
+            }
+            const existingMap=new Map(existing.map(x=>[String(x.barcode||''),x.id]));
+            const rowsWithIds=batch.map(p=>{
+                const id=existingMap.get(String(p.barcode||''));
+                return id?{...p,id}:p;
+            });
+            const {error}=await supabaseClient.from('products').upsert(rowsWithIds,{onConflict:'id',ignoreDuplicates:false});
             if(error)throw error;
             done+=batch.length;
             status.textContent=`Жүктелуде: ${done}/${safeProducts.length}...`;
         }
         status.className='hint seller-success';
-        status.innerHTML=`✅ ${done} тауар UMAG-тан Складқа сәтті жүктелді!<br>🟢 Тауарлар Магазинде бірден көрінеді.`;
+        status.innerHTML=`✅ ${done} тауар UMAG-тан Складқа сәтті жүктелді!<br>🟢 Тауарлар Складта дайын.`;
         showSellerLastAdded(done);
         catalogState.shop.loaded=false; catalogState.food.loaded=false;
         await loadSellerProducts();
