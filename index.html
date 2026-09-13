@@ -281,18 +281,21 @@ main{padding:18px 16px 24px}
 }
 
 
-
-/* V41 FIX — customer product cards: full photo + non-overlapping promo ribbon */
-.shop-products-grid .product, #shopProducts .product{position:relative;display:block;padding:10px;border-radius:18px;}
-.shop-products-grid .product-img, #shopProducts .product-img{width:100%;height:150px;border-radius:14px;margin-bottom:8px;background:#f5f5f3;}
-.shop-products-grid .product-img img, #shopProducts .product-img img{width:100%;height:100%;object-fit:contain;object-position:center;}
-.shop-products-grid .product-info, #shopProducts .product-info{display:block;}
-.shop-products-grid .product-name, #shopProducts .product-name{font-size:14px;line-height:1.2;min-height:34px;margin-bottom:3px;}
-.shop-products-grid .product-desc, #shopProducts .product-desc{font-size:11px;min-height:15px;margin-bottom:4px;}
-.shop-products-grid .price, #shopProducts .price{padding-right:46px;min-height:34px;line-height:1.25;}
-.shop-products-grid .add, #shopProducts .add{position:absolute;right:10px;bottom:10px;width:40px;min-width:40px;}
-.customer-promo-ribbon{display:inline-flex;align-items:center;gap:4px;margin:0 0 6px 0;padding:5px 9px;border-radius:999px;background:#ef3b30;color:#fff;font-size:10px;font-weight:950;line-height:1;white-space:nowrap;}
-@media(max-width:380px){.shop-products-grid .product-img,#shopProducts .product-img{height:132px;}}
+/* O GO V42 — CUSTOMER SHOP: compact 2-column cards + non-overlapping promo ribbon */
+#shopProducts.products,#shopSearchResults.products{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-items:stretch}
+#shopProducts .product,#shopSearchResults .product{position:relative;display:flex;flex-direction:column;align-items:stretch;gap:0;padding:12px 10px 11px;border-radius:18px;min-width:0;overflow:hidden;box-sizing:border-box}
+#shopProducts .product-img,#shopSearchResults .product-img{width:100%;height:112px;border-radius:13px;background:#f7f7f4;flex:0 0 112px;margin:38px 0 8px;display:grid;place-items:center;overflow:hidden}
+#shopProducts .product-img img,#shopSearchResults .product-img img{width:100%;height:100%;object-fit:contain}
+#shopProducts .product-info,#shopSearchResults .product-info{width:100%;min-width:0;display:flex;flex-direction:column;gap:3px;padding:0 2px}
+#shopProducts .product-name,#shopSearchResults .product-name{font-size:13px;font-weight:850;line-height:1.22;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#shopProducts .product-desc,#shopSearchResults .product-desc{font-size:11px;line-height:1.2;margin:0;color:var(--muted);min-height:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#shopProducts .price,#shopSearchResults .price{font-size:15px;line-height:1.25;margin-top:2px;min-height:24px;padding-right:42px}
+#shopProducts .add,#shopSearchResults .add{position:absolute;right:10px;bottom:10px;min-width:38px;width:38px;height:38px;border-radius:12px;z-index:2}
+#shopProducts .promo,#shopSearchResults .promo{display:none}
+#shopProducts .old-price,#shopSearchResults .old-price{font-size:10px;margin-right:3px}
+#shopProducts .product::before,#shopSearchResults .product::before{content:'🔥 АКЦИЯ';display:none;position:absolute;top:10px;left:10px;z-index:3;padding:6px 10px;border-radius:9px;background:#ef3030;color:#fff;font-size:10px;font-weight:950;letter-spacing:.2px;box-shadow:0 3px 8px rgba(0,0,0,.12)}
+#shopProducts .product[data-promo="1"]::before,#shopSearchResults .product[data-promo="1"]::before{display:block}
+@media(max-width:360px){#shopProducts .product-img,#shopSearchResults .product-img{height:96px;flex-basis:96px;margin-top:38px}#shopProducts .product-name,#shopSearchResults .product-name{font-size:12px}}
 
 /* SUPABASE БӨЛІМДЕРІ */
 .category-row{
@@ -727,7 +730,7 @@ document.addEventListener('keydown',function(e){
                 <input id="shopSearch" type="search" autocomplete="off" placeholder="Дүкеннен тауар іздеу..." aria-label="Дүкеннен тауар іздеу" oninput="searchCatalog('shop', this.value)">
                 <button class="search-clear" type="button" onclick="clearCatalogSearch('shop')" aria-label="Іздеуді тазалау"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <div class="catalog-search-hint">Тауар атауын толық немесе бірнеше әріппен жазыңыз — барлық бөлімнен ізделеді.</div>
+            <div id="shopSections" class="category-row" aria-label="Дүкен бөлімдері"></div>
             <div id="shopSearchResults" class="products shop-search-results" style="display:none" aria-live="polite"></div>
             <div id="shopProducts" class="products"><div class="empty">Тауарлар жүктелуде...</div></div>
         </div>
@@ -1138,15 +1141,42 @@ function getShopSectionItems(categoryId,index){
     return getShopCategoryItems(categoryId).filter(p=>String(p.section_id||p.section_name||p.section||'')===target);
 }
 function renderSections(type){
-    const state=catalogState[type],el=document.getElementById(type+'Sections');if(!el)return;
-    if(type!=='shop'){const promoCount=state.products.filter(isPromoProduct).length;const promoBtn=promoCount?`<button class="category-btn promo-category ${state.selectedSection==='__promo__'?'active':''}" onclick="selectSection('${type}','__promo__')">🔥 ${OGO_CURRENT_LANG==='ru'?'Акции':'Акциялар'} (${promoCount})</button>`:'';el.innerHTML=promoBtn+state.sections.filter(section=>state.products.some(p=>p.section_id===section.id)).map(section=>`<button class="category-btn ${state.selectedSection===section.id?'active':''}" onclick="selectSection('${type}','${section.id}')">${escapeHtml(localizeSectionName(section.name))}</button>`).join('');return;}
-    // Клиентке Айболиттің ішкі категорияларын көрсетпейміз.
-    // Тауарлар backend ішінде автоматты категорияларда сақталады, ал клиент тек Акция және Все көреді.
-    const promo={id:'__promo__',name:OGO_CURRENT_LANG==='ru'?'Акции':'Акциялар',sections:[]};
-    const all={id:'all',name:'Все',sections:[]};
-    const ordered=[promo,all];
-    el.innerHTML=ordered.map(c=>`<button class="category-btn ${c.id==='__promo__'?'promo-category ':''}${shopCategoryId===c.id?'active':''}" onclick="selectShopCategory('${c.id}')">${c.id==='__promo__'?'🔥 ':''}${escapeHtml(localizeCategoryName(c.name))}${c.id==='__promo__'&&catalogState.shop.products.filter(isPromoProduct).length?` (${catalogState.shop.products.filter(isPromoProduct).length})`:''}</button>`).join('');
+    const state=catalogState[type];
+    const el=type==='shop'
+        ? document.getElementById('shopSections')
+        : document.getElementById(type+'Sections');
+    if(!el)return;
+
+    if(type!=='shop'){
+        const promoCount=state.products.filter(isPromoProduct).length;
+        const promoBtn=promoCount
+            ? `<button class="category-btn promo-category ${state.selectedSection==='__promo__'?'active':''}" onclick="selectSection('${type}','__promo__')">🔥 ${OGO_CURRENT_LANG==='ru'?'Акции':'Акциялар'} (${promoCount})</button>`
+            : '';
+        el.innerHTML=promoBtn+state.sections
+            .filter(section=>state.products.some(p=>p.section_id===section.id))
+            .map(section=>`<button class="category-btn ${state.selectedSection===section.id?'active':''}" onclick="selectSection('${type}','${section.id}')">${escapeHtml(localizeSectionName(section.name))}</button>`)
+            .join('');
+        return;
+    }
+
+    // Клиентке Айболиттің ішкі категориялары көрсетілмейді.
+    // Тек Акция және Барлығы.
+    const promoCount=(state.promoProducts||state.products||[]).filter(isPromoProduct).length;
+    const promo={
+        id:'__promo__',
+        name:OGO_CURRENT_LANG==='ru'?'Акции':'Акциялар'
+    };
+    const all={
+        id:'all',
+        name:OGO_CURRENT_LANG==='ru'?'Все':'Барлығы'
+    };
+
+    el.innerHTML=[
+        `<button class="category-btn promo-category ${shopCategoryId==='__promo__'?'active':''}" onclick="selectShopCategory('__promo__')">🔥 ${escapeHtml(localizeCategoryName(promo.name))}${promoCount?` (${promoCount})`:''}</button>`,
+        `<button class="category-btn ${shopCategoryId==='all'?'active':''}" onclick="selectShopCategory('all')">${escapeHtml(localizeCategoryName(all.name))}</button>`
+    ].join('');
 }
+
 function selectShopCategory(id){
     if(id==='__promo__'){
         shopCategoryId=id;shopSubsection='all';
@@ -1156,6 +1186,7 @@ function selectShopCategory(id){
         if(hint)hint.textContent=OGO_CURRENT_LANG==='ru'?'Товары со скидкой':'Жеңілдіктегі тауарлар';
         const el=document.getElementById('shopSubsections'); if(el)el.innerHTML='';
         if(products)renderShopProductsByCategory();
+        renderSections('shop');
         return;
     }
     if(id==='all'){
@@ -1165,6 +1196,7 @@ function selectShopCategory(id){
         if(title)title.textContent=OGO_CURRENT_LANG==='ru'?'Все':'Барлығы';
         if(hint)hint.textContent=OGO_CURRENT_LANG==='ru'?'Все товары':'Барлық тауарлар';
         if(products)renderShopProductsByCategory();
+        renderSections('shop');
         return;
     }
     const cat=OGO_AYBOLIT_CATEGORIES.find(c=>c.id===id);if(!cat)return;
@@ -1293,16 +1325,30 @@ function productBelongsToSpecialCategory(p,id){
 }
 function renderShopProductsByCategory(){
     const state=catalogState.shop,el=document.getElementById('shopProducts');if(!el)return;
-    let items=shopCategoryId==='__promo__'?state.products.filter(isPromoProduct):state.products.filter(p=>productBelongsToSpecialCategory(p,shopCategoryId));
+    const promoSource=state.products||[];
+    let items=shopCategoryId==='__promo__'
+        ? promoSource.filter(isPromoProduct)
+        : state.products.filter(p=>productBelongsToSpecialCategory(p,shopCategoryId));
+
     const openCat=OGO_AYBOLIT_CATEGORIES.find(c=>c.id===shopCategoryId);
     if(shopSubsection==='collapsed' && openCat && openCat.sections.length){ items=[]; }
+
     if(shopCategoryId==='all') items=ogoSortProducts(items);
+
     const cat=OGO_AYBOLIT_CATEGORIES.find(c=>c.id===shopCategoryId);
-    if(shopCategoryId!=='all'&&shopCategoryId!=='no-barcode'&&shopCategoryId!=='undefined'&&shopCategoryId!=='weighted'&&cat&&cat.sections.length&&shopSubsection!=='all'){
-        const target=cat.sections[Number(shopSubsection)];items=items.filter(p=>String(p.section_id||p.section_name||p.section||'')===target);
+    if(shopCategoryId!=='all'&&shopCategoryId!=='__promo__'&&shopCategoryId!=='no-barcode'&&shopCategoryId!=='undefined'&&shopCategoryId!=='weighted'&&cat&&cat.sections.length&&shopSubsection!=='all'){
+        const target=cat.sections[Number(shopSubsection)];
+        items=items.filter(p=>String(p.section_id||p.section_name||p.section||'')===target);
     }
-    if(!items.length){el.innerHTML='<div class="empty">Бұл бөлімде әзірге тауар жоқ.</div>';return;}
-    state._renderOverride=items;renderProducts('shop');delete state._renderOverride;
+
+    if(!items.length){
+        el.innerHTML='<div class="empty">Бұл бөлімде әзірге тауар жоқ.</div>';
+        return;
+    }
+
+    state._renderOverride=items;
+    renderProducts('shop');
+    delete state._renderOverride;
 }
 
 function normalizeSearchText(value){
@@ -1344,7 +1390,7 @@ function searchScoreProduct(product,query){
     return best;
 }
 function searchMatchesProduct(product,query){return searchScoreProduct(product,query)>0;}
-function isPromoProduct(p){const d=Number(p.discount_percent||0);const base=Number(p.price||0),sale=Number(p.sale_price||0);const promoText=String(p.promo_text||'').trim();return d>0 || (sale>0&&base>0&&sale<base) || !!promoText;}
+function isPromoProduct(p){const d=Number(p.discount_percent||0);const base=Number(p.price||0),sale=Number(p.sale_price||0);return d>0 || (sale>0&&base>0&&sale<base);}
 function getSalePrice(product){const base=Number(product?.price||0);const d=Math.max(0,Math.min(100,Number(product?.discount_percent||0)));if(d>0&&base>0)return Math.round(base*(1-d/100));const sale=Number(product?.sale_price||0);return sale>0&&sale<base?sale:base;}
 function renderProducts(type){
     const state=catalogState[type];
@@ -1369,10 +1415,10 @@ function renderProducts(type){
         const localized=localizedProduct(p);
         const desc=escapeHtml(localized.description||''), name=escapeHtml(localized.name||'Тауар');
         const price=Number(p.price||0), salePrice=getSalePrice(p), effectivePrice=salePrice;const discount=Math.max(0,Math.min(100,Number(p.discount_percent||0))); 
-        const promo=isPromoProduct(p)?`<div class="customer-promo-ribbon"><i class="fa-solid fa-fire"></i>${escapeHtml(p.promo_text|| (discount>0?('-'+discount+'%'):'АКЦИЯ'))}</div>`:'';
-        const priceHtml=effectivePrice<price?`<span class="old-price">${formatPrice(price)}</span>${formatPrice(effectivePrice)}`:`${formatPrice(price)}`;
+        const promo=isPromoProduct(p)?`<span class="promo">${escapeHtml(p.promo_text||('-'+(discount||Math.round((1-effectivePrice/price)*100))+'%'))}</span>`:'';
+        const priceHtml=effectivePrice<price?`<span class="old-price">${formatPrice(price)}</span>${formatPrice(effectivePrice)} ${promo}`:`${formatPrice(price)} ${promo}`;
         const stock=Number.isFinite(Number(p.stock))?Number(p.stock):999999, disabled='', stockText=desc||'Тауар';
-        return `<article class="product" data-product-id="${escapeHtml(String(p.id))}"><div class="product-img">${image}</div><div class="product-info">${promo}<div class="product-name">${name}</div><div class="product-desc">${stockText}</div><div class="price">${priceHtml}</div></div><button class="add" ${disabled} onclick="addProductToCart('${encodeURIComponent(String(p.id))}')">+</button></article>`;
+        return `<article class="product" data-product-id="${escapeHtml(String(p.id))}" data-promo="${isPromoProduct(p)?'1':'0'}"><div class="product-img">${image}</div><div class="product-info"><div class="product-name">${name}</div><div class="product-desc">${stockText}</div><div class="price">${priceHtml}</div></div><button class="add" ${disabled} onclick="addProductToCart('${encodeURIComponent(String(p.id))}')">+</button></article>`;
     }).join('');
     observeProductViews(el);
 }
@@ -1411,12 +1457,17 @@ function clearCatalogSearch(type){
 async function loadCatalog(type){
     const state=catalogState[type];
     const productsEl=document.getElementById(type+'Products');
-    const sectionsEl=document.getElementById(type+'Sections');
+    const sectionsEl=type==='shop' ? document.getElementById('shopSections') : document.getElementById(type+'Sections');
     if(!productsEl)return;
 
     // IMPORTANT: 300 000 тауарды браузерге бірден әкелмейміз.
     // Бастапқы экранға тек ең танымал 60 тауар жүктеледі.
-    if(state.loaded){ renderSections(type); renderProducts(type); return; }
+    if(state.loaded){
+        renderSections(type);
+        if(type==='shop' && shopCategoryId==='__promo__') renderShopProductsByCategory();
+        else renderProducts(type);
+        return;
+    }
 
     productsEl.innerHTML='<div class="empty"><span class="loading-dot"></span>Танымал тауарлар жүктелуде...</div>';
     sectionsEl.innerHTML='';
@@ -1449,6 +1500,25 @@ async function loadCatalog(type){
 
         if(productsResult.error)throw productsResult.error;
 
+        // Акция клиентке бөлек те жүктеледі: ол алғашқы 60 тауардың ішінде болмаса да,
+        // Айболиттің «Акция» бөлімінде міндетті түрде көрінеді.
+        let promoProducts=[];
+        if(type==='shop'){
+            const promoResult=await supabaseClient.from('products')
+                .select('id,seller_id,barcode,title,price,unit,sku,extra_code,is_active,updated_at,category_id,category_name,section_name,sale_price,discount_percent,promo_text,popularity_count,image_url')
+                .eq('is_active',true)
+                .in('seller_id',[
+                    '1fb587af-c49b-489b-a13f-7b9568b0f89c',
+                    '4a42791c-7d84-466e-87c8-278481672d09',
+                    'aibolit'
+                ])
+                .or('discount_percent.gt.0,sale_price.gt.0,promo_text.neq.null')
+                .order('updated_at',{ascending:false})
+                .limit(200);
+            if(promoResult.error)throw promoResult.error;
+            promoProducts=promoResult.data||[];
+        }
+
         state.products=(productsResult.data||[]).map(p=>({
             ...p,
             name:p.title,
@@ -1466,6 +1536,35 @@ async function loadCatalog(type){
             category_name:p.category_name||null,
             section_name:p.section_name||null
         }));
+
+        state.promoProducts=(type==='shop' ? promoProducts.map(p=>({
+            ...p,
+            name:p.title,
+            published:p.is_active,
+            stock:999999,
+            sale_price:p.sale_price||null,
+            discount_percent:p.discount_percent||0,
+            promo_text:p.promo_text||null,
+            popularity_count:Number(p.popularity_count||0),
+            description:p.unit||'',
+            image_url:p.image_url||null,
+            category:'shop',
+            service_type:'shop',
+            category_id:p.category_id||null,
+            category_name:p.category_name||null,
+            section_name:p.section_name||null
+        })) : []);
+
+        // Акциядағы тауарлар да «Барлығы» тізіміне қосылады, бірақ дубликатсыз.
+        if(type==='shop' && state.promoProducts.length){
+            const seen=new Set(state.products.map(p=>String(p.id)));
+            for(const p of state.promoProducts){
+                if(!seen.has(String(p.id))){
+                    state.products.push(p);
+                    seen.add(String(p.id));
+                }
+            }
+        }
 
         state.products=await ogoPersistAutoCategories(state.products);
         state.loaded=true;
@@ -2041,7 +2140,7 @@ async function loadSellerStoreProducts(){
 }
 async function loadSellerPromoProducts(){
  const el=document.getElementById('sellerPromoProductsList'); if(!el||!sellerUser)return; el.innerHTML='<div class="hint">Жүктелуде...</div>';
- try{const {data,error}=await supabaseClient.from('products').select('id,seller_id,barcode,title,price,unit,is_active,category_name,section_name,sale_price,discount_percent,promo_text,image_url,updated_at').in('seller_id',['1fb587af-c49b-489b-a13f-7b9568b0f89c','4a42791c-7d84-466e-87c8-278481672d09','aibolit']).or('discount_percent.gt.0,sale_price.gt.0,promo_text.neq.null').order('updated_at',{ascending:false}).range(0,99); if(error)throw error; renderSellerSimpleList.call(el,Array.isArray(data)?data:[],'Акцияға шығарылған тауар жоқ.');}catch(e){el.innerHTML=`<div class="hint seller-error">${escapeHtml(e.message||'Акцияны жүктеу қатесі.')}</div>`;}
+ try{const {data,error}=await supabaseClient.from('products').select('id,seller_id,barcode,title,price,unit,is_active,category_name,section_name,sale_price,discount_percent,promo_text,image_url,updated_at').eq('seller_id',String(sellerUser.id)).or('discount_percent.gt.0,sale_price.gt.0,promo_text.neq.null').order('updated_at',{ascending:false}).range(0,99); if(error)throw error; renderSellerSimpleList.call(el,Array.isArray(data)?data:[],'Акцияға шығарылған тауар жоқ.');}catch(e){el.innerHTML=`<div class="hint seller-error">${escapeHtml(e.message||'Акцияны жүктеу қатесі.')}</div>`;}
 }
 function syncPromoVisibility(id,yes){
  const box=document.getElementById(id); if(box)box.style.display=yes?'block':'none';
@@ -3260,11 +3359,6 @@ function setLang(lang){
  const unitEl=document.getElementById('sellerProductUnit'); if(unitEl){const vals=OGO_CURRENT_LANG==='ru'?['шт','кг','г','л','мл','упаковка','пачка','бутылка','банка','коробка','метр']:['дана','кг','г','л','мл','қаптама','пачка','бөтелке','банка','қорап','метр']; Array.from(unitEl.options).forEach((o,i)=>o.text=vals[i]||o.value);}
  const editUnitEl=document.getElementById('editProductUnit'); if(editUnitEl&&unitEl){Array.from(editUnitEl.options).forEach((o,i)=>o.text=unitEl.options[i]?.text||o.value);}
  setText('storeBreadcrumbShop',OGO_CURRENT_LANG==='ru'?'Магазин':'Дүкен');
- // V41 language consistency: customer catalog controls are rebuilt using the active language.
- const shopSearchEl=document.getElementById('shopSearch'); if(shopSearchEl)shopSearchEl.placeholder=L.search;
- const shopEmpty=document.querySelector('#shopProducts .empty'); if(shopEmpty)shopEmpty.textContent=OGO_CURRENT_LANG==='ru'?'В этом разделе пока нет товаров.':'Бұл бөлімде әзірге тауар жоқ.';
- document.querySelectorAll('.shop-selected-hint').forEach(e=>{ if(shopCategoryId==='__promo__')e.textContent=OGO_CURRENT_LANG==='ru'?'Товары со скидкой':'Жеңілдіктегі тауарлар'; else if(shopCategoryId==='all')e.textContent=OGO_CURRENT_LANG==='ru'?'Все товары':'Барлық тауарлар'; });
-
 
  setText('sellerUnitLabel',OGO_CURRENT_LANG==='ru'?'Единица измерения':'Өлшем бірлігі'); setText('editUnitLabel',OGO_CURRENT_LANG==='ru'?'Единица измерения':'Өлшем бірлігі'); setText('editCategoryLabel',OGO_CURRENT_LANG==='ru'?'Категория':'Категория'); setText('editSectionLabel',OGO_CURRENT_LANG==='ru'?'Раздел':'Раздел');
  if(sellerUser){loadSellerSections();}
