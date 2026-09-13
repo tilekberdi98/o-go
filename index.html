@@ -1662,62 +1662,75 @@ const OGO_AYBOLIT_SELLERS=[
     'aibolit'
 ];
 
-function scheduleOgoShopRealtimeRefresh(){
-    clearTimeout(ogoProductsRealtimeRefreshTimer);
-    ogoProductsRealtimeRefreshTimer=setTimeout(async()=>{
-        if(document.getElementById('shop')?.classList.contains('active') && selectedStore==='aybolit'){
-            catalogState.shop.loaded=false;
-            try{ await loadCatalog('shop'); }catch(e){ console.debug('Live catalog refresh:',e); }
-        }
-    },120);
+function renderOgoShopAfterLiveChange(){
+    const state=catalogState.shop;
+    state.loaded=true;
+    renderSections('shop');
+    if(shopCategoryId==='__promo__')renderShopProductsByCategory();else renderProducts('shop');
 }
-
-async function notifyOgoAybolitPublished(productId=''){
-    // Realtime тек сатушы жариялау/опубликовать әрекетін аяқтағанда бір рет жіберіледі.
+function upsertOgoAybolitCacheProduct(product){
+    try{
+        const c=getOgoAybolitCache()||{products:[],promoProducts:[],sections:[]};
+        let products=Array.isArray(c.products)?c.products.filter(p=>String(p.id)!==String(product.id)):[];
+        products.unshift(product);
+        const promoProducts=products.filter(p=>Number(p.discount_percent||0)>0||Number(p.sale_price||0)>0||p.promo_text);
+        sessionStorage.setItem(OGO_AYBOLIT_CACHE_KEY,JSON.stringify({savedAt:Date.now(),products,promoProducts,sections:Array.isArray(c.sections)?c.sections:[]}));
+    }catch(e){console.debug('Aybolit live cache update:',e);}
+}
+function removeOgoAybolitCacheProduct(productId){
+    try{
+        const c=getOgoAybolitCache(); if(!c)return;
+        c.products=(c.products||[]).filter(p=>String(p.id)!==String(productId));
+        c.promoProducts=(c.promoProducts||[]).filter(p=>String(p.id)!==String(productId));
+        c.savedAt=Date.now(); sessionStorage.setItem(OGO_AYBOLIT_CACHE_KEY,JSON.stringify(c));
+    }catch(e){console.debug('Aybolit live cache remove:',e);}
+}
+async function applyOgoAybolitLiveProduct(productId, action='upsert'){
+    if(!productId)return;
+    try{
+        if(action==='delete'){
+            catalogState.shop.products=(catalogState.shop.products||[]).filter(p=>String(p.id)!==String(productId));
+            removeOgoAybolitCacheProduct(productId);
+        }else{
+            const {data,error}=await supabaseClient.from('products').select('id,seller_id,barcode,title,price,unit,sku,extra_code,is_active,updated_at,category_id,category_name,section_name,sale_price,discount_percent,promo_text,popularity_count,image_url,description,stock').eq('id',productId).maybeSingle();
+            if(error)throw error;
+            if(!data||!data.is_active){
+                catalogState.shop.products=(catalogState.shop.products||[]).filter(p=>String(p.id)!==String(productId));
+                removeOgoAybolitCacheProduct(productId);
+            }else{
+                catalogState.shop.products=(catalogState.shop.products||[]).filter(p=>String(p.id)!==String(productId));
+                catalogState.shop.products.unshift(data);
+                upsertOgoAybolitCacheProduct(data);
+            }
+        }
+        catalogState.shop.loaded=true;
+        renderOgoShopAfterLiveChange();
+    }catch(e){console.debug('O Go live product update:',e);}
+}
+async function notifyOgoAybolitPublished(productId='', action='upsert'){
     try{
         if(!supabaseClient)return;
         if(!ogoProductsRealtimeChannel){
             ogoProductsRealtimeChannel=supabaseClient.channel('ogo-aybolit-products-live');
-            await new Promise((resolve)=>{
-                let done=false;
-                const finish=()=>{if(!done){done=true;resolve();}};
-                ogoProductsRealtimeChannel.subscribe((status)=>{
-                    if(status==='SUBSCRIBED'||status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED')finish();
-                });
-                setTimeout(finish,1500);
-            });
+            await new Promise((resolve)=>{let done=false;const finish=()=>{if(!done){done=true;resolve();}};ogoProductsRealtimeChannel.subscribe((status)=>{if(status==='SUBSCRIBED'||status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED')finish();});setTimeout(finish,1500);});
         }
-        await ogoProductsRealtimeChannel.send({
-            type:'broadcast',
-            event:'product_published',
-            payload:{seller_id:String(sellerUser?.id||''),product_id:String(productId||''),at:new Date().toISOString()}
-        });
-    }catch(e){ console.debug('O Go publish realtime notify:',e); }
+        await ogoProductsRealtimeChannel.send({type:'broadcast',event:'product_published',payload:{seller_id:String(sellerUser?.id||''),product_id:String(productId||''),action,at:new Date().toISOString()}});
+    }catch(e){console.debug('O Go publish realtime notify:',e);}
 }
-
 function startOgoProductsRealtime(){
     if(ogoProductsRealtimeStarted)return;
     ogoProductsRealtimeStarted=true;
     try{
-        // DB-дегі әр өзгерісті тыңдамаймыз. Realtime тек арнайы Publish хабарламасымен іске қосылады.
         ogoProductsRealtimeChannel=supabaseClient.channel('ogo-aybolit-products-live')
-            .on('broadcast',{event:'product_published'},()=>scheduleOgoShopRealtimeRefresh())
-            .subscribe((status)=>{
-                if(status==='SUBSCRIBED') console.debug('O Go: Айболит realtime тек Publish кезінде жаңартады.');
-                if(status==='CHANNEL_ERROR' || status==='TIMED_OUT' || status==='CLOSED') console.debug('O Go: Realtime unavailable, 15 минуттық fallback жұмыс істейді.');
-            });
-    }catch(e){ console.debug('O Go Realtime init:',e); }
-
-    // Realtime хабарламасы жетпесе, каталог дәл әр 15 минут сайын ғана тексеріледі.
-    const poll=async()=>{
-        if(document.visibilityState==='visible' && document.getElementById('shop')?.classList.contains('active') && selectedStore==='aybolit'){
-            catalogState.shop.loaded=false;
-            try{await loadCatalog('shop');}catch(e){console.debug('O Go catalog polling:',e);}
-        }
-    };
-    clearInterval(ogoProductsRealtimePollTimer);
-    ogoProductsRealtimePollTimer=setInterval(poll,900000);
+            .on('broadcast',{event:'product_published'},({payload})=>applyOgoAybolitLiveProduct(payload?.product_id,payload?.action||'upsert'))
+            .subscribe((status)=>{if(status==='SUBSCRIBED')console.debug('O Go: Айболит realtime — тек өзгерген тауар.');if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED')console.debug('O Go: Realtime unavailable.');});
+    }catch(e){console.debug('O Go Realtime init:',e);}
 }
+
+const OGO_AYBOLIT_CACHE_KEY='ogo_aybolit_catalog_cache_v1';
+function getOgoAybolitCache(){try{const raw=sessionStorage.getItem(OGO_AYBOLIT_CACHE_KEY);if(!raw)return null;const c=JSON.parse(raw);return c&&Array.isArray(c.products)?c:null;}catch(e){return null;}}
+function saveOgoAybolitCache(state){try{sessionStorage.setItem(OGO_AYBOLIT_CACHE_KEY,JSON.stringify({savedAt:Date.now(),products:state.products||[],promoProducts:state.promoProducts||[],sections:state.sections||[]}));}catch(e){console.debug('Aybolit cache save:',e);}}
+function renderOgoAybolitCacheImmediately(type){if(type!=='shop')return false;const c=getOgoAybolitCache();if(!c||!c.products.length)return false;const state=catalogState.shop;state.products=c.products;state.promoProducts=Array.isArray(c.promoProducts)?c.promoProducts:[];state.sections=Array.isArray(c.sections)?c.sections:[];state.loaded=true;renderSections('shop');if(shopCategoryId==='__promo__')renderShopProductsByCategory();else renderProducts('shop');return true;}
 
 async function loadCatalog(type){
     const state=catalogState[type];
@@ -1733,6 +1746,9 @@ async function loadCatalog(type){
         else renderProducts(type);
         return;
     }
+
+    // Кэш болса, тауарларды бірден көрсетеміз. Кэш 15 минутқа жарамды.
+    if(renderOgoAybolitCacheImmediately(type)) return;
 
     productsEl.innerHTML='<div class="empty"><span class="loading-dot"></span>Танымал тауарлар жүктелуде...</div>';
     sectionsEl.innerHTML='';
@@ -1833,6 +1849,7 @@ async function loadCatalog(type){
 
         state.products=await ogoPersistAutoCategories(state.products);
         state.loaded=true;
+        if(type==='shop') saveOgoAybolitCache(state);
 
         renderSections(type);
         renderProducts(type);
@@ -2700,7 +2717,7 @@ async function createSellerProduct(){
             if(imageDbError)throw imageDbError;
         }
 
-        await notifyOgoAybolitPublished(result.data.id);
+        await notifyOgoAybolitPublished(result.data.id,'upsert');
         status.className='hint seller-success';
         status.textContent='✅ Тауар сәтті қосылды!';
         showSellerLastAdded({id:result.data.id,title:name,unit,price,category_id:autoCategory.category_id,category_name:autoCategory.category_name,section_name:autoCategory.section_name,image_url:null,is_active:true,published_once:true,updated_at:new Date().toISOString()});
@@ -3522,7 +3539,7 @@ async function toggleSellerPublished(id, published){
     try{
         const result=await supabaseClient.from('products').update({is_active:published,published_once:published||undefined,updated_at:new Date().toISOString()}).eq('id',id);
         if(result.error)throw result.error;
-        await notifyOgoAybolitPublished(id);
+        await notifyOgoAybolitPublished(id,published?'upsert':'delete');
         await loadSellerProducts();
         await refreshWarehouseSnapshot();
         catalogState.shop.loaded=false; catalogState.food.loaded=false;
@@ -3560,11 +3577,11 @@ async function openEditProduct(id){
 function closeEditProduct(){document.getElementById('editProductModal').classList.remove('show')}
 async function saveEditedProduct(){
  const status=document.getElementById('editProductStatus'); status.className='hint'; status.textContent=OGO_CURRENT_LANG==='ru'?'Сохранение...':'Сақталуда...'; const id=document.getElementById('editProductId').value; const title=document.getElementById('editProductName').value.trim(); const price=Number(document.getElementById('editProductPrice').value); const unit=document.getElementById('editProductUnit').value||'шт'; const stock=Math.max(0,Number(document.getElementById('editProductStock').value||0)); const description=document.getElementById('editProductDescription').value.trim(); const promoYes=document.getElementById('editProductPromoYes').value==='true'; const discountPercent=promoYes?Math.max(0,Math.min(100,Number(document.getElementById('editProductDiscount').value||0))):0; const saleInput=promoYes?Number(document.getElementById('editProductSalePrice').value||0):0; const salePrice=discountPercent>0?Math.round(price*(1-discountPercent/100)):(saleInput>0&&saleInput<price?saleInput:null); const promoText=promoYes?(document.getElementById('editProductPromo').value.trim()||null):null; if(!id||!title){status.textContent='Тауар атауын енгізіңіз.';return} if(!Number.isFinite(price)||price<0){status.textContent='Бағаны дұрыс енгізіңіз.';return}
- try{ const catId=document.getElementById('editProductCategory')?.value||''; const secVal=document.getElementById('editProductSection')?.value||''; const cat=OGO_AYBOLIT_CATEGORIES.find(c=>c.id===catId); const sectionName=cat&&secVal!==''?(cat.sections[Number(secVal)]||null):null; const {error}=await supabaseClient.from('products').update({title,price,unit,stock,description:description||null,is_active:document.getElementById('editPublishToggle').dataset.published==='true',published_once:true,category_id:catId||null,category_name:cat?cat.name:null,section_name:sectionName,sale_price:salePrice,discount_percent:discountPercent,promo_text:promoText,updated_at:new Date().toISOString()}).eq('id',id); if(error)throw error; const photoFile=document.getElementById('editProductImage')?.files?.[0]; if(photoFile){status.textContent='Фото жүктелуде...';const imageUrl=await ogoUploadProductImage(id,photoFile);const {error:imageDbError}=await supabaseClient.from('products').update({image_url:imageUrl,updated_at:new Date().toISOString()}).eq('id',id);if(imageDbError)throw imageDbError;} status.className='hint seller-success'; status.textContent='✅ Өзгерістер сақталды!'; catalogState.shop.loaded=false; await loadSellerProducts(); await loadSellerStoreProducts(); await loadSellerPromoProducts(); }catch(error){status.className='hint seller-error';status.textContent=error.message||'Сақтау кезінде қате болды.';}
+ try{ const catId=document.getElementById('editProductCategory')?.value||''; const secVal=document.getElementById('editProductSection')?.value||''; const cat=OGO_AYBOLIT_CATEGORIES.find(c=>c.id===catId); const sectionName=cat&&secVal!==''?(cat.sections[Number(secVal)]||null):null; const {error}=await supabaseClient.from('products').update({title,price,unit,stock,description:description||null,is_active:document.getElementById('editPublishToggle').dataset.published==='true',published_once:true,category_id:catId||null,category_name:cat?cat.name:null,section_name:sectionName,sale_price:salePrice,discount_percent:discountPercent,promo_text:promoText,updated_at:new Date().toISOString()}).eq('id',id); if(error)throw error; const photoFile=document.getElementById('editProductImage')?.files?.[0]; if(photoFile){status.textContent='Фото жүктелуде...';const imageUrl=await ogoUploadProductImage(id,photoFile);const {error:imageDbError}=await supabaseClient.from('products').update({image_url:imageUrl,updated_at:new Date().toISOString()}).eq('id',id);if(imageDbError)throw imageDbError;} status.className='hint seller-success'; status.textContent='✅ Өзгерістер сақталды!'; await notifyOgoAybolitPublished(id,document.getElementById('editPublishToggle').dataset.published==='true'?'upsert':'delete'); catalogState.shop.loaded=false; await loadSellerProducts(); await loadSellerStoreProducts(); await loadSellerPromoProducts(); }catch(error){status.className='hint seller-error';status.textContent=error.message||'Сақтау кезінде қате болды.';}
 }
 async function toggleEditProductPublish(){
  const btn=document.getElementById('editPublishToggle'); const id=document.getElementById('editProductId').value; if(!id)return; const published=btn.dataset.published==='true'; btn.disabled=true;
- try{const {error}=await supabaseClient.from('products').update({is_active:!published,updated_at:new Date().toISOString()}).eq('id',id);if(error)throw error;btn.dataset.published=!published?'true':'false';btn.textContent=!published?(OGO_CURRENT_LANG==='ru'?'Скрыть товар':'Тауарды жасыру'):(OGO_CURRENT_LANG==='ru'?'Опубликовать':'Жариялау');btn.classList.toggle('is-published',!published);document.getElementById('editProductStatusBadge').textContent=!published?(OGO_CURRENT_LANG==='ru'?'🟢 Опубликован — виден в Магазине':'🟢 Жарияланған — Магазинде көрініп тұр'):(OGO_CURRENT_LANG==='ru'?'🔴 Скрыт — в Магазине не виден':'🔴 Жасырылған — Магазинде жоқ');await loadSellerProducts();await loadSellerStoreProducts();await loadSellerPromoProducts();catalogState.shop.loaded=false;}catch(e){alert(e.message||'Статусты өзгерту кезінде қате болды.')}finally{btn.disabled=false;}
+ try{const {error}=await supabaseClient.from('products').update({is_active:!published,updated_at:new Date().toISOString()}).eq('id',id);if(error)throw error;btn.dataset.published=!published?'true':'false';btn.textContent=!published?(OGO_CURRENT_LANG==='ru'?'Скрыть товар':'Тауарды жасыру'):(OGO_CURRENT_LANG==='ru'?'Опубликовать':'Жариялау');btn.classList.toggle('is-published',!published);await notifyOgoAybolitPublished(id,!published?'upsert':'delete');document.getElementById('editProductStatusBadge').textContent=!published?(OGO_CURRENT_LANG==='ru'?'🟢 Опубликован — виден в Магазине':'🟢 Жарияланған — Магазинде көрініп тұр'):(OGO_CURRENT_LANG==='ru'?'🔴 Скрыт — в Магазине не виден':'🔴 Жасырылған — Магазинде жоқ');await loadSellerProducts();await loadSellerStoreProducts();await loadSellerPromoProducts();catalogState.shop.loaded=false;}catch(e){alert(e.message||'Статусты өзгерту кезінде қате болды.')}finally{btn.disabled=false;}
 }
 
 async function deleteEditedProduct(){
@@ -3574,6 +3591,7 @@ async function deleteEditedProduct(){
     try{
         const {error}=await supabaseClient.from('products').delete().eq('id',id);
         if(error)throw error;
+        await notifyOgoAybolitPublished(id,'delete');
         closeEditProduct(); await loadSellerProducts();
         catalogState.shop.loaded=false; catalogState.food.loaded=false;
         if(document.getElementById('shop').classList.contains('active'))await loadCatalog('shop');
