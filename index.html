@@ -1649,6 +1649,55 @@ function clearCatalogSearch(type){
     searchCatalog(type,'');
 }
 
+// Айболит каталогын сатушы өзгерістерінен кейін нақты уақытта жаңарту.
+// Supabase Realtime қосулы болса — өзгеріс келген сәтте қайта жүктейміз;
+// Realtime қолжетімсіз болса — қысқа polling fallback жұмыс істейді.
+let ogoProductsRealtimeChannel=null;
+let ogoProductsRealtimeRefreshTimer=null;
+let ogoProductsRealtimePollTimer=null;
+let ogoProductsRealtimeStarted=false;
+const OGO_AYBOLIT_SELLERS=[
+    '1fb587af-c49b-489b-a13f-7b9568b0f89c',
+    '4a42791c-7d84-466e-87c8-278481672d09',
+    'aibolit'
+];
+
+function scheduleOgoShopRealtimeRefresh(){
+    clearTimeout(ogoProductsRealtimeRefreshTimer);
+    ogoProductsRealtimeRefreshTimer=setTimeout(async()=>{
+        if(document.getElementById('shop')?.classList.contains('active') && selectedStore==='aybolit'){
+            catalogState.shop.loaded=false;
+            try{ await loadCatalog('shop'); }catch(e){ console.debug('Live catalog refresh:',e); }
+        }
+    },120);
+}
+
+function startOgoProductsRealtime(){
+    if(ogoProductsRealtimeStarted)return;
+    ogoProductsRealtimeStarted=true;
+    try{
+        ogoProductsRealtimeChannel=supabaseClient.channel('ogo-aybolit-products-live')
+            .on('postgres_changes',{
+                event:'*',schema:'public',table:'products',
+                filter:`seller_id=in.(${OGO_AYBOLIT_SELLERS.join(',')})`
+            },()=>scheduleOgoShopRealtimeRefresh())
+            .subscribe((status)=>{
+                if(status==='SUBSCRIBED') console.debug('O Go: Айболит live sync қосылды.');
+                if(status==='CHANNEL_ERROR' || status==='TIMED_OUT' || status==='CLOSED') console.debug('O Go: Realtime unavailable, polling fallback жұмыс істейді.');
+            });
+    }catch(e){ console.debug('O Go Realtime init:',e); }
+
+    // Fallback: Realtime өшіп қалса да өзгеріс бірнеше секунд ішінде көрінеді.
+    const poll=async()=>{
+        if(document.visibilityState==='visible' && document.getElementById('shop')?.classList.contains('active') && selectedStore==='aybolit'){
+            catalogState.shop.loaded=false;
+            try{await loadCatalog('shop');}catch(e){console.debug('O Go catalog polling:',e);}
+        }
+    };
+    clearInterval(ogoProductsRealtimePollTimer);
+    ogoProductsRealtimePollTimer=setInterval(poll,5000);
+}
+
 async function loadCatalog(type){
     const state=catalogState[type];
     const productsEl=document.getElementById(type+'Products');
@@ -2592,8 +2641,8 @@ async function createSellerProduct(){
         unit:unit||null,
         sku:manualSku||null,
         extra_code:manualExtraCode||null,
-        is_active:false,
-        published_once:false,
+        is_active:true,
+        published_once:true,
         stock,
         description:description||null,
         updated_at:new Date().toISOString(),
@@ -2632,7 +2681,7 @@ async function createSellerProduct(){
 
         status.className='hint seller-success';
         status.textContent='✅ Тауар сәтті қосылды!';
-        showSellerLastAdded({id:result.data.id,title:name,unit,price,category_id:autoCategory.category_id,category_name:autoCategory.category_name,section_name:autoCategory.section_name,image_url:null,is_active:false,updated_at:new Date().toISOString()});
+        showSellerLastAdded({id:result.data.id,title:name,unit,price,category_id:autoCategory.category_id,category_name:autoCategory.category_name,section_name:autoCategory.section_name,image_url:null,is_active:true,published_once:true,updated_at:new Date().toISOString()});
 
         // Тек сәтті сақталғаннан кейін ғана форманы тазалаймыз.
         window.ogoPendingSellerBarcode='';
@@ -2643,6 +2692,7 @@ async function createSellerProduct(){
         if(document.getElementById('sellerProductDescription'))document.getElementById('sellerProductDescription').value='';
         if(document.getElementById('sellerProductStock'))document.getElementById('sellerProductStock').value='0';
         document.getElementById('sellerProductPrice').value='';
+        catalogState.shop.loaded=false; if(document.getElementById('shop')?.classList.contains('active')) await loadCatalog('shop');
         const discountEl=document.getElementById('sellerProductDiscount'); if(discountEl)discountEl.value='';
         const saleEl=document.getElementById('sellerProductSalePrice'); if(saleEl)saleEl.value='';
         const promoEl=document.getElementById('sellerProductPromo'); if(promoEl)promoEl.value='';
@@ -2816,7 +2866,7 @@ async function processBulkUpload(){
                 const auto=ogoAutoClassifyProduct({name:title,unit,barcode}) || {category_id:'undefined',category_name:'Незаданные',section_id:null,section_name:null};
                 products.push({
                     seller_id:sellerUser.id, barcode:barcode||('20'+String(Date.now()).slice(-9)+String(Math.floor(Math.random()*1000)).padStart(3,'0')), title, price,
-                    unit:unit||null, sku:sku||null, extra_code:extraCode||null, is_active:false, published_once:false, stock:0, description:null, umag_supplier:supplier||null, umag_margin_percent:Number.isFinite(margin)?margin:null, umag_ntin:ntin||null, umag_scale_number:scaleNo||null, umag_updated_at:umagDate||null,
+                    unit:unit||null, sku:sku||null, extra_code:extraCode||null, is_active:true, published_once:true, stock:0, description:null, umag_supplier:supplier||null, umag_margin_percent:Number.isFinite(margin)?margin:null, umag_ntin:ntin||null, umag_scale_number:scaleNo||null, umag_updated_at:umagDate||null,
                     category_id:auto.category_id||'undefined', category_name:auto.category_name||'Незаданные', section_name:auto.section_name||null,
                     image_url:null, updated_at:new Date().toISOString()
                 });
@@ -2853,7 +2903,7 @@ async function processBulkUpload(){
             status.textContent=`Жүктелуде: ${done}/${safeProducts.length}...`;
         }
         status.className='hint seller-success';
-        status.innerHTML=`✅ ${done} тауар UMAG-тан Складқа сәтті жүктелді!<br>🟡 Барлығы әзірше Магазинде көрінбейді. Сатушы Складтан тексеріп, кейін «Жариялау» басады.`;
+        status.innerHTML=`✅ ${done} тауар UMAG-тан Складқа сәтті жүктелді!<br>🟢 Тауарлар Магазинде бірден көрінеді.`;
         showSellerLastAdded(done);
         catalogState.shop.loaded=false; catalogState.food.loaded=false;
         await loadSellerProducts();
@@ -3578,7 +3628,7 @@ setText('loginTitle',L.loginTitle);setText('loginHint',L.loginHint);setText('log
  renderFoodRestaurants();if(document.getElementById('restaurantMenu')?.style.display!=='none'){renderFoodCategories();renderRestaurantProducts()}
 }
 function toggleLanguage(){setLang(OGO_CURRENT_LANG==='kz'?'ru':'kz')}
-document.addEventListener('DOMContentLoaded',()=>setLang(OGO_CURRENT_LANG));
+document.addEventListener('DOMContentLoaded',()=>{ setLang(OGO_CURRENT_LANG); startOgoProductsRealtime(); });
 </script>
 </body>
 </html>
