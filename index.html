@@ -267,9 +267,12 @@ main{padding:18px 16px 24px}
     border-radius:15px;
     overflow:hidden;
 }
+/* Айболит: барлық тауар фотосы бірдей квадрат блокта көрсетіледі.
+   Жүктелген файл да 600×600 px стандартқа келтіріледі. */
 .product-img{
     width:100%;
-    height:92px;
+    height:150px;
+    aspect-ratio:1 / 1;
     border-radius:14px 14px 0 0;
     background:#fff;
     display:flex;
@@ -279,12 +282,15 @@ main{padding:18px 16px 24px}
     flex-shrink:0;
 }
 .product-img img{
+    display:block;
     width:100%;
     height:100%;
+    max-width:100%;
+    max-height:100%;
     object-fit:contain;
     object-position:center;
     background:#fff;
-    padding:4px;
+    padding:6px;
     box-sizing:border-box;
 }
 .product-info{
@@ -375,7 +381,7 @@ main{padding:18px 16px 24px}
 @media (max-width:360px){
     .products{gap:7px}
     .product{padding-left:7px;padding-right:7px}
-    .product-img{height:82px}
+    .product-img{height:135px;aspect-ratio:1 / 1}
     .product-name{font-size:12px}
     .product-desc{font-size:10px}
     .price{font-size:13px}
@@ -570,6 +576,7 @@ main{padding:18px 16px 24px}
 /* SELLER */
 #sellerProductImage{padding:10px}
 #sellerProductImage::file-selector-button{border:0;border-radius:9px;background:var(--yellow);color:#111;padding:8px 10px;font-weight:800;margin-right:8px}
+.photo-size-hint{font-size:10px;color:#8b938b;line-height:1.35;margin-top:6px}
 .seller-success{color:var(--green)}
 .seller-error{color:#ff8f8f}
 .seller-products{margin-top:18px;padding-top:15px;border-top:1px solid var(--line)}
@@ -993,7 +1000,7 @@ document.addEventListener('keydown',function(e){
         <div class="form-group"><label id="sellerUnitLabel">Өлшем бірлігі</label><select id="sellerProductUnit"><option value="шт">шт</option><option value="кг">кг</option><option value="г">г</option><option value="л">л</option><option value="мл">мл</option><option value="упаковка">упаковка</option><option value="пачка">пачка</option><option value="бутылка">бутылка</option><option value="банка">банка</option><option value="коробка">коробка</option><option value="метр">метр</option></select></div>
         <div class="form-group"><label id="sellerPriceLabel">Бағасы, ₸</label><input id="sellerProductPrice" type="number" min="0" step="1" placeholder="1000"></div>
         <div class="form-group"><label id="sellerStockLabel">Қалдық</label><input id="sellerProductStock" type="number" min="0" step="0.01" value="0"></div>
-        <div class="form-group"><label id="sellerPhotoLabel">Фото</label><input id="sellerProductImage" type="file" accept="image/*"></div>
+        <div class="form-group"><label id="sellerPhotoLabel">Фото</label><input id="sellerProductImage" type="file" accept="image/*"><div class="photo-size-hint">Фото автоматты түрде 600×600 px форматқа келтіріледі. Пропорциясы сақталады.</div></div>
         <div class="form-group"><label id="sellerDescriptionLabel">Сипаттама</label><textarea id="sellerProductDescription" rows="3" placeholder="Қысқаша сипаттама"></textarea></div>
         <div class="form-group"><label id="sellerPromoLabel">Акция</label><select id="sellerProductPromoYes"><option value="false">Жоқ</option><option value="true">Иә</option></select></div>
         <div id="sellerPromoFields" style="display:none"><div class="form-group"><label id="sellerDiscountLabel">Жеңілдік, %</label><input id="sellerProductDiscount" type="number" min="0" max="100" step="1" placeholder="Мысалы: 15"></div><div class="form-group"><label id="sellerSalePriceLabel">Акциялық баға, ₸</label><input id="sellerProductSalePrice" type="number" min="0" step="1" placeholder="Мысалы: 850"></div><div class="form-group"><label id="sellerPromoNameLabel">Акция атауы</label><input id="sellerProductPromo" maxlength="60" placeholder="Мысалы: -15% акция"></div></div>
@@ -1069,7 +1076,7 @@ document.addEventListener('keydown',function(e){
     <div class="form-group"><label>Өлшем бірлігі</label><select id="editProductUnit"><option value="шт">шт</option><option value="кг">кг</option><option value="г">г</option><option value="л">л</option><option value="мл">мл</option><option value="упаковка">упаковка</option><option value="пачка">пачка</option><option value="бутылка">бутылка</option><option value="банка">банка</option><option value="коробка">коробка</option><option value="метр">метр</option></select></div>
     <div class="form-group"><label>Бағасы, ₸</label><input id="editProductPrice" type="number" min="0" step="1"></div>
     <div class="form-group"><label>Қалдық</label><input id="editProductStock" type="number" min="0" step="0.01"></div>
-    <div class="form-group"><label>Фото</label><input id="editProductImage" type="file" accept="image/*"></div>
+    <div class="form-group"><label>Фото</label><input id="editProductImage" type="file" accept="image/*"><div class="photo-size-hint">Жаңа фото автоматты түрде 600×600 px форматқа келтіріледі. Пропорциясы сақталады.</div></div>
     <div class="form-group"><label>Описание</label><textarea id="editProductDescription" rows="3" placeholder="Қысқаша сипаттама"></textarea></div>
     <div class="form-group"><label>Акция</label><select id="editProductPromoYes"><option value="false">Нет</option><option value="true">Да</option></select></div>
     <div id="editPromoFields"><div class="form-group"><label>Скидка, %</label><input id="editProductDiscount" type="number" min="0" max="100" step="1"></div><div class="form-group"><label>Акциялық баға, ₸</label><input id="editProductSalePrice" type="number" min="0" step="1"></div><div class="form-group"><label>Название акции</label><input id="editProductPromo" maxlength="60" placeholder="Мысалы: -15% акция"></div></div>
@@ -2378,14 +2385,20 @@ async function ogoUploadProductImage(productId,file){
                 img.src=url;
             });
         }
+        // O Go / Айболит фото стандарты: дәл 600×600 px, ақ фон.
+        // Пропорция бұзылмайды: фото квадратқа созылмайды, бос орын ақ фонмен толтырылады.
         const sw=source.width||source.naturalWidth||1, sh=source.height||source.naturalHeight||1;
-        const max=1400, scale=Math.min(1,max/Math.max(sw,sh));
+        const SIZE=600, INNER=548;
+        const scale=Math.min(INNER/sw,INNER/sh);
+        const drawW=Math.max(1,Math.round(sw*scale));
+        const drawH=Math.max(1,Math.round(sh*scale));
         const canvas=document.createElement('canvas');
-        canvas.width=Math.max(1,Math.round(sw*scale)); canvas.height=Math.max(1,Math.round(sh*scale));
+        canvas.width=SIZE; canvas.height=SIZE;
         const ctx=canvas.getContext('2d',{alpha:false});
         if(!ctx)throw new Error('canvas unavailable');
-        ctx.fillStyle='#fff'; ctx.fillRect(0,0,canvas.width,canvas.height);
-        ctx.drawImage(source,0,0,canvas.width,canvas.height);
+        ctx.fillStyle='#fff'; ctx.fillRect(0,0,SIZE,SIZE);
+        const dx=Math.round((SIZE-drawW)/2), dy=Math.round((SIZE-drawH)/2);
+        ctx.drawImage(source,dx,dy,drawW,drawH);
         blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('jpeg conversion failed')),'image/jpeg',0.88));
         if(source.close)source.close();
     }catch(e){ console.warn('V43 JPEG conversion:',e); }
