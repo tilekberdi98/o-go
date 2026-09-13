@@ -858,7 +858,7 @@ document.addEventListener('keydown',function(e){
         <div id="sellerWarehouseTitle" class="seller-tab-title">Склад <span id="sellerWarehouseCount" class="warehouse-count">0</span></div>
         <div id="sellerWarehouseSub" class="seller-tab-sub">UMAG-тан және қолмен енгізілген барлық тауар осында сақталады.</div>
         <div class="warehouse-search-wrap"><i class="fa-solid fa-magnifying-glass"></i><input id="sellerWarehouseSearch" type="search" autocomplete="off" placeholder="Атауы, штрихкод, доп. код, артикул" oninput="filterSellerWarehouse(this.value)"></div>
-        <div class="warehouse-barcode-row"><div class="warehouse-barcode-label" id="warehouseBarcodeLabel"><i class="fa-solid fa-barcode"></i> Штрихкод</div><button class="warehouse-barcode-btn" type="button" style="flex:0 0 auto;width:48px;padding:10px 0" title="Складты жаңарту" onclick="refreshSellerWarehouse()"><i class="fa-solid fa-rotate"></i></button></div>
+        <div class="warehouse-barcode-row"><button class="warehouse-barcode-btn" type="button" onclick="openWarehouseBarcodeSearch()"><i class="fa-solid fa-barcode"></i> <span id="warehouseBarcodeScanText">Штрих код сканерлеу</span></button><button class="warehouse-barcode-btn" type="button" style="flex:0 0 auto;width:48px;padding:10px 0" title="Складты жаңарту" onclick="refreshSellerWarehouse()"><i class="fa-solid fa-rotate"></i></button></div>
         <div id="warehouseBarcodeResult" class="barcode-result" aria-live="polite"></div>
         <div class="seller-status-filter" id="sellerStatusFilter">
           <button id="warehouseFilterAll" class="active" data-status="all" onclick="setSellerWarehouseStatusFilter('all',this)">Барлығы</button>
@@ -2260,24 +2260,36 @@ async function ogoUploadProductImage(productId,file){
     // файлды overwrite етуге тәуелді емес.
     const path=`${authUser.id}/${productId}-${Date.now()}.jpg`;
     let blob=null;
-    // V43: фотоны браузер ішінде автоматты түрде JPEG-ке дайындаймыз.
+    // V43: кез келген суретті браузер ішінде JPEG-ке дайындаймыз.
     try{
         let source=null;
-        if(typeof createImageBitmap==='function') source=await createImageBitmap(file);
-        else source=await new Promise((resolve,reject)=>{const img=new Image();const url=URL.createObjectURL(file);img.onload=()=>{URL.revokeObjectURL(url);resolve(img)};img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('image decode failed'))};img.src=url});
-        const max=1400, sw=source.width||source.naturalWidth||1, sh=source.height||source.naturalHeight||1;
-        const scale=Math.min(1,max/Math.max(sw,sh));
-        const canvas=document.createElement('canvas'); canvas.width=Math.max(1,Math.round(sw*scale)); canvas.height=Math.max(1,Math.round(sh*scale));
-        const ctx=canvas.getContext('2d',{alpha:false}); ctx.fillStyle='#fff'; ctx.fillRect(0,0,canvas.width,canvas.height); ctx.drawImage(source,0,0,canvas.width,canvas.height);
+        if(typeof createImageBitmap==='function'){
+            try{ source=await createImageBitmap(file); }catch(_){ source=null; }
+        }
+        if(!source){
+            source=await new Promise((resolve,reject)=>{
+                const img=new Image(); const url=URL.createObjectURL(file);
+                img.onload=()=>{URL.revokeObjectURL(url);resolve(img)};
+                img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('image decode failed'))};
+                img.src=url;
+            });
+        }
+        const sw=source.width||source.naturalWidth||1, sh=source.height||source.naturalHeight||1;
+        const max=1400, scale=Math.min(1,max/Math.max(sw,sh));
+        const canvas=document.createElement('canvas');
+        canvas.width=Math.max(1,Math.round(sw*scale)); canvas.height=Math.max(1,Math.round(sh*scale));
+        const ctx=canvas.getContext('2d',{alpha:false});
+        if(!ctx)throw new Error('canvas unavailable');
+        ctx.fillStyle='#fff'; ctx.fillRect(0,0,canvas.width,canvas.height);
+        ctx.drawImage(source,0,0,canvas.width,canvas.height);
         blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('jpeg conversion failed')),'image/jpeg',0.88));
-        source.close?.();
+        if(source.close)source.close();
     }catch(e){ console.warn('V43 JPEG conversion:',e); }
-    if(!blob)throw new Error('Фото JPEG форматына ауыстырылмады. JPG/PNG/WebP форматындағы фото таңдап көріңіз.');
-    if(!blob)throw new Error('Фото өңделмеді. Басқа фото таңдап көріңіз.');
+    if(!blob)throw new Error('Фото өңделмеді. JPG/PNG/WebP форматындағы фото таңдап көріңіз.');
 
     const {error:upErr}=await supabaseClient.storage
         .from('product-images')
-        .upload(path,blob,{upsert:true,contentType:'image/jpeg',cacheControl:'3600'});
+        .upload(path,blob,{upsert:false,contentType:'image/jpeg',cacheControl:'3600'});
     if(upErr){
         console.error('O Go V37 image upload error:',upErr,{path,userId:authUser.id,productId});
         throw new Error(`Фото жүктелмеді: ${upErr.message||'Storage қатесі'}${upErr.code?' ('+upErr.code+')':''}`);
@@ -3354,7 +3366,7 @@ function setLang(lang){
  if(sellerUser){loadSellerSections();}
  setText('bulkColumnsHint',OGO_CURRENT_LANG==='ru'?'UMAG Excel: Название товара, Штрихкод, Прод. цена, Ед. изм, Артикул и другие колонки распознаются автоматически. Штрихкод совпадёт — существующий товар в O Go обновится.':'UMAG Excel: Название товара, Штрихкод, Прод. цена, Ед. изм, Артикул және басқа бағандар автоматты танылады. Штрихкод сәйкес келсе — O Go-дағы тауар жаңартылады.');
  
- setText('warehouseBarcodeLabel',OGO_CURRENT_LANG==='ru'?'Штрихкод':'Штрихкод'); const ws=document.getElementById('sellerWarehouseSearch');if(ws)ws.placeholder=OGO_CURRENT_LANG==='ru'?'Название, штрихкод, доп. код, артикул':'Атауы, штрихкод, қос. код, артикул'; setText('warehouseFilterAll',OGO_CURRENT_LANG==='ru'?'Все':'Барлығы'); setText('warehouseFilterWarehouse',OGO_CURRENT_LANG==='ru'?'🟡 В складе':'🟡 Складта'); setText('warehouseFilterPublished',OGO_CURRENT_LANG==='ru'?'🟢 Опубликовано':'🟢 Жарияланған'); setText('warehouseFilterHidden',OGO_CURRENT_LANG==='ru'?'🔴 Скрытые':'🔴 Жасырылған'); const wss=document.getElementById('warehouseSyncStatus');if(wss)wss.textContent='🟢 '+(OGO_CURRENT_LANG==='ru'?'Синхронизировано':'Синхрондалған'); const wsm=document.getElementById('warehouseSyncMeta');if(wsm)wsm.textContent=OGO_CURRENT_LANG==='ru'?'Последние общие данные склада доступны продавцу.':'Соңғы ортақ қойма дерегі сатушыға қолжетімді';setText('sellerShopTitle',L.store);setText('sellerShopSub',OGO_CURRENT_LANG==='ru'?'Опубликованные товары, которые видны покупателям.':'Магазинде қазір жарияланған тауарлар.');setText('sellerWarehouseTitle',L.warehouse);setText('sellerWarehouseSub',OGO_CURRENT_LANG==='ru'?'Все товары из UMAG и добавленные вручную хранятся здесь.':'UMAG-тан және қолмен енгізілген барлық тауар осында сақталады.');setText('sellerPromoTitle',L.promoTab);setText('sellerPromoSub',OGO_CURRENT_LANG==='ru'?'Управление товарами, которые участвуют в акции.':'Акцияға шығарылған тауарларды басқару.');setText('sellerNavShop',L.store);setText('sellerNavWarehouse',L.warehouse);setText('sellerNavPromo',L.promoTab);setText('sellerNavUpload',L.uploadTab);
+ setText('warehouseBarcodeScanText',OGO_CURRENT_LANG==='ru'?'Сканировать штрихкод':'Штрих код сканерлеу'); const ws=document.getElementById('sellerWarehouseSearch');if(ws)ws.placeholder=OGO_CURRENT_LANG==='ru'?'Название, штрихкод, доп. код, артикул':'Атауы, штрихкод, қос. код, артикул'; setText('warehouseFilterAll',OGO_CURRENT_LANG==='ru'?'Все':'Барлығы'); setText('warehouseFilterWarehouse',OGO_CURRENT_LANG==='ru'?'🟡 В складе':'🟡 Складта'); setText('warehouseFilterPublished',OGO_CURRENT_LANG==='ru'?'🟢 Опубликовано':'🟢 Жарияланған'); setText('warehouseFilterHidden',OGO_CURRENT_LANG==='ru'?'🔴 Скрытые':'🔴 Жасырылған'); const wss=document.getElementById('warehouseSyncStatus');if(wss)wss.textContent='🟢 '+(OGO_CURRENT_LANG==='ru'?'Синхронизировано':'Синхрондалған'); const wsm=document.getElementById('warehouseSyncMeta');if(wsm)wsm.textContent=OGO_CURRENT_LANG==='ru'?'Последние общие данные склада доступны продавцу.':'Соңғы ортақ қойма дерегі сатушыға қолжетімді';setText('sellerShopTitle',L.store);setText('sellerShopSub',OGO_CURRENT_LANG==='ru'?'Опубликованные товары, которые видны покупателям.':'Магазинде қазір жарияланған тауарлар.');setText('sellerWarehouseTitle',L.warehouse);setText('sellerWarehouseSub',OGO_CURRENT_LANG==='ru'?'Все товары из UMAG и добавленные вручную хранятся здесь.':'UMAG-тан және қолмен енгізілген барлық тауар осында сақталады.');setText('sellerPromoTitle',L.promoTab);setText('sellerPromoSub',OGO_CURRENT_LANG==='ru'?'Управление товарами, которые участвуют в акции.':'Акцияға шығарылған тауарларды басқару.');setText('sellerNavShop',L.store);setText('sellerNavWarehouse',L.warehouse);setText('sellerNavPromo',L.promoTab);setText('sellerNavUpload',L.uploadTab);
 setText('loginTitle',L.loginTitle);setText('loginHint',L.loginHint);setText('loginButton',L.login);setText('sellerAddTitle',L.addProduct);setText('sellerPublishBtnText',OGO_CURRENT_LANG==='ru'?'Добавить на Склад':'Складқа енгізу');setText('bulkOpenText',L.bulk);setText('myProductsTitle',L.myProducts);setText('sellerLogoutText',L.logout);setText('bulkTitle',L.bulkTitle);setText('bulkHint',L.bulkHint);setText('bulkTemplateText',L.template);setText('csvFileLabel',L.csv);setText('bulkUploadText',L.upload);setText('editTitle',L.edit);setText('editSaveText',L.save);setText('editDeleteText',L.delete);setText('sellerLangBtn',L.lang);setText('sellerDashboardStore',OGO_CURRENT_LANG==='ru'?'Айболит · Панель продавца':'Айболит · Сатушы панелі');setText('sellerUploadSub',L.uploadSub||'');setText('sellerUploadNote',L.uploadNote||'');setText('sellerCategoryLabel',L.category);setText('sellerSectionLabel',L.section);setText('sellerProductNameLabel',L.productName);setText('sellerProductBarcodeLabel',OGO_CURRENT_LANG==='ru'?'Штрихкод':'Штрихкод');setText('sellerExtraCodeLabel',OGO_CURRENT_LANG==='ru'?'Доп. код':'Қос. код');setText('sellerSkuLabel',OGO_CURRENT_LANG==='ru'?'Артикул':'Артикул');setText('sellerPriceLabel',L.price);setText('sellerStockLabel',L.stock);setText('sellerPhotoLabel',L.photo);setText('sellerDescriptionLabel',L.description);setText('sellerPromoLabel',L.promo);setText('sellerDiscountLabel',L.sale.replace('Акциялық баға','Жеңілдік').replace('Цена','Скидка'));setText('sellerSalePriceLabel',L.sale);setText('sellerPromoNameLabel',L.promo);setText('editCategoryLabel',L.category);setText('editSectionLabel',L.section);setText('editProductNameLabel',L.productName);setText('editSaveText',L.save);setText('editDeleteText',L.delete); const epb=document.getElementById('editPublishToggle'); if(epb){const pub=epb.dataset.published==='true';epb.textContent=pub?(OGO_CURRENT_LANG==='ru'?'Скрыть товар':'Тауарды жасыру'):(OGO_CURRENT_LANG==='ru'?'Опубликовать':'Жариялау');epb.classList.toggle('is-published',pub);} const promoSel=document.getElementById('sellerProductPromoYes');if(promoSel){promoSel.options[0].text=L.no;promoSel.options[1].text=L.yes;} const editPromoSel=document.getElementById('editProductPromoYes');if(editPromoSel){editPromoSel.options[0].text=L.no;editPromoSel.options[1].text=L.yes;}
  const foodSub=document.querySelector('#food [data-page-subtitle="food"]');if(foodSub)foodSub.textContent=L.foodSubTitle;
  setText('restaurantEmpty',L.foodEmpty);setText('serviceChooserTitle',L.choiceTitle);setText('choiceTaxi',L.choiceTaxi);setText('choiceTaxiSub',L.choiceTaxiSub);setText('choiceDelivery',L.choiceDelivery);setText('choiceDeliverySub',L.choiceDeliverySub);
