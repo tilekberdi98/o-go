@@ -1650,8 +1650,8 @@ function clearCatalogSearch(type){
 }
 
 // Айболит каталогын сатушы өзгерістерінен кейін нақты уақытта жаңарту.
-// Supabase Realtime қосулы болса — өзгеріс келген сәтте қайта жүктейміз;
-// Realtime қолжетімсіз болса — қысқа polling fallback жұмыс істейді.
+// Айболит каталогы сатушы өзгерістерін әр 15 минут сайын тексереді.
+// Сайтты артық жүктемеу үшін Realtime және жиі polling қолданылмайды.
 let ogoProductsRealtimeChannel=null;
 let ogoProductsRealtimeRefreshTimer=null;
 let ogoProductsRealtimePollTimer=null;
@@ -1672,22 +1672,43 @@ function scheduleOgoShopRealtimeRefresh(){
     },120);
 }
 
+async function notifyOgoAybolitPublished(productId=''){
+    // Realtime тек сатушы жариялау/опубликовать әрекетін аяқтағанда бір рет жіберіледі.
+    try{
+        if(!supabaseClient)return;
+        if(!ogoProductsRealtimeChannel){
+            ogoProductsRealtimeChannel=supabaseClient.channel('ogo-aybolit-products-live');
+            await new Promise((resolve)=>{
+                let done=false;
+                const finish=()=>{if(!done){done=true;resolve();}};
+                ogoProductsRealtimeChannel.subscribe((status)=>{
+                    if(status==='SUBSCRIBED'||status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED')finish();
+                });
+                setTimeout(finish,1500);
+            });
+        }
+        await ogoProductsRealtimeChannel.send({
+            type:'broadcast',
+            event:'product_published',
+            payload:{seller_id:String(sellerUser?.id||''),product_id:String(productId||''),at:new Date().toISOString()}
+        });
+    }catch(e){ console.debug('O Go publish realtime notify:',e); }
+}
+
 function startOgoProductsRealtime(){
     if(ogoProductsRealtimeStarted)return;
     ogoProductsRealtimeStarted=true;
     try{
+        // DB-дегі әр өзгерісті тыңдамаймыз. Realtime тек арнайы Publish хабарламасымен іске қосылады.
         ogoProductsRealtimeChannel=supabaseClient.channel('ogo-aybolit-products-live')
-            .on('postgres_changes',{
-                event:'*',schema:'public',table:'products',
-                filter:`seller_id=in.(${OGO_AYBOLIT_SELLERS.join(',')})`
-            },()=>scheduleOgoShopRealtimeRefresh())
+            .on('broadcast',{event:'product_published'},()=>scheduleOgoShopRealtimeRefresh())
             .subscribe((status)=>{
-                if(status==='SUBSCRIBED') console.debug('O Go: Айболит live sync қосылды.');
-                if(status==='CHANNEL_ERROR' || status==='TIMED_OUT' || status==='CLOSED') console.debug('O Go: Realtime unavailable, polling fallback жұмыс істейді.');
+                if(status==='SUBSCRIBED') console.debug('O Go: Айболит realtime тек Publish кезінде жаңартады.');
+                if(status==='CHANNEL_ERROR' || status==='TIMED_OUT' || status==='CLOSED') console.debug('O Go: Realtime unavailable, 15 минуттық fallback жұмыс істейді.');
             });
     }catch(e){ console.debug('O Go Realtime init:',e); }
 
-    // Fallback: Realtime өшіп қалса да өзгеріс бірнеше секунд ішінде көрінеді.
+    // Realtime хабарламасы жетпесе, каталог дәл әр 15 минут сайын ғана тексеріледі.
     const poll=async()=>{
         if(document.visibilityState==='visible' && document.getElementById('shop')?.classList.contains('active') && selectedStore==='aybolit'){
             catalogState.shop.loaded=false;
@@ -1695,7 +1716,7 @@ function startOgoProductsRealtime(){
         }
     };
     clearInterval(ogoProductsRealtimePollTimer);
-    ogoProductsRealtimePollTimer=setInterval(poll,5000);
+    ogoProductsRealtimePollTimer=setInterval(poll,900000);
 }
 
 async function loadCatalog(type){
@@ -2679,6 +2700,7 @@ async function createSellerProduct(){
             if(imageDbError)throw imageDbError;
         }
 
+        await notifyOgoAybolitPublished(result.data.id);
         status.className='hint seller-success';
         status.textContent='✅ Тауар сәтті қосылды!';
         showSellerLastAdded({id:result.data.id,title:name,unit,price,category_id:autoCategory.category_id,category_name:autoCategory.category_name,section_name:autoCategory.section_name,image_url:null,is_active:true,published_once:true,updated_at:new Date().toISOString()});
@@ -3500,6 +3522,7 @@ async function toggleSellerPublished(id, published){
     try{
         const result=await supabaseClient.from('products').update({is_active:published,published_once:published||undefined,updated_at:new Date().toISOString()}).eq('id',id);
         if(result.error)throw result.error;
+        await notifyOgoAybolitPublished(id);
         await loadSellerProducts();
         await refreshWarehouseSnapshot();
         catalogState.shop.loaded=false; catalogState.food.loaded=false;
