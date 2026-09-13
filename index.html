@@ -264,6 +264,8 @@ main{padding:18px 16px 24px}
     overflow:hidden;flex-shrink:0;
 }
 .product-img img{width:100%;height:100%;object-fit:cover}
+
+.promo-ribbon{position:absolute;left:10px;top:10px;z-index:3;background:#ff3b30;color:#fff;font-weight:800;font-size:11px;line-height:1;padding:7px 10px;border-radius:0 10px 10px 0;box-shadow:0 2px 7px rgba(0,0,0,.18);letter-spacing:.2px}.product.is-promo{position:relative}
 .product-info{flex:1;min-width:0}
 .product-name{font-weight:750;font-size:14px;margin-bottom:4px}
 .product-desc{font-size:11px;color:var(--muted);margin-bottom:6px}
@@ -1374,7 +1376,7 @@ function searchScoreProduct(product,query){
     return best;
 }
 function searchMatchesProduct(product,query){return searchScoreProduct(product,query)>0;}
-function isPromoProduct(p){const d=Number(p.discount_percent||0);const base=Number(p.price||0),sale=Number(p.sale_price||0);return d>0 || (sale>0&&base>0&&sale<base);}
+function isPromoProduct(p){const d=Number(p.discount_percent||0);const base=Number(p.price||0),sale=Number(p.sale_price||0);const promoText=String(p.promo_text||'').trim();return d>0 || (sale>0&&base>0&&sale<base) || !!promoText;}
 function getSalePrice(product){const base=Number(product?.price||0);const d=Math.max(0,Math.min(100,Number(product?.discount_percent||0)));if(d>0&&base>0)return Math.round(base*(1-d/100));const sale=Number(product?.sale_price||0);return sale>0&&sale<base?sale:base;}
 function renderProducts(type){
     const state=catalogState[type];
@@ -1400,9 +1402,10 @@ function renderProducts(type){
         const desc=escapeHtml(localized.description||''), name=escapeHtml(localized.name||'Тауар');
         const price=Number(p.price||0), salePrice=getSalePrice(p), effectivePrice=salePrice;const discount=Math.max(0,Math.min(100,Number(p.discount_percent||0))); 
         const promo=isPromoProduct(p)?`<span class="promo">${escapeHtml(p.promo_text||('-'+(discount||Math.round((1-effectivePrice/price)*100))+'%'))}</span>`:'';
+        const promoRibbon=isPromoProduct(p)?`<span class="promo-ribbon">🔥 ${OGO_CURRENT_LANG==='ru'?'АКЦИЯ':'АКЦИЯ'}</span>`:'';
         const priceHtml=effectivePrice<price?`<span class="old-price">${formatPrice(price)}</span>${formatPrice(effectivePrice)} ${promo}`:`${formatPrice(price)} ${promo}`;
         const stock=Number.isFinite(Number(p.stock))?Number(p.stock):999999, disabled='', stockText=desc||'Тауар';
-        return `<article class="product" data-product-id="${escapeHtml(String(p.id))}"><div class="product-img">${image}</div><div class="product-info"><div class="product-name">${name}</div><div class="product-desc">${stockText}</div><div class="price">${priceHtml}</div></div><button class="add" ${disabled} onclick="addProductToCart('${encodeURIComponent(String(p.id))}')">+</button></article>`;
+        return `<article class="product ${isPromoProduct(p)?'is-promo':''}" data-product-id="${escapeHtml(String(p.id))}">${promoRibbon}<div class="product-img">${image}</div><div class="product-info"><div class="product-name">${name}</div><div class="product-desc">${stockText}</div><div class="price">${priceHtml}</div></div><button class="add" ${disabled} onclick="addProductToCart('${encodeURIComponent(String(p.id))}')">+</button></article>`;
     }).join('');
     observeProductViews(el);
 }
@@ -3338,7 +3341,7 @@ function setLang(lang){
  setText('cartEmpty',OGO_CURRENT_LANG==='ru'?'Корзина пока пуста.':'Себет әзірге бос.');document.querySelectorAll('.catalog-search-hint').forEach(e=>e.textContent=L.searchHint);
  const labelsTaxi=document.querySelectorAll('#taxi .form-group label');if(labelsTaxi.length>=4){labelsTaxi[0].textContent=OGO_CURRENT_LANG==='ru'?'Откуда?':'Қай жерден?';labelsTaxi[1].textContent=OGO_CURRENT_LANG==='ru'?'Куда?':'Қай жерге?';labelsTaxi[2].textContent=L.phone;labelsTaxi[3].textContent=OGO_CURRENT_LANG==='ru'?'Дополнительная информация':'Қосымша ақпарат'}
  const taxiBtn=document.querySelector('#taxi .submit');if(taxiBtn)taxiBtn.innerHTML='<i class="fa-brands fa-whatsapp"></i> '+(OGO_CURRENT_LANG==='ru'?'Заказать через WhatsApp':'WhatsApp арқылы тапсырыс');
- const labelsDel=document.querySelectorAll('#delivery .form-group label');if(labelsDel.length>=4){labelsDel[0].textContent=OGO_CURRENT_LANG==='ru'?'Место забора':'Алып кететін жер';labelsDel[1].textContent=OGO_CURRENT_LANG==='ru'?'Место доставки':'Жеткізетін жер';labelsDel[2].textContent=L.phone;labelsDel[3].textContent=OGO_CURRENT_LANG==='ru'?'Что доставить?':'Не жеткізу керек?'}const delHint=document.querySelector('#delivery .hint');if(delHint)delHint.textContent=L.deliveryHint;
+ const labelsDel=document.querySelectorAll('#delivery .form-group label');if(labelsDel.length>=4){labelsDel[0].textContent=OGO_CURRENT_LANG==='ru'?'Место забора':'Алып кететін жер';labelsDel[1].textContent=OGO_CURRENT_LANG==='ru'?'Место доставки':'Жеткізетін жер';labelsDel[2].textContent=L.phone;labelsDel[3].textContent=OGO_CURRENT_LANG==='ru'?'Что доставить?':'Не жеткізу керек?'}const delHint=document.querySelector('#delivery .hint');if(delHint)delHint.textContent=L.deliveryHint;setText('deliveryOrderBtnText',OGO_CURRENT_LANG==='ru'?'Заказать':'Тапсырыс беру');
 
  const unitEl=document.getElementById('sellerProductUnit'); if(unitEl){const vals=OGO_CURRENT_LANG==='ru'?['шт','кг','г','л','мл','упаковка','пачка','бутылка','банка','коробка','метр']:['дана','кг','г','л','мл','қаптама','пачка','бөтелке','банка','қорап','метр']; Array.from(unitEl.options).forEach((o,i)=>o.text=vals[i]||o.value);}
  const editUnitEl=document.getElementById('editProductUnit'); if(editUnitEl&&unitEl){Array.from(editUnitEl.options).forEach((o,i)=>o.text=unitEl.options[i]?.text||o.value);}
