@@ -783,6 +783,53 @@ document.addEventListener('keydown',function(e){
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <meta name="ogo-version" content="v40-seller-dashboard"><meta name="ogo-auto-category" content="enabled"><meta name="ogo-photo-ranking" content="enabled"><script id="ogoZXingWasm" src="https://cdn.jsdelivr.net/npm/zxing-wasm@3.1.3/dist/iife/reader/index.js" defer></script>
 <script id="ogoZXingFallback" src="https://unpkg.com/@zxing/browser@0.2.1/umd/index.min.js" defer></script>
+
+<style id="ogo-local-seo-style">
+#local-seo{
+  max-width:520px;
+  margin:28px auto 18px;
+  padding:0 16px 24px;
+}
+#local-seo .local-seo-inner{
+  background:#121513;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:18px;
+  padding:18px;
+}
+#local-seo h2{
+  margin:0 0 10px;
+  font-size:21px;
+  line-height:1.2;
+  color:#ffd400;
+}
+#local-seo p{
+  margin:0 0 14px;
+  color:#d7dbd8;
+  font-size:14px;
+  line-height:1.5;
+}
+#local-seo .local-seo-grid{
+  display:grid;
+  gap:10px;
+}
+#local-seo .local-seo-card{
+  padding:12px 13px;
+  border-radius:13px;
+  background:#171b18;
+  border:1px solid rgba(255,255,255,.06);
+}
+#local-seo .local-seo-card h3{
+  margin:0 0 4px;
+  font-size:15px;
+  color:#a8e63d;
+}
+#local-seo .local-seo-card p{
+  margin:0;
+  font-size:13px;
+  color:#b8bfba;
+}
+</style>
+
 </head>
 
 <body>
@@ -3709,5 +3756,73 @@ setText('loginTitle',L.loginTitle);setText('loginHint',L.loginHint);setText('log
 function toggleLanguage(){setLang(OGO_CURRENT_LANG==='kz'?'ru':'kz')}
 document.addEventListener('DOMContentLoaded',()=>{ setLang(OGO_CURRENT_LANG); startOgoProductsRealtime(); });
 </script>
+
+<section id="local-seo" aria-label="O Go Осакаровка қызметтері">
+  <div class="local-seo-inner">
+    <h2>O Go — Осакаровкадағы жергілікті сервис</h2>
+    <p>O Go арқылы Осакаровкада күнделікті қажет қызметтерді бір жерден пайдаланыңыз: дүкен, такси, доставка және тағам.</p>
+    <div class="local-seo-grid">
+      <article class="local-seo-card">
+        <h3>Такси Осакаровка</h3>
+        <p>Осакаровка ішінде такси шақырып, қажетті жерге ыңғайлы жетіңіз.</p>
+      </article>
+      <article class="local-seo-card">
+        <h3>Доставка Осакаровка</h3>
+        <p>Дүкеннен және басқа бөлімдерден тапсырыс беріп, жеткізу қызметін пайдаланыңыз.</p>
+      </article>
+      <article class="local-seo-card">
+        <h3>Магазин Осакаровка</h3>
+        <p>Күнделікті қажет тауарларды O Go арқылы қарап, тапсырыс беріңіз.</p>
+      </article>
+      <article class="local-seo-card">
+        <h3>Тағам және жергілікті қызметтер</h3>
+        <p>O Go арқылы тағам мен басқа жергілікті қызметтерді бір жерден пайдаланыңыз.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+
+<script type="application/ld+json" id="ogo-local-business-schema">
+{
+  "@context": "https://schema.org",
+  "@type": "LocalBusiness",
+  "name": "O Go",
+  "url": "https://ogoapp.kz/",
+  "description": "Осакаровкадағы дүкен, такси, доставка және тағам қызметтері.",
+  "areaServed": {
+    "@type": "City",
+    "name": "Осакаровка"
+  },
+  "hasOfferCatalog": {
+    "@type": "OfferCatalog",
+    "name": "O Go қызметтері",
+    "itemListElement": [
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Такси Осакаровка"
+        }
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Доставка Осакаровка"
+        }
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Магазин Осакаровка"
+        }
+      }
+    ]
+  }
+}
+</script>
+
 </body>
 </html>
